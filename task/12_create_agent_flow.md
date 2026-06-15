@@ -1,4 +1,4 @@
-# Task 11: Create Agent Flow
+# Task 12: Create Agent Flow
 
 You are the Product Workflow Agent for Local Codex Office.
 
@@ -8,27 +8,23 @@ Users need to create new local Codex agents from the office and give each agent 
 
 The human user is the default manager of the office. The form must also allow creating a separate `Manager Agent` role, but this agent must not inherit human approval authority.
 
-V1 must also support Agent Profiles. An Agent Profile is a reusable personalized configuration for creating agents. It can include role, persona, instructions, default skills, model/profile, permission mode, workspace scope, tool access, memory/preferences, startup workflow, validation policy, collaboration behavior, communication style, risk tolerance, output preferences, and visual identity.
+Agent Profiles are implemented in Task 11. This task consumes those profiles in the create-agent workflow.
 
 ## Feature
 
-Create new agent workflow and Agent Profile personalization.
+Create new agent workflow with Agent Profile selection.
 
 ## Objective
 
-Build the create-agent form and connect it to the runtime, database, skill assignment, office view, and chat detail drawer. Add Agent Profile selection and local profile management so users can create personalized reusable agent configurations.
+Build the create-agent form and connect it to the runtime, database, skill assignment, office view, chat detail drawer, and Agent Profile selection.
 
 ## Expected Output
 
 - `src/renderer/components/CreateAgentDialog.tsx`
-- `src/renderer/components/AgentProfileEditor.tsx`
 - `src/renderer/components/AgentProfilePicker.tsx`
-- `src/main/profiles/profileService.ts`
-- `src/main/profiles/profileImportExport.ts`
 - Form fields for agent name, role, working directory, initial task, model/profile, skills, auto-run mode, and permission mode.
 - Role options must include `Manager Agent`.
-- Profile fields for persona, instructions, default skills, workspace scope, tool access, memory/preferences, startup workflow, validation policy, collaboration behavior, communication style, risk tolerance, output preferences, and visual identity.
-- User can create, edit, duplicate, delete, import, and export local Agent Profiles.
+- User can select an existing Agent Profile.
 - Creating an agent from a profile stores `profile_id` and `profile_snapshot_json`.
 - Profile default skills are applied to new agents and can be overridden before creation.
 - Working directory picker through main-process IPC.
@@ -40,7 +36,7 @@ Build the create-agent form and connect it to the runtime, database, skill assig
 
 ## Expected Feature
 
-The user can create an agent from the UI, optionally start from a personalized Agent Profile, and immediately see it as a pixel worker with logs streaming into the app.
+The user can create an agent from the UI, optionally start from an Agent Profile, and immediately see it as a pixel worker with logs streaming into the app.
 
 ## Validation Goal
 
@@ -49,9 +45,6 @@ A newly created agent has a database record, assigned skills, optional profile s
 ## Verification Steps
 
 - Submit a valid create-agent form.
-- Create a reusable Agent Profile.
-- Duplicate and edit an Agent Profile.
-- Import and export a local Agent Profile.
 - Create an agent from a selected Agent Profile.
 - Confirm the created agent stores `profile_id` and immutable `profile_snapshot_json`.
 - Confirm profile default skills are assigned to the new agent.
@@ -64,4 +57,4 @@ A newly created agent has a database record, assigned skills, optional profile s
 
 ## Continuation
 
-After this task passes validation, continue with `12_local_safety_permission_layer.md`. Runtime actions from created agents must pass through safety checks.
+After this task passes validation, continue with `13_task_board_and_activity_timeline.md`. Created agents and their sessions should now be usable by task assignment workflows.

@@ -14,12 +14,15 @@ PixiJS office scene and interactive pixel agents.
 
 Build the PixiJS office scene with desks, meeting room, whiteboard, idle area, error/blocked area, and skill shelf/toolbox area. Render agents as pixel characters with status-specific animations and persistent positions.
 
+Task 02 created a CSS-based office preview shell only. This task must replace that preview with the real PixiJS canvas while preserving the surrounding app shell layout, selected-agent behavior, and store integration.
+
 ## Expected Output
 
 - `src/renderer/office/OfficeCanvas.tsx`
 - `src/renderer/office/officeScene.ts`
 - `src/renderer/office/agentSprites.ts`
 - `src/renderer/office/officeLayout.ts`
+- Remove or retire the CSS-only office mock from the primary office surface.
 - Pixel-style placeholder assets or generated sprite primitives.
 - Click handling for selecting an agent.
 - Drag handling for repositioning agents.
@@ -37,6 +40,7 @@ The office renders correctly at desktop and smaller window sizes, agents are vis
 ## Verification Steps
 
 - Run the app and confirm the PixiJS canvas is nonblank.
+- Confirm the primary office surface is PixiJS, not the Task 02 CSS mock.
 - Confirm at least one mock agent appears as a pixel character.
 - Click an agent and confirm selection state updates.
 - Move an agent and confirm position persists after restart.

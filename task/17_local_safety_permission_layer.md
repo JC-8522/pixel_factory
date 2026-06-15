@@ -1,10 +1,12 @@
-# Task 12: Local Safety Permission Layer
+# Task 17: Local Safety Permission Layer
 
 You are the Security Agent for Local Codex Office.
 
 ## Product Context
 
 Local agents can run commands and access local files. The app must protect users from risky actions and create an audit trail.
+
+This task intentionally happens late because the first user is the project owner working locally. Earlier tasks may use conservative runtime defaults, but the full permission approval UX is not required before the product is useful for self-use.
 
 ## Feature
 
@@ -13,6 +15,8 @@ Command risk detection, approval prompts, permission policies, and denied-action
 ## Objective
 
 Implement a safety layer for app-controlled commands. Detect risky command patterns before execution, show a permission dialog, support allow-once, always-allow-in-project, and deny decisions, and log denied commands.
+
+The product model may already contain permission presets from Agent Profiles. This task turns those presets into enforceable runtime behavior and approval UI.
 
 ## Expected Output
 
@@ -45,4 +49,4 @@ Risky actions are detected, blocked until approval, redacted where necessary, an
 
 ## Continuation
 
-After this task passes validation, continue with `13_task_board_and_activity_timeline.md`. Task and timeline views should surface safety events clearly.
+After this task passes validation, continue with `18_qa_polish_packaging.md`. Final QA must include safety events and permission-denial flows.

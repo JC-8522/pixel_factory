@@ -22,6 +22,7 @@ type CodexOfficeApi = {
   tasks: TaskApi;
   meetings: MeetingApi;
   events: EventApi;
+  tokenUsage: TokenUsageApi;
   settings: SettingsApi;
   system: SystemApi;
 };
@@ -128,6 +129,14 @@ type CodexOfficeApi = {
 | `events.get(eventId)` | renderer to main | Load one event. |
 | `events.onCreated(callback)` | main to renderer | Stream new timeline events. |
 
+## Token Usage IPC
+
+| Method | Direction | Purpose |
+| --- | --- | --- |
+| `tokenUsage.listByAgent(agentId)` | renderer to main | Load token usage records for one agent. |
+| `tokenUsage.summaryByAgent(agentId)` | renderer to main | Load input/output/total tokens and estimated cost for one agent. |
+| `tokenUsage.onChanged(callback)` | main to renderer | Broadcast usage updates after runtime events are persisted. |
+
 ## Settings And System IPC
 
 | Method | Direction | Purpose |
@@ -156,6 +165,7 @@ type AgentEvent =
   | { type: "session_started"; agentId: string; sessionId: string; at: string }
   | { type: "status_changed"; agentId: string; sessionId: string; status: AgentStatus; at: string }
   | { type: "message_chunk"; agentId: string; sessionId: string; messageId: string; chunk: string; at: string }
+  | { type: "token_usage"; agentId: string; sessionId: string; messageId?: string; usage: TokenUsage; at: string }
   | { type: "command_started"; agentId: string; sessionId: string; command: string; at: string }
   | { type: "command_completed"; agentId: string; sessionId: string; exitCode: number | null; at: string }
   | { type: "file_touched"; agentId: string; sessionId: string; path: string; action: FileAction; at: string }

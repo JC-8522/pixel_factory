@@ -18,12 +18,14 @@ Build a local desktop application called Local Codex Office. It visualizes local
 8. `08_skill_system.md` - Scan local skills, parse `SKILL.md`, assign skills, and inject skill context into prompts.
 9. `09_pixel_office_view.md` - Render the PixiJS office and pixel agents with persistent positions.
 10. `10_agent_detail_and_chat.md` - Build agent detail drawer, chat UI, response streaming, and message persistence.
-11. `11_create_agent_flow.md` - Build the full create-agent workflow, Agent Profile selection, and personalized agent creation.
-12. `12_local_safety_permission_layer.md` - Add command risk detection, permission prompts, and audit logging.
+11. `11_agent_profiles_and_personalization.md` - Build reusable personalized Agent Profiles and capability matrix.
+12. `12_create_agent_flow.md` - Build the full create-agent workflow with Agent Profile selection.
 13. `13_task_board_and_activity_timeline.md` - Add project task board and filterable activity timeline.
 14. `14_meeting_room_group_chat.md` - Add group meetings, shared chat, moderator summary, and meeting notes.
-15. `15_attach_mode_mcp_and_v2_integrations.md` - Add existing-session attach mode, MCP extension points, Agent Packs, and V2 integration hooks.
-16. `16_qa_polish_packaging.md` - Complete tests, visual polish, accessibility, packaging, and release readiness.
+15. `15_agent_pack_manifest_and_install.md` - Add source-readable Agent Pack manifest, inspection, and reviewed install.
+16. `16_attach_mode_mcp_and_v2_integrations.md` - Add existing-session attach mode, MCP extension points, and V2 integration hooks.
+17. `17_local_safety_permission_layer.md` - Add command risk detection, permission prompts, and audit logging.
+18. `18_qa_polish_packaging.md` - Complete tests, visual polish, accessibility, packaging, and release readiness.
 
 ## Completion Rule
 
@@ -36,9 +38,10 @@ The final product is complete only when all tasks pass their validation goals an
 - local persistence,
 - task board,
 - activity timeline,
+- token usage and manager cost visibility,
 - meeting room,
 - Agent Profiles,
 - Community Agent Pack import/install boundaries,
-- safety permission layer,
 - attach/MCP extension points,
+- safety permission layer,
 - and verified tests.

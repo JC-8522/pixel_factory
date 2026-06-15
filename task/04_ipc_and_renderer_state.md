@@ -12,7 +12,9 @@ Typed IPC contracts and Zustand state stores.
 
 ## Objective
 
-Implement secure IPC APIs for agents, sessions, messages, skills, tasks, meetings, events, settings, and runtime operations. Add renderer-side Zustand stores that consume those APIs.
+Implement secure IPC APIs for agents, sessions, messages, token usage, skills, tasks, meetings, events, settings, and runtime operations. Add renderer-side Zustand stores that consume those APIs.
+
+This task should support store-level subscriptions through Zustand state updates. Main-to-renderer push subscriptions such as `events.onCreated` and `runtime.onEvent` can be completed in Task 05 when runtime event streams exist.
 
 ## Expected Output
 
@@ -26,11 +28,12 @@ Implement secure IPC APIs for agents, sessions, messages, skills, tasks, meeting
 - `src/renderer/stores/taskStore.ts`
 - `src/renderer/stores/eventStore.ts`
 - `src/renderer/stores/meetingStore.ts`
+- Token usage IPC methods for per-agent usage records and summary totals.
 - Tests for IPC contracts and store behavior.
 
 ## Expected Feature
 
-The renderer can load and update local app state through safe, typed APIs without direct Node.js access.
+The renderer can load and update local app state through safe, typed APIs without direct Node.js access, including per-agent token usage and estimated cost summaries for manager dashboards.
 
 ## Validation Goal
 
@@ -40,7 +43,8 @@ The preload bridge exposes only intentional APIs, all IPC payloads are validated
 
 - Run typecheck and confirm IPC request/response types are shared.
 - Test that invalid IPC payloads are rejected.
-- Test that stores can fetch, update, and subscribe to domain data.
+- Test that stores can fetch, update, and notify subscribers through Zustand state changes. Main-to-renderer event broadcast is completed with runtime streaming.
+- Test that manager-facing token usage summaries can be queried by agent id.
 - Inspect renderer code and confirm it does not import Electron main modules or Node-only APIs.
 
 ## Continuation

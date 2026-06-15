@@ -12,13 +12,14 @@ App-controlled Codex CLI runtime.
 
 ## Objective
 
-Implement `CodexCliRuntime` using Node.js child processes in the Electron main process. It must spawn Codex with a working directory, initial task, selected model/profile, assigned skills, and permission mode. It must stream stdout/stderr into runtime events and support stopping/restarting app-created sessions.
+Implement `CodexCliRuntime` using Node.js child processes in the Electron main process. It must spawn Codex with a working directory, initial task, selected model/profile, assigned skills, and permission mode. It must stream stdout/stderr into runtime events, capture or estimate token usage where possible, and support stopping/restarting app-created sessions.
 
 ## Expected Output
 
 - `src/main/runtime/CodexCliRuntime.ts`
 - Process lifecycle management.
 - Log streaming from stdout and stderr.
+- Token usage parsing or estimation from Codex CLI output/logs when available.
 - Session records linked to agents.
 - Stop and restart operations.
 - Runtime configuration for Codex executable path and profile.
@@ -36,6 +37,8 @@ The app can reliably start, monitor, and stop a local process through the runtim
 
 - Test process spawn arguments are generated from agent creation input.
 - Test stdout and stderr lines become runtime events.
+- Test token usage output becomes `token_usage` runtime events when present.
+- Test missing exact usage is marked as `estimated` rather than `reported`.
 - Test process exit updates session status.
 - Test stop terminates the process and records an event.
 - Test restart creates a new session for the same agent.
