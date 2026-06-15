@@ -65,7 +65,7 @@ Agent Packs are not runtime adapters. They are package sources that can install 
 1. Runtime adapter emits raw runtime events.
 2. Main process normalizes events into `AgentEvent`.
 3. Status machine maps events into agent statuses.
-4. Main process persists messages, sessions, and timeline events.
+4. Main process persists messages, sessions, token usage, and timeline events.
 5. Main process broadcasts sanitized updates to renderer.
 6. Renderer stores update UI and PixiJS sprites.
 
@@ -78,6 +78,7 @@ Responsibilities:
 - create deterministic sessions,
 - emit predictable status changes,
 - stream fake message chunks,
+- emit deterministic token usage events,
 - simulate command events,
 - simulate errors,
 - support stop behavior,
@@ -96,6 +97,8 @@ Responsibilities:
 - include assigned skill context in prompts,
 - capture stdout and stderr,
 - parse runtime signals into events,
+- parse token usage when Codex CLI exposes usage in structured logs or output,
+- estimate usage when exact reported usage is unavailable,
 - support stop and restart,
 - report process exit status.
 
@@ -161,6 +164,7 @@ Runtime adapters must not bypass safety.
 ## Testing Requirements
 
 - Mock runtime tests must cover all event types.
+- Mock runtime tests must include token usage events and cost summaries.
 - Codex CLI runtime tests should use a fake child process adapter.
 - Status machine tests must cover every visible status.
 - IPC runtime tests must verify invalid IDs and payloads are rejected.

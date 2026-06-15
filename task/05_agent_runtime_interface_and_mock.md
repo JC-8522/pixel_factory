@@ -12,21 +12,21 @@ Runtime adapter interface and deterministic mock runtime.
 
 ## Objective
 
-Define the `AgentRuntime` interface and implement `MockAgentRuntime` first. The mock runtime must support agent creation, message sending, response streaming, status changes, stopping, and deterministic test scenarios.
+Define the `AgentRuntime` interface and implement `MockAgentRuntime` first. The mock runtime must support agent creation, message sending, response streaming, token usage events, status changes, stopping, and deterministic test scenarios.
 
 ## Expected Output
 
 - `src/shared/types/agent.ts`
 - `src/main/runtime/AgentRuntime.ts`
 - `src/main/runtime/MockAgentRuntime.ts`
-- Runtime event types for message chunks, status changes, command events, file events, errors, completion, and user-input waits.
+- Runtime event types for message chunks, token usage, status changes, command events, file events, errors, completion, and user-input waits.
 - Main-process runtime registry.
 - IPC APIs for runtime operations.
 - Unit tests for mock runtime behavior.
 
 ## Expected Feature
 
-The user can create a mock agent, send it a prompt, see a streamed response, and watch status transitions in the app state.
+The user can create a mock agent, send it a prompt, see a streamed response, see token usage/cost metadata, and watch status transitions in the app state.
 
 ## Validation Goal
 
@@ -37,6 +37,8 @@ The mock runtime proves the full app event pipeline before real Codex CLI integr
 - Spawn a mock agent through IPC.
 - Send a message through IPC.
 - Verify streamed chunks are emitted in order.
+- Verify token usage events are emitted and persisted with `reported` or `estimated` source.
+- Verify per-agent and per-session token totals can be queried.
 - Verify agent status changes from idle to thinking to completed.
 - Verify messages and events are persisted.
 - Verify stopping a mock agent changes status to stopped.

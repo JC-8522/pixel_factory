@@ -14,7 +14,7 @@ The application is local-first. It is not a cloud service. Local process control
 - Vite for renderer development and build.
 - PixiJS for the pixel office canvas.
 - Zustand for renderer state stores.
-- SQLite for local persistence.
+- SQLite-compatible local persistence. MVP uses `sql.js` to avoid native build friction on Windows and Node 24; repository boundaries should allow swapping to native SQLite later.
 - Node.js APIs only inside Electron main process and controlled preload code.
 
 ## Process Model
@@ -71,6 +71,12 @@ An Agent Pack is a source-readable package that can include:
 
 The app must prioritize transparent, inspectable packages over opaque binaries. Before installing a community Agent Pack, users should be able to inspect requested permissions, included scripts, skill dependencies, author metadata, version history, checksums/signatures, and validation status.
 
+## Database Engine Decision
+
+The product model is SQLite: tables, migrations, repositories, foreign-key style relations, and local file persistence.
+
+For MVP implementation, use `sql.js` as the SQLite-compatible embedded engine. This avoids native module build friction during early cross-platform development, especially on Windows and bundled Node runtimes. The main-process database boundary must remain narrow enough that a future task can replace `sql.js` with native SQLite or another SQLite driver without changing renderer code or IPC contracts.
+
 ### Electron Main Process
 
 The main process owns all privileged work:
@@ -118,7 +124,7 @@ The renderer must not import `fs`, `child_process`, `path`, SQLite clients, Elec
 3. Preload sends a validated IPC request to main.
 4. Main process updates SQLite and calls the active `AgentRuntime`.
 5. Runtime emits `AgentEvent` records.
-6. Main process persists messages, sessions, status changes, and timeline events.
+6. Main process persists messages, sessions, status changes, token usage, and timeline events.
 7. Main process broadcasts sanitized updates back to renderer subscribers.
 8. Zustand stores update React panels and PixiJS agent sprites.
 
@@ -144,7 +150,7 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 
 | Product Feature | MVP/V1/V2 Placement | Owning Area |
 | --- | --- | --- |
-| Local Codex agent discovery | MVP for app-created sessions, V2 for full existing-session attach | Main runtime |
+| Local Codex agent discovery | MVP detects at least one local Codex process and app-created sessions; V2 adds full existing-session attach/control | Main runtime |
 | Pixel office view | MVP basic, V1 improved animations/themes, V2 shared themes | Renderer PixiJS |
 | Agent detail panel | MVP | Renderer UI + IPC |
 | Individual chat | MVP spawned mode, V2 attach mode | Runtime + Renderer |
@@ -153,12 +159,19 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 | Group chat / meeting room | V1 | Meetings + Runtime |
 | Task board | V1 | Tasks + UI |
 | Activity timeline | MVP event store, V1 richer filters | Events + UI |
-| Local safety and permissions | V1 full, MVP design hooks | Security + Runtime |
+| Local safety and permissions | Late hardening; presets exist earlier in profiles | Security + Runtime |
 | MCP orchestration | V2 | Runtime bridge |
 | GitHub PR integration | V2 | Integrations |
 | Multi-project workspace | V2 | Settings + data model |
 | Agent profiles and personalization | V1 | Profiles + UI + Runtime prompt context |
 | Community Agent Packs | V2 install/import, V3 registry | Integrations + Security + Profiles |
+| Agent Profile Library | V1 | Profiles + UI |
+| Agent Capability Matrix | V1 | Profiles + Skills + UI |
+| Agent Health | V1 | Runtime + Events + Usage + UI |
+| Project Workspace Selector | V2 | Settings + data model |
+| Run History / Session Archive | V1 | Sessions + Events + UI |
+| Agent Pack Import Review Screen | V2 | Agent Packs + Security + UI |
+| Token Usage & Cost Tracking | MVP mock usage, V1 manager dashboard | Runtime + Usage + Events + UI |
 
 ## Implementation Phases
 
@@ -167,6 +180,7 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 - Electron, React, TypeScript, Vite project scaffold.
 - Secure preload bridge.
 - SQLite setup.
+- `sql.js` MVP engine behind a repository boundary.
 - Zustand stores.
 - Minimal app shell.
 
@@ -176,6 +190,7 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 - `MockAgentRuntime`.
 - `CodexCliRuntime`.
 - event stream handling.
+- token usage event shape and persistence.
 - status machine.
 
 ### Phase 3: Office And Chat MVP

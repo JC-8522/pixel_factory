@@ -4,7 +4,9 @@ You are the Backend Storage Agent for Local Codex Office.
 
 ## Product Context
 
-The app stores all local state in SQLite through the Electron main process. The renderer accesses data only through IPC.
+The app stores all local state in SQLite-compatible local persistence through the Electron main process. The renderer accesses data only through IPC.
+
+MVP should use `sql.js` behind the repository boundary to avoid native SQLite build friction. Keep the database API narrow enough that a future task can swap to native SQLite without renderer or IPC changes.
 
 ## Feature
 
@@ -12,7 +14,7 @@ Local persistence and event timeline foundation.
 
 ## Objective
 
-Implement a SQLite database layer with schema, migrations, repositories, and event recording for agents, sessions, messages, skills, tasks, meetings, settings, and activity events.
+Implement a SQLite database layer with schema, migrations, repositories, and event recording for agents, sessions, messages, token usage, skills, tasks, meetings, settings, and activity events.
 
 ## Expected Output
 
@@ -22,6 +24,7 @@ Implement a SQLite database layer with schema, migrations, repositories, and eve
 - `src/main/db/repositories/agents.ts`
 - `src/main/db/repositories/sessions.ts`
 - `src/main/db/repositories/messages.ts`
+- `src/main/db/repositories/tokenUsage.ts`
 - `src/main/db/repositories/skills.ts`
 - `src/main/db/repositories/tasks.ts`
 - `src/main/db/repositories/meetings.ts`
@@ -35,6 +38,7 @@ The app can persist and read:
 - agents,
 - runtime sessions,
 - chat messages,
+- token usage and estimated cost records,
 - skills,
 - agent-skill assignments,
 - tasks,
@@ -53,6 +57,7 @@ The database layer can create a fresh local database, run migrations idempotentl
 - Verify migrations can run twice without corrupting data.
 - Verify foreign keys are enforced.
 - Verify event records include timestamp, type, optional agent id, optional task id, and JSON payload.
+- Verify token usage can be recorded per agent/session/message/task and summarized for manager cost visibility.
 - Verify the renderer has no direct database access.
 
 ## Continuation

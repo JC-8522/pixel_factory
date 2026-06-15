@@ -73,6 +73,7 @@ Agent card should show:
 * Status
 * Current task
 * Runtime duration
+* Token usage / estimated cost
 * Working directory
 * Assigned skills
 
@@ -498,6 +499,57 @@ As a user, I want to know what each agent did and when.
 
 ---
 
+## Feature 11: Token Usage & Cost Tracking
+
+### Goal
+
+Help the human manager understand how many tokens each agent uses and how much each agent may cost.
+
+### User Story
+
+As a manager, I want to see token usage and estimated cost by agent, session, task, model/profile, workspace, and time range, so I can understand spending and optimize how I assign work.
+
+### Requirements
+
+The app should track:
+
+* Input tokens
+* Output tokens
+* Total tokens
+* Cached tokens when available
+* Reasoning tokens when available
+* Model/profile used
+* Estimated cost
+* Currency
+* Session-level totals
+* Agent-level totals
+* Task-linked totals
+* Time-range totals
+
+### UI
+
+Show usage in:
+
+* Agent card
+* Agent detail panel
+* Agent Health panel
+* Run History / Session Archive
+* Task detail
+* Manager Cost Dashboard
+
+### Notes
+
+Not every runtime source will expose exact token usage. When exact usage is unavailable, the app should store `usage_source = estimated` and make that visible. If exact usage is available from Codex CLI logs, structured runtime events, MCP, or future APIs, store `usage_source = reported`.
+
+### MVP Acceptance Criteria
+
+* Mock runtime emits token usage events.
+* App stores token usage per message/session/agent.
+* App can show per-agent total tokens.
+* App can show whether usage is reported or estimated.
+
+---
+
 ## Feature 10: Local Safety & Permission Layer
 
 ### Goal
@@ -538,6 +590,83 @@ Allow once / Always allow in this project / Deny
 Security matters especially because malicious Codex-related packages have recently targeted developer credentials, including OpenAI auth tokens.
 
 ---
+
+## Additional Planned Product Features
+
+These features should be included in the roadmap because they make the product feel like a real local agent office instead of only a process viewer.
+
+### Agent Profile Library
+
+Users can manage reusable personalized Agent Profiles in one place. The library should support creating, editing, duplicating, deleting, importing, exporting, and inspecting profiles.
+
+### Agent Capability Matrix
+
+Users can compare agents and profiles by:
+
+* Skills
+* Tool access
+* Permission mode
+* Workspace scope
+* Validation policy
+* Collaboration behavior
+* Risk tolerance
+
+### Permission Presets
+
+The app should provide understandable presets:
+
+* `readonly`
+* `ask_before_edit`
+* `workspace_write`
+* `auto_run_safe_commands`
+
+The full safety approval UX can be implemented late, but these presets should exist in the product model earlier so agent creation and profiles have a stable shape.
+
+### Agent Health
+
+Each agent should expose health metadata:
+
+* Process alive/dead
+* Last heartbeat
+* Last status transition
+* Last error
+* Current runtime session
+* Runtime duration
+* Token usage
+* Estimated cost
+
+### Project Workspace Selector
+
+Users should be able to switch between local project workspaces. Each workspace can have different agents, tasks, skills, settings, and runtime sessions.
+
+### Run History / Session Archive
+
+Every agent run should be inspectable later. Users should be able to review prior sessions, prompts, logs, status transitions, files touched, errors, and result summaries.
+
+### Manager Cost Dashboard
+
+Managers should be able to inspect token usage and estimated cost by:
+
+* Agent
+* Session
+* Task
+* Model/profile
+* Workspace
+* Time range
+
+### Agent Pack Import Review Screen
+
+Before installing an Agent Pack, users should see a review screen showing:
+
+* Included profiles
+* Skill dependencies
+* Bundled skills
+* Scripts
+* Requested permissions
+* Author metadata
+* Version metadata
+* Checksum/signature status
+* Validation status
 
 # 4. Recommended App Architecture
 
@@ -923,11 +1052,17 @@ Add:
 2. Group chat meeting room
 3. Task board
 4. File-change tracking
-5. Permission approval system
+5. Permission presets in the agent/profile model
 6. Better pixel animations
 7. Agent Profiles: reusable personalized agent configurations including role, persona, instructions, default skills, model/profile, permission mode, workspace scope, tool access, startup workflow, validation policy, collaboration behavior, communication style, risk tolerance, output preferences, and visual identity
 8. Import/export local Agent Profiles
-9. Skill marketplace/import page
+9. Agent Profile Library
+10. Agent Capability Matrix
+11. Agent Health
+12. Run History / Session Archive
+13. Manager Cost Dashboard for token usage and estimated cost
+14. Skill marketplace/import page
+15. Full permission approval system as late hardening
 
 ---
 
@@ -940,10 +1075,12 @@ Add:
 3. Timeline replay
 4. GitHub PR integration
 5. Multi-project workspace
-6. Agent Packs: shareable packages containing agent profiles, skill dependencies, optional bundled skills, assets, startup workflows, permission manifests, and validation tests
-7. Install Agent Pack from local folder or GitHub URL
-8. Plugin system
-9. Shared office themes
+6. Project Workspace Selector
+7. Agent Packs: shareable packages containing agent profiles, skill dependencies, optional bundled skills, assets, startup workflows, permission manifests, and validation tests
+8. Agent Pack Import Review Screen
+9. Install Agent Pack from local folder or GitHub URL
+10. Plugin system
+11. Shared office themes
 
 ---
 

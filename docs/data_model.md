@@ -4,6 +4,8 @@
 
 Use SQLite as the durable local store. The database is owned by the Electron main process.
 
+MVP implementation uses `sql.js` as a SQLite-compatible embedded engine to avoid native module build friction. Keep all database access behind `src/main/db` repositories so the engine can later be swapped to native SQLite without changing renderer code or IPC contracts.
+
 ## Actor Model
 
 MVP is a local single-user app. The human user is treated as the default manager and does not require a full `users` table.
@@ -24,6 +26,7 @@ agent_profiles
 agent_profile_skills
 sessions
 messages
+token_usage
 skills
 agent_skills
 tasks
@@ -47,6 +50,8 @@ Most tables should include:
 - soft references by text IDs where cross-table relations are needed.
 
 Use SQLite foreign keys for owned relations where practical.
+
+When using `sql.js`, enforce important relation constraints with schema-level triggers if native `PRAGMA foreign_keys` support is unavailable in the runtime.
 
 ## `agents`
 
@@ -162,6 +167,14 @@ Columns:
 - `exit_code`
 - `error_message`
 - `metadata_json`
+- `input_tokens`
+- `output_tokens`
+- `total_tokens`
+- `cached_tokens`
+- `reasoning_tokens`
+- `estimated_cost`
+- `cost_currency`
+- `usage_source`
 
 ## `messages`
 
@@ -178,6 +191,10 @@ Columns:
 - `stream_state`
 - `parent_message_id`
 - `metadata_json`
+- `input_tokens`
+- `output_tokens`
+- `total_tokens`
+- `usage_source`
 - `created_at`
 - `updated_at`
 
@@ -188,6 +205,37 @@ Roles:
 - `system`
 - `tool`
 - `moderator`
+
+## `token_usage`
+
+Stores token usage and estimated cost records for manager cost visibility.
+
+Columns:
+
+- `id`
+- `agent_id`
+- `session_id`
+- `message_id`
+- `task_id`
+- `model_profile`
+- `input_tokens`
+- `output_tokens`
+- `total_tokens`
+- `cached_tokens`
+- `reasoning_tokens`
+- `estimated_cost`
+- `cost_currency`
+- `usage_source`
+- `metadata_json`
+- `created_at`
+
+`usage_source` values:
+
+- `reported`
+- `estimated`
+- `manual`
+
+Use `reported` when token usage comes from a structured runtime source. Use `estimated` when the app derives usage from text or approximate tokenization.
 
 ## `skills`
 
@@ -362,6 +410,7 @@ Event types include:
 - `meeting_ended`
 - `permission_requested`
 - `permission_decided`
+- `token_usage_recorded`
 
 ## `settings`
 
@@ -413,6 +462,8 @@ Columns:
 ## Persistence Rules
 
 - Runtime events should be persisted as `events` before broadcasting when possible.
+- Token usage should be stored in `token_usage` and summarized into sessions/messages where practical.
+- Token usage records should include whether usage is `reported` or `estimated`.
 - Chat message chunks may be appended incrementally, but final messages must end in a stable `stream_state`.
 - Agent status must be durable so the office can restore after restart.
 - Agent positions must be stored in `agents`.

@@ -11,10 +11,11 @@ MVP must deliver a usable local vertical slice:
 - Electron desktop shell.
 - React renderer app.
 - Secure preload and typed IPC.
-- SQLite database.
+- SQLite-compatible database using `sql.js` for MVP, behind a repository boundary that can later swap to native SQLite.
 - `AgentRuntime` abstraction.
 - deterministic mock runtime.
 - spawned app-controlled Codex CLI runtime.
+- detection of at least one local Codex process where the local environment has Codex installed.
 - one or more visible pixel agents.
 - PixiJS office canvas.
 - agent selection from the office.
@@ -25,6 +26,7 @@ MVP must deliver a usable local vertical slice:
 - skill assignment badges.
 - message and event persistence.
 - basic activity event recording.
+- basic token usage tracking from mock runtime and any reported Codex runtime usage.
 
 ## MVP Acceptance
 
@@ -32,12 +34,13 @@ The user can:
 
 1. launch the desktop app locally,
 2. create an app-controlled agent,
-3. see the agent in the pixel office,
-4. click the agent,
-5. send a chat message,
-6. watch output stream into the chat/log UI,
-7. assign a local skill,
-8. restart the app and still see saved messages/events.
+3. detect at least one local Codex process when Codex is running,
+4. see the agent or detected process in the pixel office,
+5. click the agent,
+6. send a chat message,
+7. watch output stream into the chat/log UI,
+8. assign a local skill,
+9. restart the app and still see saved messages/events.
 
 The human user is the default manager throughout MVP. The create-agent flow should also support `Manager Agent` as an agent role, while keeping human approval and settings authority separate from agent behavior.
 
@@ -54,6 +57,11 @@ V1 expands the product from a single-agent MVP into a practical multi-agent work
 - Agent Profiles for reusable personalized agent configurations,
 - profile personalization fields including role, persona, instructions, default skills, model/profile, permission mode, workspace scope, tool access, memory/preferences, startup workflow, validation policy, collaboration behavior, communication style, risk tolerance, output preferences, and visual identity,
 - local Agent Profile import/export,
+- Agent Profile Library,
+- Agent Capability Matrix,
+- Agent Health panel,
+- Run History / Session Archive,
+- Manager Cost Dashboard for token usage and estimated cost,
 - skill marketplace or import page,
 - richer timeline filters,
 - task and meeting result summaries.
@@ -67,11 +75,13 @@ V2 adds advanced integration and extensibility:
 - timeline replay,
 - GitHub PR integration,
 - multi-project workspace support,
+- Project Workspace Selector,
 - Agent Packs that bundle profiles, skill dependencies, optional bundled skills, assets, startup workflows, permission manifests, and validation tests,
 - install Agent Pack from local folder or GitHub URL,
 - plugin system,
 - shared office themes,
 - richer external agent provider support.
+- Agent Pack Import Review Screen.
 
 ## V3 / Open Source Ecosystem Vision
 
@@ -122,7 +132,7 @@ V3 can turn the project into a community-sharing ecosystem:
 
 | Feature From Product Design | Implementation Stage | Status |
 | --- | --- | --- |
-| Local Codex Agent Discovery | MVP app-created, V2 attach | planned |
+| Local Codex Agent Discovery | MVP detects local Codex process and app-created sessions, V2 attach/control | planned |
 | Pixel Office View | MVP basic, V1 enhanced | planned |
 | Agent Detail Panel | MVP | planned |
 | Chat With Individual Agent | MVP spawned, V2 attached | planned |
@@ -134,6 +144,14 @@ V3 can turn the project into a community-sharing ecosystem:
 | Local Safety & Permission Layer | V1 full, MVP hooks | planned |
 | Agent Profiles / Personalization | V1 | planned |
 | Community Agent Packs | V2 install/import, V3 registry | planned |
+| Agent Profile Library | V1 | planned |
+| Agent Capability Matrix | V1 | planned |
+| Permission Presets | V1 model, late safety UX | planned |
+| Agent Health | V1 | planned |
+| Project Workspace Selector | V2 | planned |
+| Run History / Session Archive | V1 | planned |
+| Agent Pack Import Review Screen | V2 | planned |
+| Token Usage & Cost Tracking | MVP base, V1 dashboard | planned |
 
 ## Delivery Milestones
 
@@ -143,5 +161,6 @@ V3 can turn the project into a community-sharing ecosystem:
 4. Chat MVP: detail drawer, message send, response stream.
 5. Skills MVP: scan, parse, assign, prompt injection.
 6. V1 Personalization: Agent Profiles, profile import/export, personalized create-agent flow.
-7. V1 Workflows: permissions, task board, meeting room, timeline filters.
-8. V2 Integrations: attach mode, MCP, GitHub, Agent Packs, plugins, themes.
+7. V1 Workflows: task board, meeting room, timeline filters, run history, agent health, cost dashboard.
+8. V2 Integrations: attach mode, MCP, GitHub, Agent Packs, workspace selector, plugins, themes.
+9. Late hardening: safety permission layer and final QA.

@@ -44,4 +44,4 @@ The meeting room can coordinate multiple agents in a predictable flow and produc
 
 ## Continuation
 
-After this task passes validation, continue with `15_attach_mode_mcp_and_v2_integrations.md`. Group work should remain compatible with future attached sessions and MCP orchestration.
+After this task passes validation, continue with `15_agent_pack_manifest_and_install.md`. Meeting outputs and agent profiles should be packageable in future Agent Packs.

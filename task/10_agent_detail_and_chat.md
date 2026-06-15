@@ -43,4 +43,4 @@ The detail drawer and chat UI work with the mock runtime and are ready to work w
 
 ## Continuation
 
-After this task passes validation, continue with `11_create_agent_flow.md`. The create flow should produce agents that immediately appear in the office and chat drawer.
+After this task passes validation, continue with `11_agent_profiles_and_personalization.md`. Profiles should be ready before the create-agent flow consumes them.
