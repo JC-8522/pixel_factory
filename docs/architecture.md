@@ -1,0 +1,226 @@
+# Local Codex Office Architecture
+
+## Purpose
+
+Local Codex Office is a local desktop app that visualizes Codex agents as pixel-art office workers. It lets the user create app-controlled agents, inspect activity, chat with agents, assign skills, manage work, and coordinate multiple agents while keeping local execution behind explicit boundaries.
+
+The application is local-first. It is not a cloud service. Local process control, filesystem reads, log streaming, skill scanning, SQLite persistence, and safety checks all live in the Electron main process.
+
+## Technology Stack
+
+- Electron for desktop shell and local system access.
+- React for renderer UI.
+- TypeScript for all application code.
+- Vite for renderer development and build.
+- PixiJS for the pixel office canvas.
+- Zustand for renderer state stores.
+- SQLite for local persistence.
+- Node.js APIs only inside Electron main process and controlled preload code.
+
+## Process Model
+
+## User And Agent Role Model
+
+The human user is the default manager of the office. User-owned actions include creating agents, approving risky local operations, assigning tasks, reviewing outputs, and changing product settings.
+
+The system also supports a user-created `Manager Agent` role. A Manager Agent can plan work, coordinate other agents, summarize meetings, and suggest assignments, but it is still an agent controlled by the same runtime and permission rules as every other agent.
+
+Do not treat a Manager Agent as the human user. Permission approvals, app settings, and final local execution authority remain with the human manager.
+
+## Agent Personalization Model
+
+Agents can be personalized through reusable `Agent Profiles`. A profile is not a running process; it is a template-like configuration for creating an agent instance.
+
+An Agent Profile can define:
+
+- role,
+- persona and working style,
+- long-term operating instructions,
+- default model/profile,
+- permission mode,
+- default workspace or project scope,
+- tool access/capabilities,
+- memory and user preferences,
+- startup workflow,
+- validation policy,
+- collaboration behavior,
+- communication style,
+- risk tolerance,
+- output format preferences,
+- visual identity,
+- default assigned skills.
+
+When an agent is created from a profile, the app should store both `profile_id` and `profile_snapshot_json`. The snapshot preserves the exact configuration used at creation time even if the reusable profile changes later.
+
+Skills remain one part of personalization, but they are not the whole personalization model.
+
+## Community Agent Pack Vision
+
+Long term, Local Codex Office should support shareable `Agent Packs` for the open-source community.
+
+An Agent Pack is a source-readable package that can include:
+
+- one or more Agent Profiles,
+- skill dependencies,
+- optional bundled skills,
+- visual identity assets,
+- startup workflows,
+- permission manifest,
+- validation tests,
+- author and version metadata.
+
+The app must prioritize transparent, inspectable packages over opaque binaries. Before installing a community Agent Pack, users should be able to inspect requested permissions, included scripts, skill dependencies, author metadata, version history, checksums/signatures, and validation status.
+
+### Electron Main Process
+
+The main process owns all privileged work:
+
+- start and stop Codex processes,
+- discover app-created and local Codex sessions,
+- stream stdout, stderr, and local logs,
+- scan local skill folders,
+- read and write SQLite data,
+- manage runtime adapters,
+- evaluate command risk,
+- request or store permission decisions,
+- open local folders or terminals through explicit IPC actions.
+
+### Preload Process
+
+The preload script exposes a narrow typed bridge:
+
+- no raw `ipcRenderer` passthrough,
+- no raw filesystem or process APIs,
+- no dynamic method forwarding,
+- all payloads validated by shared contracts.
+
+### Renderer Process
+
+The renderer owns presentation and interaction:
+
+- React app shell,
+- PixiJS office canvas,
+- agent detail drawer,
+- chat UI,
+- skill panel,
+- task board,
+- meeting room,
+- activity timeline,
+- settings views,
+- Zustand stores that call preload APIs.
+
+The renderer must not import `fs`, `child_process`, `path`, SQLite clients, Electron main modules, or direct Codex runtime modules.
+
+## High-Level Data Flow
+
+1. User creates or selects an agent in the renderer.
+2. Renderer calls a typed preload API.
+3. Preload sends a validated IPC request to main.
+4. Main process updates SQLite and calls the active `AgentRuntime`.
+5. Runtime emits `AgentEvent` records.
+6. Main process persists messages, sessions, status changes, and timeline events.
+7. Main process broadcasts sanitized updates back to renderer subscribers.
+8. Zustand stores update React panels and PixiJS agent sprites.
+
+## Main Runtime Flow
+
+MVP uses spawned mode:
+
+1. User submits create-agent form.
+2. Main process creates an `agents` record.
+3. Main process creates a `sessions` record.
+4. Main process builds prompt context from role, task, working directory, and assigned skills.
+5. `CodexCliRuntime` starts a local Codex process.
+6. stdout and stderr become runtime events.
+7. the status machine maps events into visible agent statuses.
+8. messages and events are persisted.
+9. renderer updates the office view and detail drawer.
+
+If the selected role is `Manager Agent`, the same runtime flow applies. The only difference is prompt context and UI labeling.
+
+Mock runtime must be implemented before real Codex CLI runtime so UI, database, IPC, status transitions, and tests can be developed deterministically.
+
+## Core Feature Roadmap
+
+| Product Feature | MVP/V1/V2 Placement | Owning Area |
+| --- | --- | --- |
+| Local Codex agent discovery | MVP for app-created sessions, V2 for full existing-session attach | Main runtime |
+| Pixel office view | MVP basic, V1 improved animations/themes, V2 shared themes | Renderer PixiJS |
+| Agent detail panel | MVP | Renderer UI + IPC |
+| Individual chat | MVP spawned mode, V2 attach mode | Runtime + Renderer |
+| Create new agent | MVP | Runtime + UI |
+| Skill assignment | MVP basic, V1 import/marketplace | Skills + UI |
+| Group chat / meeting room | V1 | Meetings + Runtime |
+| Task board | V1 | Tasks + UI |
+| Activity timeline | MVP event store, V1 richer filters | Events + UI |
+| Local safety and permissions | V1 full, MVP design hooks | Security + Runtime |
+| MCP orchestration | V2 | Runtime bridge |
+| GitHub PR integration | V2 | Integrations |
+| Multi-project workspace | V2 | Settings + data model |
+| Agent profiles and personalization | V1 | Profiles + UI + Runtime prompt context |
+| Community Agent Packs | V2 install/import, V3 registry | Integrations + Security + Profiles |
+
+## Implementation Phases
+
+### Phase 1: Foundation
+
+- Electron, React, TypeScript, Vite project scaffold.
+- Secure preload bridge.
+- SQLite setup.
+- Zustand stores.
+- Minimal app shell.
+
+### Phase 2: Runtime Pipeline
+
+- `AgentRuntime` interface.
+- `MockAgentRuntime`.
+- `CodexCliRuntime`.
+- event stream handling.
+- status machine.
+
+### Phase 3: Office And Chat MVP
+
+- PixiJS office canvas.
+- clickable agent sprites.
+- agent detail drawer.
+- chat UI with streamed responses.
+- message and event persistence.
+
+### Phase 4: Skills MVP
+
+- scan local skill roots.
+- parse `SKILL.md`.
+- display skill drawer.
+- assign skill badges to agents.
+- inject selected skill context into agent prompts.
+
+### Phase 5: V1 Coordination
+
+- permission approval layer.
+- task board.
+- activity timeline filters.
+- meeting room group chat.
+- richer multi-agent support.
+- agent profiles and personalization.
+- local profile import/export.
+
+### Phase 6: V2 Extension Points
+
+- existing-session attach mode.
+- MCP orchestration bridge.
+- GitHub integration boundary.
+- multi-project workspaces.
+- Agent Pack installation from local folder or GitHub URL.
+- plugin registry.
+- timeline replay.
+- shared office themes.
+
+## Architectural Rules
+
+- Use TypeScript shared types for IPC and runtime events.
+- Keep UI state derived from persisted data plus runtime subscriptions.
+- Treat SQLite as the source of truth for durable state.
+- Treat runtime adapters as replaceable providers.
+- Prefer event records for auditing and timeline behavior.
+- All local system access must be mediated by main-process services.
+- Any action that may execute or alter local state must pass through safety hooks.

@@ -1,0 +1,48 @@
+# Task 12: Local Safety Permission Layer
+
+You are the Security Agent for Local Codex Office.
+
+## Product Context
+
+Local agents can run commands and access local files. The app must protect users from risky actions and create an audit trail.
+
+## Feature
+
+Command risk detection, approval prompts, permission policies, and denied-action logging.
+
+## Objective
+
+Implement a safety layer for app-controlled commands. Detect risky command patterns before execution, show a permission dialog, support allow-once, always-allow-in-project, and deny decisions, and log denied commands.
+
+## Expected Output
+
+- `src/main/security/riskRules.ts`
+- `src/main/security/permissionPolicy.ts`
+- `src/main/security/secretsRedaction.ts`
+- `src/main/runtime/safeCommandGate.ts`
+- IPC APIs for permission requests and decisions.
+- Renderer permission dialog.
+- Settings UI for project allow rules.
+- Tests for risky command detection and policy behavior.
+
+## Expected Feature
+
+When an app-controlled agent wants to run a risky command, the user can approve or deny it before the command proceeds.
+
+## Validation Goal
+
+Risky actions are detected, blocked until approval, redacted where necessary, and recorded in the activity timeline.
+
+## Verification Steps
+
+- Test delete-file commands are flagged.
+- Test package installation commands are flagged.
+- Test network commands are flagged.
+- Test credential-like strings are redacted in logs.
+- Test allow-once applies to only one command.
+- Test always-allow-in-project is scoped to one project.
+- Test deny prevents command execution and records an event.
+
+## Continuation
+
+After this task passes validation, continue with `13_task_board_and_activity_timeline.md`. Task and timeline views should surface safety events clearly.
