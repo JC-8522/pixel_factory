@@ -156,7 +156,7 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 | Individual chat | MVP spawned mode, V2 attach mode | Runtime + Renderer |
 | Create new agent | MVP | Runtime + UI |
 | Skill assignment | MVP basic, V1 import/marketplace | Skills + UI |
-| Group chat / meeting room | V1 | Meetings + Runtime |
+| Meeting room multi-agent conversation | V1 | Meetings + Runtime |
 | Task board | V1 | Tasks + UI |
 | Activity timeline | MVP event store, V1 richer filters | Events + UI |
 | Local safety and permissions | Late hardening; presets exist earlier in profiles | Security + Runtime |
@@ -214,10 +214,24 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 - permission approval layer.
 - task board.
 - activity timeline filters.
-- meeting room group chat.
+- meeting room group chat and multi-agent conversation orchestration.
 - richer multi-agent support.
 - agent profiles and personalization.
 - local profile import/export.
+
+## Meeting Room Orchestration Model
+
+The meeting room is the first coordination surface for multiple agents. It must support direct human-manager-to-many-agent conversation, but it should not be limited to a passive chat room.
+
+The architecture should leave room for editable agent-to-agent flows:
+
+- developer agent produces work,
+- reviewer, auditor, QA, or TL agent reviews the work,
+- feedback is routed back to the developer agent,
+- the developer agent revises,
+- the loop stops when acceptance criteria are met, maximum rounds are reached, or a manager escalation rule fires.
+
+Meeting orchestration should be rule-driven and inspectable. Rules should describe speaker order, addressed agent, review target, stop condition, escalation condition, and expected artifact. Runtime events and meeting messages should preserve enough metadata to reconstruct why one agent spoke after another.
 
 ### Phase 6: V2 Extension Points
 

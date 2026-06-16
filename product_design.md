@@ -371,11 +371,13 @@ Example:
 
 ### Goal
 
-Allow multiple agents to discuss one problem.
+Allow the human manager to talk with multiple agents in one room and allow agents to communicate with each other through configurable conversation logic.
 
 ### User Story
 
-As a user, I want to drag several agents into a meeting room and let them discuss a task together.
+As a user, I want to drag several agents into a meeting room, talk with them together, and define when one agent should review, challenge, or respond to another agent.
+
+The meeting room is not only a group chat. It is the first multi-agent coordination surface. It should support user-to-many-agent conversation first, then extend naturally into agent-to-agent workflows such as developer agent -> reviewer/TL/auditor agent -> developer feedback loops.
 
 ### Meeting Creation
 
@@ -386,6 +388,10 @@ User can create a meeting with:
 * Participants
 * Moderator agent
 * Output format
+* Conversation mode
+* Agent review/handoff rules
+* Stop conditions
+* Manager escalation conditions
 
 ### Example
 
@@ -412,11 +418,37 @@ Discuss the best architecture for the local Codex Office app. Produce a decision
 6. Moderator produces final decision.
 7. Result saved as meeting note.
 
+### Agent-To-Agent Conversation Logic
+
+The meeting room should support configurable logic such as:
+
+* user asks one question and multiple agents respond,
+* round-robin agent discussion,
+* moderator-led discussion,
+* developer agent produces output and reviewer/TL/auditor agent reviews it,
+* reviewer feedback is routed back to the developer agent,
+* developer agent revises and resubmits,
+* manager is asked when agents disagree, confidence is low, risk is high, stop conditions are reached, or human approval is required.
+
+The user should be able to edit:
+
+* which agent speaks first,
+* which agent reviews whose output,
+* how many review/revision rounds are allowed,
+* what counts as acceptance,
+* what counts as blocking feedback,
+* when the loop should stop,
+* when to ask the human manager,
+* what final artifact should be produced.
+
+Each agent-to-agent message should remain inspectable in the meeting timeline. The app should preserve who spoke, who the message was addressed to, why the handoff happened, and which rule triggered the next step.
+
 ### MVP Acceptance Criteria
 
 * User can select 2+ agents.
 * User can start group discussion.
 * App shows messages in shared room.
+* App can preserve message routing metadata for future agent-to-agent flows.
 * Final summary is saved locally.
 
 ---

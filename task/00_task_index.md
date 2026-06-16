@@ -23,7 +23,7 @@ Build a local desktop application called Local Codex Office. It visualizes local
 | 11 | Planned | `11_agent_profiles_and_personalization.md` | Build reusable personalized Agent Profiles and capability matrix. |
 | 12 | Planned | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection. |
 | 13 | Planned | `13_task_board_and_activity_timeline.md` | Add project task board and filterable activity timeline. |
-| 14 | Planned | `14_meeting_room_group_chat.md` | Add group meetings, shared chat, moderator summary, and meeting notes. |
+| 14 | Planned | `14_meeting_room_group_chat.md` | Add meeting-room multi-agent conversation, editable handoff/review flows, moderator summary, and meeting notes. |
 | 15 | Planned | `15_agent_pack_manifest_and_install.md` | Add source-readable Agent Pack manifest, inspection, and reviewed install. |
 | 16 | Planned | `16_attach_mode_mcp_and_v2_integrations.md` | Add existing-session attach mode, MCP extension points, and V2 integration hooks. |
 | 17 | Planned | `17_local_safety_permission_layer.md` | Add command risk detection, permission prompts, and audit logging. |
@@ -54,7 +54,7 @@ The final product is complete only when all tasks pass their validation goals an
 - task board,
 - activity timeline,
 - token usage and manager cost visibility,
-- meeting room,
+- meeting room multi-agent conversation and future agent-to-agent review loops,
 - Agent Profiles,
 - Community Agent Pack import/install boundaries,
 - attach/MCP extension points,

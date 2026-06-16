@@ -34,6 +34,8 @@ task_events
 meetings
 meeting_participants
 meeting_messages
+meeting_flow_rules
+meeting_transitions
 events
 settings
 permission_rules
@@ -361,8 +363,71 @@ Columns:
 - `id`
 - `meeting_id`
 - `agent_id`
+- `target_agent_id`
+- `parent_message_id`
 - `role`
 - `content`
+- `message_kind`
+- `flow_rule_id`
+- `created_at`
+- `metadata_json`
+
+`target_agent_id` is optional and supports future agent-to-agent routing inside a meeting.
+
+`message_kind` examples:
+
+- `user_prompt`
+- `agent_response`
+- `review_request`
+- `review_feedback`
+- `revision`
+- `manager_escalation`
+- `summary`
+
+## `meeting_flow_rules`
+
+Stores editable conversation and handoff logic for a meeting.
+
+Columns:
+
+- `id`
+- `meeting_id`
+- `name`
+- `trigger_json`
+- `source_agent_id`
+- `target_agent_id`
+- `action`
+- `stop_condition_json`
+- `manager_escalation_json`
+- `max_rounds`
+- `enabled`
+- `created_at`
+- `updated_at`
+
+Example actions:
+
+- `ask_agent`
+- `request_review`
+- `send_feedback`
+- `request_revision`
+- `summarize`
+- `ask_manager`
+- `stop_meeting`
+
+## `meeting_transitions`
+
+Stores why a meeting moved from one speaker/action to the next.
+
+Columns:
+
+- `id`
+- `meeting_id`
+- `flow_rule_id`
+- `from_message_id`
+- `to_message_id`
+- `source_agent_id`
+- `target_agent_id`
+- `reason`
 - `created_at`
 - `metadata_json`
 
