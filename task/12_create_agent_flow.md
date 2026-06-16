@@ -18,6 +18,8 @@ Create new agent workflow with Agent Profile selection.
 
 Build the create-agent form and connect it to the runtime, database, skill assignment, office view, chat detail drawer, and Agent Profile selection.
 
+The create-agent workflow should be implemented through a main-process application service. The renderer form collects intent; the main process validates it, generates any profile snapshot, applies default skills, creates durable records, and starts the runtime.
+
 ## Expected Output
 
 - `src/renderer/components/CreateAgentDialog.tsx`
@@ -32,6 +34,7 @@ Build the create-agent form and connect it to the runtime, database, skill assig
 - Agent creation event.
 - Agent appears in the office after creation.
 - Initial task appears in chat/session history.
+- Main-process create-agent application service that coordinates profile snapshot, skill defaults, repositories, runtime spawn, and domain events.
 - Tests for form validation and successful creation.
 
 ## Expected Feature
@@ -54,6 +57,8 @@ A newly created agent has a database record, assigned skills, optional profile s
 - Confirm the agent appears in the office.
 - Confirm initial task is saved as a message or session prompt.
 - Confirm invalid form inputs show useful errors.
+- Confirm the renderer never provides a trusted `profile_snapshot_json`; main-process service generates it.
+- Confirm agent creation emits stable domain events for timeline consumers.
 
 ## Continuation
 

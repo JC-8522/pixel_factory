@@ -21,17 +21,29 @@ Build a local desktop application called Local Codex Office. It visualizes local
 | 09 | Completed | `09_pixel_office_view.md` | Render the PixiJS office and pixel agents with persistent positions. |
 | 10 | Completed | `10_agent_detail_and_chat.md` | Build agent detail drawer, chat UI, response streaming, and message persistence. |
 | 11 | Next | `11_agent_profiles_and_personalization.md` | Build reusable personalized Agent Profiles and capability matrix. |
-| 12 | Planned | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection. |
-| 13 | Planned | `13_task_board_and_activity_timeline.md` | Add project task board and filterable activity timeline. |
-| 14 | Planned | `14_meeting_room_group_chat.md` | Add meeting-room multi-agent conversation, editable handoff/review flows, moderator summary, and meeting notes. |
-| 15 | Planned | `15_agent_pack_manifest_and_install.md` | Add source-readable Agent Pack manifest, inspection, and reviewed install. |
-| 16 | Planned | `16_attach_mode_mcp_and_v2_integrations.md` | Add existing-session attach mode, MCP extension points, and V2 integration hooks. |
-| 17 | Planned | `17_local_safety_permission_layer.md` | Add command risk detection, permission prompts, and audit logging. |
+| 12 | Planned | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection and main-process application service coordination. |
+| 13 | Planned | `13_task_board_and_activity_timeline.md` | Add project task board, domain-event timeline, run history, agent health, and manager cost dashboard. |
+| 14 | Planned | `14_meeting_room_group_chat.md` | Add meeting-room multi-agent conversation backed by a reusable conversation workflow engine. |
+| 15 | Planned | `15_agent_pack_manifest_and_install.md` | Add source-readable Agent Pack manifest, inspection, reviewed install, and future workflow-template packaging. |
+| 16 | Planned | `16_attach_mode_mcp_and_v2_integrations.md` | Add existing-session attach mode, MCP extension points, domain-event normalization, and V2 integration hooks. |
+| 17 | Planned | `17_local_safety_permission_layer.md` | Harden the existing runtime safety hook into command risk detection, permission prompts, and audit logging. |
 | 18 | Planned | `18_qa_polish_packaging.md` | Complete tests, visual polish, accessibility, packaging, and release readiness. |
 
 ## Current Work
 
 Start from `11_agent_profiles_and_personalization.md`.
+
+Architecture direction for upcoming tasks:
+
+- Use `docs/domain_model.md` as the target layering reference.
+- Keep renderer components focused on presentation; route shared data/actions through Zustand stores and `window.codexOffice`.
+- Keep IPC handlers thin; move cross-module workflows into main-process application services.
+- Keep reusable product rules in domain services that can be tested without Electron renderer code.
+- Normalize provider-specific runtime events into stable domain events for task board, meeting room, timeline, usage, and audit UI.
+- Treat Agent Profiles as the canonical reusable configuration source for agent creation.
+- Treat the meeting room as a UI over a reusable conversation workflow engine.
+- Keep token usage raw records separate from cost summaries and model price configuration.
+- Keep the safety hook on the runtime path, with full approval UX deferred to Task 17.
 
 Tasks 01-10 are complete because the merged foundation and runtime/UI branch include:
 

@@ -16,6 +16,8 @@ Agent Profile library and personalization model.
 
 Build local Agent Profile management before the create-agent workflow. Profiles should capture reusable role, persona, instruction, skill, model, permission, workspace, validation, collaboration, communication, risk, output, and visual identity preferences.
 
+Agent Profile must become the canonical reusable configuration source for agent creation. Do not treat profile fields as UI-only metadata. The generated profile snapshot should drive runtime prompt context, default skill assignment, permission presets, collaboration behavior, validation expectations, output preferences, and visual identity.
+
 ## Expected Output
 
 - `src/main/profiles/profileService.ts`
@@ -27,6 +29,7 @@ Build local Agent Profile management before the create-agent workflow. Profiles 
 - `src/renderer/stores/profileStore.ts`
 - Profile default skill assignment support.
 - Profile snapshot generation service.
+- Application/domain service boundary for profile CRUD, profile snapshot generation, and capability matrix calculation.
 - Permission presets in the profile model: `readonly`, `ask_before_edit`, `workspace_write`, and `auto_run_safe_commands`.
 - Tests for profile CRUD, default skills, import/export, and snapshot immutability.
 
@@ -67,6 +70,8 @@ Profiles are durable, reusable, and safe to apply to future agents without mutat
 - Confirm updating the profile later does not mutate a previously generated snapshot.
 - Confirm the Agent Capability Matrix shows skills, tools, permissions, workspace scope, and validation policy.
 - Confirm permission presets can be stored on profiles without enabling the full Safety Permission Layer yet.
+- Confirm profile snapshot generation happens in main-process service/domain code, not renderer components.
+- Confirm renderer components access profile actions through store/preload APIs instead of importing main-process modules.
 
 ## Continuation
 

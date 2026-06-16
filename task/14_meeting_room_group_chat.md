@@ -22,6 +22,8 @@ User-to-multiple-agent conversation, configurable agent-to-agent handoff logic, 
 
 Implement meeting creation with title, goal, participants, moderator agent, output format, conversation mode, and editable flow rules. Move selected agents into the meeting room, orchestrate a structured discussion, display shared messages, preserve agent-to-agent routing metadata, save the final moderator summary, and allow converting meeting outputs into tasks.
 
+Build the orchestration as a reusable conversation workflow engine below the meeting room UI. The meeting room is one surface for this engine; future task automation should be able to run developer -> reviewer -> developer loops without requiring the meeting UI to be open.
+
 ## Expected Output
 
 - `src/renderer/components/MeetingRoom.tsx`
@@ -29,6 +31,7 @@ Implement meeting creation with title, goal, participants, moderator agent, outp
 - `src/renderer/components/MeetingFlowEditor.tsx`
 - `src/main/meetings/meetingOrchestrator.ts`
 - `src/main/meetings/meetingFlowRules.ts`
+- `src/main/workflows/conversationOrchestrator.ts` or equivalent reusable workflow domain service.
 - Meeting message persistence.
 - Meeting message routing metadata for source agent, target agent, parent message, and flow rule.
 - Editable flow rule persistence for speaker order, review routing, stop conditions, and manager escalation conditions.
@@ -37,6 +40,7 @@ Implement meeting creation with title, goal, participants, moderator agent, outp
 - Meeting note storage.
 - Conversion from meeting note item to task.
 - Tests for meeting flow using mock agents.
+- Tests for workflow rules independent from React UI.
 
 ## Expected Feature
 
@@ -61,6 +65,7 @@ The meeting room can coordinate multiple agents in a predictable and inspectable
 - Confirm moderator produces a final summary.
 - Confirm the meeting note is saved.
 - Confirm a meeting output can become a task board item.
+- Confirm the workflow engine can evaluate a developer -> reviewer -> developer loop without depending on the meeting room component.
 
 ## Continuation
 

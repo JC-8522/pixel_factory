@@ -19,6 +19,26 @@ The application is local-first. It is not a cloud service. Local process control
 
 ## Process Model
 
+The app runs with a privileged Electron main process, a constrained preload bridge, and an unprivileged renderer process. The renderer owns presentation, while the main process owns local system access, persistence, runtime control, and safety boundaries.
+
+## Target Layering
+
+The target architecture uses this flow:
+
+```text
+Renderer Components
+  -> Zustand Stores / renderer API helpers
+  -> window.codexOffice preload API
+  -> thin IPC handlers
+  -> main-process application services
+  -> domain services
+  -> repositories, runtime adapters, safety hooks, and local providers
+```
+
+IPC handlers should validate requests and delegate. Product workflows should live in application services, not inside React components or IPC handler bodies.
+
+The detailed domain model is documented in `docs/domain_model.md`.
+
 ## User And Agent Role Model
 
 The human user is the default manager of the office. User-owned actions include creating agents, approving risky local operations, assigning tasks, reviewing outputs, and changing product settings.
@@ -120,13 +140,46 @@ The renderer must not import `fs`, `child_process`, `path`, SQLite clients, Elec
 ## High-Level Data Flow
 
 1. User creates or selects an agent in the renderer.
-2. Renderer calls a typed preload API.
+2. Renderer store calls a typed preload API.
 3. Preload sends a validated IPC request to main.
-4. Main process updates SQLite and calls the active `AgentRuntime`.
-5. Runtime emits `AgentEvent` records.
-6. Main process persists messages, sessions, status changes, token usage, and timeline events.
-7. Main process broadcasts sanitized updates back to renderer subscribers.
-8. Zustand stores update React panels and PixiJS agent sprites.
+4. IPC handler delegates to an application service.
+5. Application service coordinates domain services, repositories, runtime adapters, and safety hooks.
+6. Runtime adapter emits runtime events.
+7. Event normalizer converts provider-specific runtime events into product-level domain events where needed.
+8. Main process persists messages, sessions, status changes, token usage, and timeline events.
+9. Main process broadcasts sanitized updates back to renderer subscribers.
+10. Zustand stores update React panels and PixiJS agent sprites.
+
+## Event Model
+
+The architecture distinguishes two event levels:
+
+- `RuntimeEvent`: a raw or lightly normalized provider signal from mock runtime, Codex CLI, attach mode, MCP, or a future provider.
+- `DomainEvent`: a product-level event used by task board, meeting room, timeline, usage dashboard, audit UI, and renderer stores.
+
+MVP can store both in the existing `events` table, but the source and category must be explicit in event type or payload. As the app grows, event normalization should live in main-process services so renderer code does not depend on Codex CLI output shapes.
+
+## Agent Profile Configuration Source
+
+Agent Profiles are the canonical source for reusable agent configuration. The create-agent flow should generate an immutable `profile_snapshot_json` in the main process and use that snapshot for runtime prompt context, default skills, permission defaults, validation expectations, collaboration behavior, output preferences, and visual identity.
+
+Profile snapshots prevent existing agents from changing silently when a reusable profile is edited later.
+
+## Conversation Workflow Direction
+
+The meeting room is a UI surface for multi-agent conversation. The reusable product capability is a conversation workflow engine.
+
+Meeting orchestration should therefore be implemented as a main-process domain service that can later run developer -> reviewer -> developer loops from tasks, even when the meeting room UI is not open.
+
+## Token Usage And Cost Direction
+
+Token and cost tracking should separate:
+
+- raw runtime usage records,
+- durable summaries by agent, session, task, model, workspace, and time range,
+- price configuration used for estimated cost.
+
+Usage must show whether it is `reported`, `estimated`, or `manual`. Manager cost dashboards should label estimated cost clearly.
 
 ## Main Runtime Flow
 
@@ -250,6 +303,10 @@ Meeting orchestration should be rule-driven and inspectable. Rules should descri
 - Keep UI state derived from persisted data plus runtime subscriptions.
 - Treat SQLite as the source of truth for durable state.
 - Treat runtime adapters as replaceable providers.
-- Prefer event records for auditing and timeline behavior.
+- Prefer domain event records for auditing and timeline behavior.
 - All local system access must be mediated by main-process services.
 - Any action that may execute or alter local state must pass through safety hooks.
+- Keep IPC handlers thin; place cross-module workflows in application services.
+- Keep domain rules testable without Electron renderer code.
+- Keep `RuntimeEvent` provider details separate from product-level `DomainEvent` behavior.
+- Keep `window.codexOffice` as an explicit preload API and route component calls through renderer stores where practical.

@@ -14,6 +14,8 @@ Future-ready integration layer.
 
 Add extension points and the first usable implementation for attaching to existing local Codex sessions where feasible. Add MCP orchestration interfaces, multi-project workspace models, timeline replay data hooks, GitHub PR integration boundaries, plugin registry design, and shared office theme support without destabilizing MVP.
 
+Attach and MCP integrations must emit runtime events through the same runtime/event normalization pipeline as mock and Codex CLI spawned runtime. Renderer UI should not need provider-specific branches for attach mode or MCP sessions.
+
 ## Expected Output
 
 - `src/main/runtime/AttachedCodexRuntime.ts` or documented stub if reliable attach is not yet possible.
@@ -21,6 +23,7 @@ Add extension points and the first usable implementation for attaching to existi
 - Multi-project workspace data model and IPC APIs.
 - Project Workspace Selector UI and store.
 - Timeline replay event query APIs.
+- RuntimeEvent to DomainEvent mapping for attach/MCP provider signals.
 - GitHub integration boundary interface.
 - Plugin registry interface.
 - Office theme model and renderer support.
@@ -40,6 +43,7 @@ Existing MVP and V1 features keep working, and future integrations have typed bo
 - Confirm spawned mode still works.
 - Confirm attach mode either works for known session files/logs or is safely disabled with clear docs.
 - Confirm MCP bridge has typed input/output contracts.
+- Confirm attach/MCP events can be normalized into existing domain events where possible.
 - Confirm multi-project workspace records can be created and selected.
 - Confirm the Project Workspace Selector changes the active workspace without mixing agents, tasks, or events between projects.
 - Confirm theme selection changes office visuals.

@@ -14,6 +14,8 @@ Task board and filterable activity timeline.
 
 Build the task board with columns Backlog, Assigned, In Progress, Waiting Review, Done, and Failed. Add task assignment to agents, link tasks to logs/files/events, convert chat or meeting output into tasks, and build a timeline view filterable by agent and task. Add Agent Health, Run History / Session Archive, and Manager Cost Dashboard views using sessions, token usage, and events.
 
+This task should introduce or use application services and domain events for task transitions, timeline records, run history, health, and usage summaries. Task board UI should not parse runtime-provider logs directly.
+
 ## Expected Output
 
 - `src/renderer/components/TaskBoard.tsx`
@@ -29,6 +31,8 @@ Build the task board with columns Backlog, Assigned, In Progress, Waiting Review
 - Agent health display for process alive/dead, last heartbeat, last status transition, last error, active session, and runtime duration.
 - Session archive display for prompts, logs, status transitions, files touched, errors, token usage, estimated cost, and result summaries.
 - Manager cost dashboard display for token usage and estimated cost by agent, session, task, model/profile, workspace, and time range.
+- Usage price configuration for estimated cost when provider-reported cost is unavailable.
+- Domain event normalization for task/timeline/dashboard records.
 - Tests for task lifecycle and event filtering.
 
 ## Expected Feature
@@ -52,6 +56,8 @@ Tasks and events form a coherent project management loop: create work, assign wo
 - Open a prior run in the session archive and see its messages/events/result summary.
 - View token usage and estimated cost by agent.
 - View whether usage is `reported` or `estimated`.
+- Configure or load a model price config and confirm estimated cost uses that config.
+- Confirm task board and timeline consume domain events instead of provider-specific runtime log formats.
 
 ## Continuation
 

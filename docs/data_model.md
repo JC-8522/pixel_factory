@@ -27,6 +27,7 @@ agent_profile_skills
 sessions
 messages
 token_usage
+model_price_configs
 skills
 agent_skills
 tasks
@@ -457,6 +458,13 @@ Columns:
 
 Human approval events must use `actor_type = "user"`. Manager Agent suggestions must use `actor_type = "agent"`.
 
+The product distinguishes `RuntimeEvent` from `DomainEvent`:
+
+- `RuntimeEvent` is a provider signal such as a stdout line, process exit, message chunk, or raw token usage report.
+- `DomainEvent` is a product event used by timeline, task board, meeting room, cost dashboard, and audit UI.
+
+During MVP both categories may be stored in this table, but event `type` and `payload_json` must make source/category clear. Future migrations may split raw runtime events into a dedicated table if replay or debugging requires it.
+
 Event types include:
 
 - `agent_created`
@@ -476,6 +484,36 @@ Event types include:
 - `permission_requested`
 - `permission_decided`
 - `token_usage_recorded`
+- `meeting_review_requested`
+- `meeting_feedback_routed`
+- `meeting_manager_escalation_created`
+
+## `model_price_configs`
+
+Stores local price assumptions for estimated token cost.
+
+Columns:
+
+- `id`
+- `model_profile`
+- `provider`
+- `input_token_price_per_1m`
+- `output_token_price_per_1m`
+- `cached_token_price_per_1m`
+- `reasoning_token_price_per_1m`
+- `currency`
+- `source`
+- `effective_from`
+- `created_at`
+- `updated_at`
+
+`source` values:
+
+- `default`
+- `user_configured`
+- `imported`
+
+Cost estimates must record enough metadata in `token_usage.metadata_json` to explain which price config was used. If no price config is available, the app should still show token counts and label cost as unavailable instead of inventing a number.
 
 ## `settings`
 
@@ -529,6 +567,7 @@ Columns:
 - Runtime events should be persisted as `events` before broadcasting when possible.
 - Token usage should be stored in `token_usage` and summarized into sessions/messages where practical.
 - Token usage records should include whether usage is `reported` or `estimated`.
+- Estimated cost should use `model_price_configs` and must remain labeled as estimated unless the runtime provider returns billing-grade cost data.
 - Chat message chunks may be appended incrementally, but final messages must end in a stable `stream_state`.
 - Agent status must be durable so the office can restore after restart.
 - Agent positions must be stored in `agents`.
