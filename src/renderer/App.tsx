@@ -1,54 +1,78 @@
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import type { AppInfo, OfficeAgentPreview } from "../shared/types/app";
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import type { AgentRuntimeEvent } from "../shared/types/agent";
+import type { AppInfo } from "../shared/types/app";
+import { AgentDetailDrawer } from "./components/AgentDetailDrawer";
+import { OfficeCanvas } from "./office/OfficeCanvas";
+import { useAgentStore } from "./stores/agentStore";
+import { useEventStore } from "./stores/eventStore";
+import { useSkillStore } from "./stores/skillStore";
 
-const previewAgents: OfficeAgentPreview[] = [
-  {
-    id: "manager-agent",
-    name: "Manager Agent",
-    role: "Manager Agent",
-    status: "thinking",
-    zone: "meeting_room"
-  },
-  {
-    id: "frontend-agent",
-    name: "Frontend",
-    role: "Frontend Engineer",
-    status: "idle",
-    zone: "desks"
-  },
-  {
-    id: "qa-agent",
-    name: "QA",
-    role: "QA Tester",
-    status: "waiting_user_input",
-    zone: "whiteboard"
-  }
-];
-
-const statusLabel: Record<OfficeAgentPreview["status"], string> = {
-  idle: "Idle",
-  thinking: "Thinking",
-  running_command: "Running",
-  reading_files: "Reading",
-  editing_files: "Editing",
-  waiting_user_input: "Needs input",
-  error: "Error",
-  completed: "Completed",
-  stopped: "Stopped"
-};
+const createId = (prefix: string): string => `${prefix}-${Date.now()}`;
 
 export function App(): ReactElement {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
-  const [selectedAgentId, setSelectedAgentId] = useState(previewAgents[0]?.id ?? "");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const { agents, hydrate, updatePosition } = useAgentStore();
+  const { scan } = useSkillStore();
+  const { hydrate: hydrateEvents } = useEventStore();
 
   useEffect(() => {
     void window.codexOffice.app.getInfo().then(setAppInfo);
-  }, []);
+    void hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    const unsubscribe = window.codexOffice.runtime.onEvent(() => {
+      void hydrate();
+      if (selectedAgentId) {
+        void hydrateEvents({ agentId: selectedAgentId });
+      }
+    });
+
+    return unsubscribe;
+  }, [hydrate, hydrateEvents, selectedAgentId]);
 
   const selectedAgent = useMemo(
-    () => previewAgents.find((agent) => agent.id === selectedAgentId) ?? previewAgents[0],
-    [selectedAgentId]
+    () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
+    [agents, selectedAgentId]
   );
+
+  const createMockAgent = async (): Promise<void> => {
+    const id = createId("mock-agent");
+    await window.codexOffice.runtime.spawnAgent({
+      id,
+      name: `Mock ${agents.length + 1}`,
+      role: "Developer Agent",
+      workingDirectory: ".",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual",
+      currentTask: "Help the manager inspect the local office."
+    });
+    await hydrate();
+    setSelectedAgentId(id);
+  };
+
+  const discoverAgents = async (): Promise<void> => {
+    const discovered = await window.codexOffice.runtime.discoverAgents();
+    await hydrate();
+    if (!selectedAgentId && discovered[0]) {
+      setSelectedAgentId(discovered[0].id);
+    }
+  };
+
+  const onMoveAgent = useCallback(
+    (agentId: string, x: number, y: number) => {
+      void updatePosition({ agentId, x, y });
+    },
+    [updatePosition]
+  );
+
+  const onRuntimeEvent = useCallback((event: AgentRuntimeEvent) => {
+    if (event.agentId === selectedAgentId) {
+      void hydrateEvents({ agentId: event.agentId });
+    }
+  }, [hydrateEvents, selectedAgentId]);
 
   return (
     <main className="app-shell">
@@ -63,8 +87,8 @@ export function App(): ReactElement {
 
         <nav className="nav-list" aria-label="Workspace sections">
           <button className="nav-item active" type="button">Office</button>
-          <button className="nav-item" type="button">Agents</button>
-          <button className="nav-item" type="button">Skills</button>
+          <button className="nav-item" onClick={() => void discoverAgents()} type="button">Discover</button>
+          <button className="nav-item" onClick={() => void scan()} type="button">Scan Skills</button>
           <button className="nav-item" type="button">Tasks</button>
           <button className="nav-item" type="button">Timeline</button>
         </nav>
@@ -76,56 +100,27 @@ export function App(): ReactElement {
             <p className="eyebrow">Human manager workspace</p>
             <h2>Pixel Office</h2>
           </div>
-          <button className="primary-action" type="button">Create Agent</button>
+          <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
         </header>
 
         <div className="content-grid">
-          <section className="office-surface" aria-label="Pixel office preview">
-            <div className="office-zone meeting-room">Meeting room</div>
-            <div className="office-zone whiteboard">Whiteboard</div>
-            <div className="office-zone desks">Desks</div>
-            <div className="office-zone shelf">Skill shelf</div>
-
-            {previewAgents.map((agent, index) => (
-              <button
-                className={`agent-sprite ${agent.id === selectedAgentId ? "selected" : ""}`}
-                data-status={agent.status}
-                key={agent.id}
-                onClick={() => setSelectedAgentId(agent.id)}
-                style={{
-                  left: `${22 + index * 23}%`,
-                  top: `${38 + (index % 2) * 24}%`
-                }}
-                type="button"
-              >
-                <span className="agent-head" aria-hidden="true" />
-                <span className="agent-body" aria-hidden="true" />
-                <span className="agent-label">{agent.name}</span>
-              </button>
-            ))}
+          <section className="office-surface" aria-label="Pixel office">
+            {agents.length === 0 ? (
+              <div className="office-empty">
+                <p>No agents yet.</p>
+                <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
+              </div>
+            ) : (
+              <OfficeCanvas
+                agents={agents}
+                onMoveAgent={onMoveAgent}
+                onSelectAgent={setSelectedAgentId}
+                selectedAgentId={selectedAgentId}
+              />
+            )}
           </section>
 
-          <aside className="detail-panel" aria-label="Selected agent details">
-            <p className="eyebrow">Selected agent</p>
-            <h3>{selectedAgent.name}</h3>
-            <dl>
-              <div>
-                <dt>Role</dt>
-                <dd>{selectedAgent.role}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{statusLabel[selectedAgent.status]}</dd>
-              </div>
-              <div>
-                <dt>Zone</dt>
-                <dd>{selectedAgent.zone.replaceAll("_", " ")}</dd>
-              </div>
-            </dl>
-            <div className="chat-preview">
-              <p>Chat and runtime events will appear here after the runtime task is implemented.</p>
-            </div>
-          </aside>
+          <AgentDetailDrawer agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onRuntimeEvent={onRuntimeEvent} />
         </div>
       </section>
     </main>

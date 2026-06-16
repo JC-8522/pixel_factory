@@ -21,10 +21,12 @@ export const IPC_CHANNELS = {
   agentsCreate: "agents:create",
   agentsUpdatePosition: "agents:update-position",
   agentsAssignSkill: "agents:assign-skill",
+  agentsRemoveSkill: "agents:remove-skill",
   sessionsListByAgent: "sessions:list-by-agent",
   messagesListBySession: "messages:list-by-session",
   messagesCreate: "messages:create",
   skillsList: "skills:list",
+  skillsScan: "skills:scan",
   skillsGet: "skills:get",
   skillsListForAgent: "skills:list-for-agent",
   tasksList: "tasks:list",
@@ -139,6 +141,11 @@ export type EventFilterRequest = {
   type?: string;
 };
 
+export type ScanSkillsRequest = {
+  roots?: string[];
+  projectRoot?: string;
+};
+
 export type SettingsMap = Record<string, unknown>;
 
 export type TokenUsageSummary = {
@@ -158,6 +165,7 @@ export type CodexOfficeApi = {
     create(input: CreateAgentRequest): Promise<AgentRecord>;
     updatePosition(input: UpdateAgentPositionRequest): Promise<AgentRecord>;
     assignSkill(input: AssignSkillRequest): Promise<AgentSkillRecord>;
+    removeSkill(input: Omit<AssignSkillRequest, "assignedBy">): Promise<AgentSkillRecord | null>;
   };
   sessions: {
     listByAgent(agentId: string): Promise<SessionRecord[]>;
@@ -167,6 +175,7 @@ export type CodexOfficeApi = {
     create(input: CreateMessageRequest): Promise<MessageRecord>;
   };
   skills: {
+    scan(input?: ScanSkillsRequest): Promise<SkillRecord[]>;
     list(): Promise<SkillRecord[]>;
     get(skillId: string): Promise<SkillRecord | null>;
     listForAgent(agentId: string): Promise<AgentSkillRecord[]>;

@@ -8,6 +8,7 @@ import type {
   EventFilterRequest,
   FinishMeetingRequest,
   SendMeetingMessageRequest,
+  ScanSkillsRequest,
   SettingsMap,
   UpdateAgentPositionRequest,
   UpdateTaskStatusRequest
@@ -91,6 +92,14 @@ export const validateAssignSkill = (value: unknown): AssignSkillRequest => {
     agentId: assertNonEmptyString(input.agentId, "agent id"),
     skillId: assertNonEmptyString(input.skillId, "skill id"),
     assignedBy: assertNonEmptyString(input.assignedBy, "assigned by")
+  };
+};
+
+export const validateRemoveSkill = (value: unknown): Omit<AssignSkillRequest, "assignedBy"> => {
+  const input = assertRecord(value, "remove skill input");
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    skillId: assertNonEmptyString(input.skillId, "skill id")
   };
 };
 
@@ -184,6 +193,18 @@ export const validateEventFilter = (value: unknown): EventFilterRequest => {
   };
 };
 
+export const validateScanSkills = (value: unknown): ScanSkillsRequest => {
+  if (value === undefined) {
+    return {};
+  }
+
+  const input = assertRecord(value, "scan skills input");
+  return {
+    roots: optionalStringArray(input.roots, "skill roots"),
+    projectRoot: optionalString(input.projectRoot, "project root") ?? undefined
+  };
+};
+
 export const validateSettingsPatch = (value: unknown): SettingsMap => {
   const input = assertRecord(value, "settings patch");
   optionalJsonValue(input);
@@ -191,4 +212,3 @@ export const validateSettingsPatch = (value: unknown): SettingsMap => {
 };
 
 export const validateAgentStatus = (value: unknown): string => assertStringEnum(value, "agent status", agentStatuses);
-

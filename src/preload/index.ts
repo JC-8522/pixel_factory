@@ -13,7 +13,8 @@ const api: CodexOfficeApi = {
     get: (agentId) => invoke(IPC_CHANNELS.agentsGet, agentId),
     create: (input) => invoke(IPC_CHANNELS.agentsCreate, input),
     updatePosition: (input) => invoke(IPC_CHANNELS.agentsUpdatePosition, input),
-    assignSkill: (input) => invoke(IPC_CHANNELS.agentsAssignSkill, input)
+    assignSkill: (input) => invoke(IPC_CHANNELS.agentsAssignSkill, input),
+    removeSkill: (input) => invoke(IPC_CHANNELS.agentsRemoveSkill, input)
   },
   sessions: {
     listByAgent: (agentId) => invoke(IPC_CHANNELS.sessionsListByAgent, agentId)
@@ -23,6 +24,7 @@ const api: CodexOfficeApi = {
     create: (input) => invoke(IPC_CHANNELS.messagesCreate, input)
   },
   skills: {
+    scan: (input) => invoke(IPC_CHANNELS.skillsScan, input),
     list: () => invoke(IPC_CHANNELS.skillsList),
     get: (skillId) => invoke(IPC_CHANNELS.skillsGet, skillId),
     listForAgent: (agentId) => invoke(IPC_CHANNELS.skillsListForAgent, agentId)

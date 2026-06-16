@@ -32,6 +32,9 @@ const installMockApi = (agents: AgentRecord[]): void => {
       create: vi.fn(async (input) => agentRecord(input.id, input.name)),
       updatePosition: vi.fn(async (input) => ({ ...agents[0], id: input.agentId, position_x: input.x, position_y: input.y })),
       assignSkill: vi.fn()
+    },
+    runtime: {
+      discoverAgents: vi.fn(async () => agents)
     }
   } as unknown as CodexOfficeApi;
 
@@ -74,4 +77,3 @@ describe("useAgentStore", () => {
     unsubscribe();
   });
 });
-

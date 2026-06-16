@@ -26,6 +26,7 @@ export type AgentRuntimeEvent =
   | (RuntimeEventBase & { type: "session_started" })
   | (RuntimeEventBase & { type: "status_changed"; status: AgentStatus })
   | (RuntimeEventBase & { type: "message_chunk"; messageId: string; chunk: string })
+  | (RuntimeEventBase & { type: "log_line"; stream: "stdout" | "stderr"; line: string })
   | (RuntimeEventBase & { type: "token_usage"; messageId?: string; taskId?: string; modelProfile?: string | null; usage: TokenUsage })
   | (RuntimeEventBase & { type: "command_started"; command: string })
   | (RuntimeEventBase & { type: "command_completed"; command: string; exitCode: number | null })
@@ -41,6 +42,8 @@ export type SpawnRuntimeInput = {
   workingDirectory: string;
   initialPrompt?: string | null;
   modelProfile?: string | null;
+  permissionMode?: string | null;
+  skillPromptContext?: string | null;
 };
 
 export type SendRuntimeMessageInput = {
@@ -51,6 +54,7 @@ export type SendRuntimeMessageInput = {
   responseMessageId: string;
   taskId?: string | null;
   modelProfile?: string | null;
+  skillPromptContext?: string | null;
 };
 
 export type RuntimeSessionDescriptor = {

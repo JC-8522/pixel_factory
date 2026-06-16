@@ -8,8 +8,15 @@ import {
   endSession,
   updateAgentStatus
 } from "../db/repositories";
+import { deriveStatusFromRuntimeEvent } from "./agentStatusMachine";
 
 export const persistRuntimeEvent = (client: DatabaseClient, event: AgentRuntimeEvent): void => {
+  const derivedStatus = deriveStatusFromRuntimeEvent(event);
+
+  if (derivedStatus && event.type !== "status_changed" && event.type !== "error") {
+    updateAgentStatus(client, event.agentId, derivedStatus);
+  }
+
   switch (event.type) {
     case "session_started":
       createEvent(client, {
@@ -42,6 +49,18 @@ export const persistRuntimeEvent = (client: DatabaseClient, event: AgentRuntimeE
         agentId: event.agentId,
         sessionId: event.sessionId,
         payload: { messageId: event.messageId, chunkLength: event.chunk.length }
+      });
+      return;
+    case "log_line":
+      createEvent(client, {
+        id: event.id,
+        type: "log_line",
+        actorType: "agent",
+        actorId: event.agentId,
+        agentId: event.agentId,
+        sessionId: event.sessionId,
+        severity: event.stream === "stderr" ? "warning" : "info",
+        payload: { stream: event.stream, line: event.line }
       });
       return;
     case "token_usage":

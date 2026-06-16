@@ -28,6 +28,7 @@ import {
   listSkills,
   listTasks,
   listTokenUsageByAgent,
+  removeSkillFromAgent,
   setSetting,
   summarizeTokenUsageByAgent,
   updateAgentPosition,
@@ -35,7 +36,10 @@ import {
   addMeetingMessage
 } from "../db/repositories";
 import { createDefaultRuntimeRegistry, type RuntimeRegistry } from "../runtime/RuntimeRegistry";
+import { discoverLocalCodexProcesses } from "../runtime/discoverLocalCodexProcesses";
 import { persistRuntimeEvent } from "../runtime/persistRuntimeEvent";
+import { buildSkillPromptContext } from "../skills/buildSkillPromptContext";
+import { scanSkills } from "../skills/scanSkills";
 import {
   validateAssignSkill,
   validateAssignTask,
@@ -48,6 +52,8 @@ import {
   validateId,
   validateSendMeetingMessage,
   validateSettingsPatch,
+  validateScanSkills,
+  validateRemoveSkill,
   validateUpdateAgentPosition,
   validateUpdateTaskStatus
 } from "./validators";
@@ -141,6 +147,20 @@ export const createIpcHandlers = ({
       });
       return assignment;
     }),
+  agentsRemoveSkill: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateRemoveSkill(input);
+      const removed = removeSkillFromAgent(client, payload);
+      createEvent(client, {
+        id: nextId(`event-skill-removed-${payload.agentId}-${payload.skillId}`),
+        type: "skill_removed",
+        actorType: "user",
+        actorId: "local-user",
+        agentId: payload.agentId,
+        payload: { skillId: payload.skillId }
+      });
+      return removed;
+    }),
 
   sessionsListByAgent: (agentId: unknown) => listSessionsForAgent(client, validateId(agentId, "agent id")),
 
@@ -163,6 +183,11 @@ export const createIpcHandlers = ({
     }),
 
   skillsList: () => listSkills(client),
+  skillsScan: (input?: unknown) =>
+    saveAfterAsync(client, async () => {
+      const payload = validateScanSkills(input);
+      return scanSkills(client, payload);
+    }),
   skillsGet: (skillId: unknown) => getSkill(client, validateId(skillId, "skill id")),
   skillsListForAgent: (agentId: unknown) => listAgentSkills(client, validateId(agentId, "agent id")),
 
@@ -229,12 +254,16 @@ export const createIpcHandlers = ({
       return settingsRowsToMap(listSettings(client));
     }),
 
-  runtimeDiscoverAgents: () => listAgents(client),
+  runtimeDiscoverAgents: async () => {
+    const [storedAgents, detectedAgents] = await Promise.all([Promise.resolve(listAgents(client)), discoverLocalCodexProcesses()]);
+    const storedIds = new Set(storedAgents.map((agent) => agent.id));
+    return [...storedAgents, ...detectedAgents.filter((agent) => !storedIds.has(agent.id))];
+  },
   runtimeSpawnAgent: (input: unknown) =>
     saveAfterAsync(client, async () => {
       const payload = validateCreateAgent(input);
-      if (!isRuntimeKind(payload.runtimeKind) || payload.runtimeKind !== "mock") {
-        throw new Error("Only the mock runtime is implemented in Task 05.");
+      if (!isRuntimeKind(payload.runtimeKind)) {
+        throw new Error("Unsupported runtime kind.");
       }
 
       const existingAgent = getAgent(client, payload.id);
@@ -280,7 +309,9 @@ export const createIpcHandlers = ({
         sessionId: session.id,
         workingDirectory: agent.working_directory,
         initialPrompt: payload.currentTask,
-        modelProfile: session.model_profile
+        modelProfile: session.model_profile,
+        permissionMode: payload.permissionMode,
+        skillPromptContext: buildSkillPromptContext(client, agent.id)
       });
 
       return getSession(client, session.id) ?? session;
@@ -328,7 +359,8 @@ export const createIpcHandlers = ({
         message: validMessage,
         inputMessageId: userMessage.id,
         responseMessageId: responseMessage.id,
-        modelProfile: session.model_profile
+        modelProfile: session.model_profile,
+        skillPromptContext: buildSkillPromptContext(client, session.agent_id)
       });
 
       return getMessage(client, responseMessage.id) ?? responseMessage;

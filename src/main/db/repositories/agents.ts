@@ -166,3 +166,14 @@ export const assignSkillRequiredFlag = (
 export const listAgentSkills = (client: DatabaseClient, agentId: string): AgentSkillRecord[] =>
   client.all<AgentSkillRecord>("SELECT * FROM agent_skills WHERE agent_id = ? ORDER BY assigned_at ASC", [agentId]);
 
+export const removeSkillFromAgent = (
+  client: DatabaseClient,
+  input: { agentId: string; skillId: string }
+): AgentSkillRecord | null => {
+  const existing = client.get<AgentSkillRecord>("SELECT * FROM agent_skills WHERE agent_id = ? AND skill_id = ?", [
+    input.agentId,
+    input.skillId
+  ]);
+  client.run("DELETE FROM agent_skills WHERE agent_id = ? AND skill_id = ?", [input.agentId, input.skillId]);
+  return existing ?? null;
+};

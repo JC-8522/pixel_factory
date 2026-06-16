@@ -15,12 +15,12 @@ Build a local desktop application called Local Codex Office. It visualizes local
 | 03 | Completed | `03_database_event_store.md` | Implement SQLite-compatible schema, migrations, repositories, event recording, and token usage persistence. |
 | 04 | Completed | `04_ipc_and_renderer_state.md` | Implement secure Electron IPC APIs, preload bridge, renderer state stores, and token usage query APIs. |
 | 05 | Completed | `05_agent_runtime_interface_and_mock.md` | Define `AgentRuntime` and implement a deterministic mock runtime. |
-| 06 | Next | `06_codex_cli_spawn_runtime.md` | Implement app-controlled Codex CLI spawning, stopping, and log streaming. |
-| 07 | Planned | `07_agent_status_state_machine.md` | Map runtime events and logs into agent statuses and timeline events. |
-| 08 | Planned | `08_skill_system.md` | Scan local skills, parse `SKILL.md`, assign skills, and inject skill context into prompts. |
-| 09 | Planned | `09_pixel_office_view.md` | Render the PixiJS office and pixel agents with persistent positions. |
-| 10 | Planned | `10_agent_detail_and_chat.md` | Build agent detail drawer, chat UI, response streaming, and message persistence. |
-| 11 | Planned | `11_agent_profiles_and_personalization.md` | Build reusable personalized Agent Profiles and capability matrix. |
+| 06 | Completed | `06_codex_cli_spawn_runtime.md` | Implement app-controlled Codex CLI spawning, stopping, and log streaming. |
+| 07 | Completed | `07_agent_status_state_machine.md` | Map runtime events and logs into agent statuses and timeline events. |
+| 08 | Completed | `08_skill_system.md` | Scan local skills, parse `SKILL.md`, assign skills, and inject skill context into prompts. |
+| 09 | Completed | `09_pixel_office_view.md` | Render the PixiJS office and pixel agents with persistent positions. |
+| 10 | Completed | `10_agent_detail_and_chat.md` | Build agent detail drawer, chat UI, response streaming, and message persistence. |
+| 11 | Next | `11_agent_profiles_and_personalization.md` | Build reusable personalized Agent Profiles and capability matrix. |
 | 12 | Planned | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection. |
 | 13 | Planned | `13_task_board_and_activity_timeline.md` | Add project task board and filterable activity timeline. |
 | 14 | Planned | `14_meeting_room_group_chat.md` | Add meeting-room multi-agent conversation, editable handoff/review flows, moderator summary, and meeting notes. |
@@ -31,16 +31,21 @@ Build a local desktop application called Local Codex Office. It visualizes local
 
 ## Current Work
 
-Start from `06_codex_cli_spawn_runtime.md`.
+Start from `11_agent_profiles_and_personalization.md`.
 
-Tasks 01-05 are complete because the merged foundation and Task 05 branch include:
+Tasks 01-10 are complete because the merged foundation and runtime/UI branch include:
 
 - architecture, MVP/V1/V2 scope, module boundaries, and task plan,
 - Electron + React + TypeScript + Vite scaffold,
 - `sql.js` database client, schema, migrations, repositories, and tests,
 - typed IPC contracts, preload bridge, renderer Zustand stores, and IPC tests,
 - token usage and estimated cost persistence/query foundation for manager cost visibility,
-- `AgentRuntime` interface, deterministic `MockAgentRuntime`, runtime registry, runtime IPC operations, runtime event persistence, and tests for streaming, status, stop, messages, events, and token usage.
+- `AgentRuntime` interface, deterministic `MockAgentRuntime`, runtime registry, runtime IPC operations, runtime event persistence, and tests for streaming, status, stop, messages, events, and token usage,
+- Codex CLI runtime process spawning, log streaming, process discovery, token usage parsing/estimation, and fake-process tests,
+- agent status state machine for runtime events and common log patterns,
+- local skill scanning, `SKILL.md` parsing, skill assignment/removal, and skill prompt context injection,
+- PixiJS office canvas with clickable and draggable pixel agents,
+- agent detail drawer, logs, skill badges, and individual chat connected to runtime sessions.
 
 ## Completion Rule
 
