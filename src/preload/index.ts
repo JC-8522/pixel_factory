@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { IpcRendererEvent } from "electron";
 import { IPC_CHANNELS, type CodexOfficeApi } from "../shared/ipc";
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
@@ -55,7 +56,16 @@ const api: CodexOfficeApi = {
     discoverAgents: () => invoke(IPC_CHANNELS.runtimeDiscoverAgents),
     spawnAgent: (input) => invoke(IPC_CHANNELS.runtimeSpawnAgent, input),
     sendMessage: (sessionId, message) => invoke(IPC_CHANNELS.runtimeSendMessage, sessionId, message),
-    stopAgent: (sessionId) => invoke(IPC_CHANNELS.runtimeStopAgent, sessionId)
+    stopAgent: (sessionId) => invoke(IPC_CHANNELS.runtimeStopAgent, sessionId),
+    onEvent: (callback) => {
+      const listener = (_event: IpcRendererEvent, runtimeEvent: unknown): void => {
+        callback(runtimeEvent as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(IPC_CHANNELS.runtimeEvent, listener);
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.runtimeEvent, listener);
+      };
+    }
   }
 };
 

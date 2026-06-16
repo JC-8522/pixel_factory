@@ -1,4 +1,5 @@
 import type { AppInfo } from "./types/app";
+import type { AgentRuntimeEvent } from "./types/agent";
 import type {
   AgentRecord,
   AgentSkillRecord,
@@ -44,7 +45,8 @@ export const IPC_CHANNELS = {
   runtimeDiscoverAgents: "runtime:discover-agents",
   runtimeSpawnAgent: "runtime:spawn-agent",
   runtimeSendMessage: "runtime:send-message",
-  runtimeStopAgent: "runtime:stop-agent"
+  runtimeStopAgent: "runtime:stop-agent",
+  runtimeEvent: "runtime:event"
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -196,8 +198,9 @@ export type CodexOfficeApi = {
   };
   runtime: {
     discoverAgents(): Promise<AgentRecord[]>;
-    spawnAgent(input: CreateAgentRequest): Promise<never>;
-    sendMessage(sessionId: string, message: string): Promise<never>;
-    stopAgent(sessionId: string): Promise<never>;
+    spawnAgent(input: CreateAgentRequest): Promise<SessionRecord>;
+    sendMessage(sessionId: string, message: string): Promise<MessageRecord>;
+    stopAgent(sessionId: string): Promise<SessionRecord>;
+    onEvent(callback: (event: AgentRuntimeEvent) => void): () => void;
   };
 };

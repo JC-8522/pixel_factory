@@ -4,6 +4,7 @@ import type { AppInfo } from "../shared/types/app";
 import { createMigratedDatabaseClient } from "./db/client";
 import { createIpcHandlers } from "./ipc/createIpcHandlers";
 import { registerIpcHandlers } from "./ipc/registerIpcHandlers";
+import { IPC_CHANNELS } from "../shared/ipc";
 
 const isDevelopment = !app.isPackaged;
 
@@ -55,7 +56,12 @@ void app.whenReady().then(async () => {
         name: "Local Codex Office",
         version: app.getVersion(),
         mode: isDevelopment ? "development" : "production"
-      })
+      }),
+      publishRuntimeEvent: (event) => {
+        for (const window of BrowserWindow.getAllWindows()) {
+          window.webContents.send(IPC_CHANNELS.runtimeEvent, event);
+        }
+      }
     })
   );
 

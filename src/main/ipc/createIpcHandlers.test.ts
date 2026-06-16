@@ -102,4 +102,35 @@ describe("createIpcHandlers", () => {
 
     client.close();
   });
+
+  it("runs the mock runtime through IPC and persists streamed output", async () => {
+    const { client, handlers } = await createHandlers();
+    const session = await handlers.runtimeSpawnAgent({
+      id: "agent-runtime",
+      name: "Runtime",
+      role: "Mock Agent",
+      workingDirectory: "C:/repo",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual"
+    });
+
+    const response = await handlers.runtimeSendMessage(session.id, "please stream this response");
+    const usage = handlers.tokenUsageSummaryByAgent("agent-runtime");
+    const messages = handlers.messagesListBySession(session.id);
+    const stoppedSession = await handlers.runtimeStopAgent(session.id);
+
+    expect(messages.map((message) => message.role)).toEqual(["user", "agent"]);
+    expect(response.content).toContain("please stream this response");
+    expect(response.stream_state).toBe("complete");
+    expect(usage.total_tokens).toBeGreaterThan(0);
+    expect(usage.estimated_cost).toBeGreaterThan(0);
+    expect(handlers.agentsGet("agent-runtime")?.status).toBe("stopped");
+    expect(stoppedSession.status).toBe("stopped");
+    expect(handlers.eventsList({ agentId: "agent-runtime" }).map((event) => event.type)).toEqual(
+      expect.arrayContaining(["session_started", "message_chunk", "token_usage_recorded", "session_stopped"])
+    );
+
+    client.close();
+  });
 });

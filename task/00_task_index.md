@@ -14,8 +14,8 @@ Build a local desktop application called Local Codex Office. It visualizes local
 | 02 | Completed | `02_project_scaffold.md` | Create the Electron, React, TypeScript, Vite, PixiJS, Zustand, SQLite project foundation. |
 | 03 | Completed | `03_database_event_store.md` | Implement SQLite-compatible schema, migrations, repositories, event recording, and token usage persistence. |
 | 04 | Completed | `04_ipc_and_renderer_state.md` | Implement secure Electron IPC APIs, preload bridge, renderer state stores, and token usage query APIs. |
-| 05 | Next | `05_agent_runtime_interface_and_mock.md` | Define `AgentRuntime` and implement a deterministic mock runtime. |
-| 06 | Planned | `06_codex_cli_spawn_runtime.md` | Implement app-controlled Codex CLI spawning, stopping, and log streaming. |
+| 05 | Completed | `05_agent_runtime_interface_and_mock.md` | Define `AgentRuntime` and implement a deterministic mock runtime. |
+| 06 | Next | `06_codex_cli_spawn_runtime.md` | Implement app-controlled Codex CLI spawning, stopping, and log streaming. |
 | 07 | Planned | `07_agent_status_state_machine.md` | Map runtime events and logs into agent statuses and timeline events. |
 | 08 | Planned | `08_skill_system.md` | Scan local skills, parse `SKILL.md`, assign skills, and inject skill context into prompts. |
 | 09 | Planned | `09_pixel_office_view.md` | Render the PixiJS office and pixel agents with persistent positions. |
@@ -31,15 +31,16 @@ Build a local desktop application called Local Codex Office. It visualizes local
 
 ## Current Work
 
-Start from `05_agent_runtime_interface_and_mock.md`.
+Start from `06_codex_cli_spawn_runtime.md`.
 
-Tasks 01-04 are complete because the merged foundation includes:
+Tasks 01-05 are complete because the merged foundation and Task 05 branch include:
 
 - architecture, MVP/V1/V2 scope, module boundaries, and task plan,
 - Electron + React + TypeScript + Vite scaffold,
 - `sql.js` database client, schema, migrations, repositories, and tests,
 - typed IPC contracts, preload bridge, renderer Zustand stores, and IPC tests,
-- token usage and estimated cost persistence/query foundation for manager cost visibility.
+- token usage and estimated cost persistence/query foundation for manager cost visibility,
+- `AgentRuntime` interface, deterministic `MockAgentRuntime`, runtime registry, runtime IPC operations, runtime event persistence, and tests for streaming, status, stop, messages, events, and token usage.
 
 ## Completion Rule
 
