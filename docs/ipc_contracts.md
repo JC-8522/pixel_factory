@@ -8,6 +8,8 @@
 - All inputs must be validated in the main process.
 - Renderer receives sanitized data only.
 - Streaming updates use subscription-style event channels exposed through preload helper methods.
+- IPC handlers should stay thin and delegate product workflows to main-process application services.
+- Renderer components should usually call Zustand store actions rather than calling `window.codexOffice` directly.
 
 ## Preload API Shape
 
@@ -158,7 +160,7 @@ type CodexOfficeApi = {
 
 ## Runtime Event Broadcast
 
-Runtime events use a shared `AgentEvent` union and are emitted from main to renderer:
+Runtime broadcasts use a shared `AgentEvent` union and are emitted from main to renderer:
 
 ```ts
 type AgentEvent =
@@ -173,6 +175,25 @@ type AgentEvent =
   | { type: "error"; agentId: string; sessionId: string; message: string; at: string }
   | { type: "session_stopped"; agentId: string; sessionId: string; at: string };
 ```
+
+Provider-specific runtime output should be normalized before it becomes renderer-facing data. Task board, meeting room, timeline, and usage dashboard UI should depend on product-level domain semantics instead of Codex CLI log formats.
+
+## Domain Event Broadcast
+
+Domain events are product-level timeline/audit records created by main-process services.
+
+Examples:
+
+- `agent_status_changed`
+- `message_created`
+- `task_status_changed`
+- `meeting_review_requested`
+- `meeting_feedback_routed`
+- `meeting_manager_escalation_created`
+- `token_usage_recorded`
+- `permission_denied`
+
+Renderer event APIs may expose these through the existing `events` methods. The important contract rule is that domain events are stable product records; runtime adapters can change provider-specific parsing without forcing the renderer to change.
 
 ## IPC Validation Requirements
 

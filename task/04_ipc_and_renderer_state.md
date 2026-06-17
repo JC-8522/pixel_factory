@@ -16,6 +16,10 @@ Implement secure IPC APIs for agents, sessions, messages, token usage, skills, t
 
 This task should support store-level subscriptions through Zustand state updates. Main-to-renderer push subscriptions such as `events.onCreated` and `runtime.onEvent` can be completed in Task 05 when runtime event streams exist.
 
+## Architecture Alignment
+
+This task implements the Human Console data boundary. Renderer stores call `window.codexOffice`; IPC handlers validate payloads and should delegate to application services as Orchestration Center, Agent Registry, Message Router, Task Engine / DAG, Context / Memory, Permission Policy Engine, and Audit Engine become explicit modules.
+
 ## Expected Output
 
 - `src/shared/ipc.ts`

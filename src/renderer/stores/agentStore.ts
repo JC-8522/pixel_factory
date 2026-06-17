@@ -19,7 +19,7 @@ export const useAgentStore = create<AgentState>((set) => ({
   loading: false,
   hydrate: async () => {
     set({ loading: true });
-    const agents = await window.codexOffice.agents.list();
+    const agents = await window.codexOffice.runtime.discoverAgents();
     set({ agents, loading: false });
   },
   createAgent: async (input) => {
@@ -37,4 +37,3 @@ export const useAgentStore = create<AgentState>((set) => ({
   selectAgent: (agentId) => set({ selectedAgentId: agentId }),
   reset: () => set({ agents: [], selectedAgentId: null, loading: false })
 }));
-

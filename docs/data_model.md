@@ -27,6 +27,7 @@ agent_profile_skills
 sessions
 messages
 token_usage
+model_price_configs
 skills
 agent_skills
 tasks
@@ -34,11 +35,31 @@ task_events
 meetings
 meeting_participants
 meeting_messages
+meeting_flow_rules
+meeting_transitions
 events
 settings
 permission_rules
 agent_packs
 ```
+
+## Component Data Ownership
+
+The major architecture components map to data ownership as follows:
+
+| Component | Primary Tables Now | Likely Future Tables |
+| --- | --- | --- |
+| Agent Registry | `agents`, `agent_profiles`, `agent_skills`, `sessions`, `skills` | `agent_capabilities`, `agent_health_snapshots` |
+| Orchestration Center | coordinates records across domains | `workflow_runs`, `workflow_steps` |
+| Task Engine / DAG | `tasks`, `task_events` | `task_dependencies`, `task_dag_nodes`, `task_dag_edges` |
+| Message Router | `messages`, `meeting_messages` | `message_routes`, `conversation_threads` |
+| Context / Memory | `agent_profiles`, `agent_profile_skills`, `skills`, `settings` | `memory_records`, `context_snapshots`, `workspace_contexts` |
+| Permission Policy Engine | `permission_rules`, `settings` | `permission_requests`, `permission_decisions` |
+| Audit Engine | `events`, `task_events`, `meeting_transitions` | `audit_records` if audit needs to split from timeline events |
+| Event Logs | `events` | `runtime_event_logs` if raw provider logs need separate retention/replay |
+| Usage / Cost | `token_usage`, `model_price_configs` | `usage_rollups` |
+
+Future tables should be added only when the current `events`, `messages`, `tasks`, and repository boundaries become too overloaded. The architecture defines the ownership boundary first; migrations can stay incremental.
 
 ## Common Columns
 
@@ -361,8 +382,71 @@ Columns:
 - `id`
 - `meeting_id`
 - `agent_id`
+- `target_agent_id`
+- `parent_message_id`
 - `role`
 - `content`
+- `message_kind`
+- `flow_rule_id`
+- `created_at`
+- `metadata_json`
+
+`target_agent_id` is optional and supports future agent-to-agent routing inside a meeting.
+
+`message_kind` examples:
+
+- `user_prompt`
+- `agent_response`
+- `review_request`
+- `review_feedback`
+- `revision`
+- `manager_escalation`
+- `summary`
+
+## `meeting_flow_rules`
+
+Stores editable conversation and handoff logic for a meeting.
+
+Columns:
+
+- `id`
+- `meeting_id`
+- `name`
+- `trigger_json`
+- `source_agent_id`
+- `target_agent_id`
+- `action`
+- `stop_condition_json`
+- `manager_escalation_json`
+- `max_rounds`
+- `enabled`
+- `created_at`
+- `updated_at`
+
+Example actions:
+
+- `ask_agent`
+- `request_review`
+- `send_feedback`
+- `request_revision`
+- `summarize`
+- `ask_manager`
+- `stop_meeting`
+
+## `meeting_transitions`
+
+Stores why a meeting moved from one speaker/action to the next.
+
+Columns:
+
+- `id`
+- `meeting_id`
+- `flow_rule_id`
+- `from_message_id`
+- `to_message_id`
+- `source_agent_id`
+- `target_agent_id`
+- `reason`
 - `created_at`
 - `metadata_json`
 
@@ -392,6 +476,13 @@ Columns:
 
 Human approval events must use `actor_type = "user"`. Manager Agent suggestions must use `actor_type = "agent"`.
 
+The product distinguishes `RuntimeEvent` from `DomainEvent`:
+
+- `RuntimeEvent` is a provider signal such as a stdout line, process exit, message chunk, or raw token usage report.
+- `DomainEvent` is a product event used by timeline, task board, meeting room, cost dashboard, and audit UI.
+
+During MVP both categories may be stored in this table, but event `type` and `payload_json` must make source/category clear. Future migrations may split raw runtime events into a dedicated table if replay or debugging requires it.
+
 Event types include:
 
 - `agent_created`
@@ -411,6 +502,36 @@ Event types include:
 - `permission_requested`
 - `permission_decided`
 - `token_usage_recorded`
+- `meeting_review_requested`
+- `meeting_feedback_routed`
+- `meeting_manager_escalation_created`
+
+## `model_price_configs`
+
+Stores local price assumptions for estimated token cost.
+
+Columns:
+
+- `id`
+- `model_profile`
+- `provider`
+- `input_token_price_per_1m`
+- `output_token_price_per_1m`
+- `cached_token_price_per_1m`
+- `reasoning_token_price_per_1m`
+- `currency`
+- `source`
+- `effective_from`
+- `created_at`
+- `updated_at`
+
+`source` values:
+
+- `default`
+- `user_configured`
+- `imported`
+
+Cost estimates must record enough metadata in `token_usage.metadata_json` to explain which price config was used. If no price config is available, the app should still show token counts and label cost as unavailable instead of inventing a number.
 
 ## `settings`
 
@@ -464,6 +585,7 @@ Columns:
 - Runtime events should be persisted as `events` before broadcasting when possible.
 - Token usage should be stored in `token_usage` and summarized into sessions/messages where practical.
 - Token usage records should include whether usage is `reported` or `estimated`.
+- Estimated cost should use `model_price_configs` and must remain labeled as estimated unless the runtime provider returns billing-grade cost data.
 - Chat message chunks may be appended incrementally, but final messages must end in a stable `stream_state`.
 - Agent status must be durable so the office can restore after restart.
 - Agent positions must be stored in `agents`.

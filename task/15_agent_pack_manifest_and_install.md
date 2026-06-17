@@ -14,15 +14,21 @@ Local Agent Pack manifest, inspection, and reviewed installation.
 
 Implement the first Agent Pack boundary as a local and GitHub-ready package format. The app must inspect an Agent Pack before install without executing scripts, show a review screen, then install reviewed profiles/skills/assets into local storage.
 
+Agent Packs should be able to package Agent Profiles and, later, reusable conversation workflow templates. Installed profiles must become normal local Agent Profiles and should still generate immutable snapshots when used to create agents.
+
+Installed Agent Pack content should register through Agent Registry and Context / Memory boundaries. Permission manifests should be inspected through Permission Policy Engine, and install decisions should be recorded by Audit Engine.
+
 ## Expected Output
 
 - `docs/agent_pack_manifest.md`
-- `src/main/profiles/agentPackManifest.ts`
-- `src/main/profiles/agentPackInspector.ts`
-- `src/main/profiles/agentPackInstaller.ts`
+- `src/main/agentPacks/agentPackManifest.ts`
+- `src/main/agentPacks/agentPackInspector.ts`
+- `src/main/agentPacks/agentPackInstaller.ts`
 - `src/renderer/components/AgentPackReview.tsx`
 - `src/renderer/stores/agentPackStore.ts`
 - IPC APIs for inspect, install, uninstall, list installed, and validate.
+- Agent Registry integration for installed profiles and capabilities.
+- Audit Engine records for inspection, install, uninstall, validation, and permission manifest review.
 - Tests for manifest parsing, inspection without script execution, install, uninstall, and validation status.
 
 ## Expected Feature
@@ -35,6 +41,7 @@ The user can inspect a local Agent Pack, review what it contains, and install it
 - scripts,
 - visual assets,
 - permission manifest,
+- optional conversation workflow templates,
 - validation tests,
 - author metadata,
 - version metadata,
@@ -53,6 +60,7 @@ Agent Packs are transparent and source-readable. The app never executes package 
 - Install reviewed Agent Pack profiles as normal Agent Profiles.
 - Store Agent Pack metadata in `agent_packs`.
 - Show permission manifest and validation status before install.
+- Show included Agent Profiles and optional workflow templates before install.
 - Uninstall an Agent Pack without corrupting user-created profiles.
 
 ## Continuation

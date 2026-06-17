@@ -6,6 +6,13 @@ Local Codex Office is a local desktop app that visualizes Codex agents as pixel-
 
 The application is local-first. It is not a cloud service. Local process control, filesystem reads, log streaming, skill scanning, SQLite persistence, and safety checks all live in the Electron main process.
 
+Primary companion documents:
+
+- `docs/system_architecture.md` defines the major system components and their responsibilities.
+- `docs/domain_model.md` defines target layering, event concepts, workflow concepts, and domain rules.
+- `docs/module_boundaries.md` maps architecture components to implementation modules.
+- `docs/product_view.md` defines product views, supported features, ownership types, and stages.
+
 ## Technology Stack
 
 - Electron for desktop shell and local system access.
@@ -18,6 +25,45 @@ The application is local-first. It is not a cloud service. Local process control
 - Node.js APIs only inside Electron main process and controlled preload code.
 
 ## Process Model
+
+The app runs with a privileged Electron main process, a constrained preload bridge, and an unprivileged renderer process. The renderer owns presentation, while the main process owns local system access, persistence, runtime control, and safety boundaries.
+
+## Target Layering
+
+The target architecture uses this flow:
+
+```text
+Renderer Components
+  -> Zustand Stores / renderer API helpers
+  -> window.codexOffice preload API
+  -> thin IPC handlers
+  -> main-process application services
+  -> domain services
+  -> repositories, runtime adapters, safety hooks, and local providers
+```
+
+IPC handlers should validate requests and delegate. Product workflows should live in application services, not inside React components or IPC handler bodies.
+
+The detailed domain model is documented in `docs/domain_model.md`.
+
+## Core System Components
+
+The system architecture is organized around these first-class components:
+
+| Component | Role |
+| --- | --- |
+| Human Console | The manager-facing control surface for observing agents, creating agents, chatting, assigning work, reviewing cost, and approving actions. |
+| Agent Registry | The source of truth for agent identity, profile snapshot, skills, capability metadata, status, runtime kind, and active session link. |
+| Orchestration Center | The application brain that coordinates multi-step workflows across agents, tasks, meetings, messages, context, permissions, audit, and runtime adapters. |
+| Task Engine / DAG | The workflow execution model for task states, dependencies, review loops, stop conditions, and escalation rules. |
+| Message Router | The routing layer for direct user-agent messages, broadcast messages, addressed meeting messages, and agent-agent feedback. |
+| Context / Memory | The context builder for profile snapshots, assigned skills, workspace context, memory preferences, task context, and meeting context. |
+| Permission Policy Engine | The policy layer for command risk, permission presets, allow rules, deny decisions, and safe command gates. |
+| Audit Engine | The product-level explainability layer for domain events, timeline records, transition reasons, and permission decisions. |
+| Event Logs | Durable storage for raw runtime events, domain events, timeline events, and replay inputs. |
+| Runtime Adapter Layer | Provider integration for mock runtime, Codex CLI runtime, attach mode, MCP, and future providers. |
+
+These components are documented in detail in `docs/system_architecture.md`.
 
 ## User And Agent Role Model
 
@@ -120,13 +166,46 @@ The renderer must not import `fs`, `child_process`, `path`, SQLite clients, Elec
 ## High-Level Data Flow
 
 1. User creates or selects an agent in the renderer.
-2. Renderer calls a typed preload API.
+2. Renderer store calls a typed preload API.
 3. Preload sends a validated IPC request to main.
-4. Main process updates SQLite and calls the active `AgentRuntime`.
-5. Runtime emits `AgentEvent` records.
-6. Main process persists messages, sessions, status changes, token usage, and timeline events.
-7. Main process broadcasts sanitized updates back to renderer subscribers.
-8. Zustand stores update React panels and PixiJS agent sprites.
+4. IPC handler delegates to an application service.
+5. Application service coordinates domain services, repositories, runtime adapters, and safety hooks.
+6. Runtime adapter emits runtime events.
+7. Event normalizer converts provider-specific runtime events into product-level domain events where needed.
+8. Main process persists messages, sessions, status changes, token usage, and timeline events.
+9. Main process broadcasts sanitized updates back to renderer subscribers.
+10. Zustand stores update React panels and PixiJS agent sprites.
+
+## Event Model
+
+The architecture distinguishes two event levels:
+
+- `RuntimeEvent`: a raw or lightly normalized provider signal from mock runtime, Codex CLI, attach mode, MCP, or a future provider.
+- `DomainEvent`: a product-level event used by task board, meeting room, timeline, usage dashboard, audit UI, and renderer stores.
+
+MVP can store both in the existing `events` table, but the source and category must be explicit in event type or payload. As the app grows, event normalization should live in main-process services so renderer code does not depend on Codex CLI output shapes.
+
+## Agent Profile Configuration Source
+
+Agent Profiles are the canonical source for reusable agent configuration. The create-agent flow should generate an immutable `profile_snapshot_json` in the main process and use that snapshot for runtime prompt context, default skills, permission defaults, validation expectations, collaboration behavior, output preferences, and visual identity.
+
+Profile snapshots prevent existing agents from changing silently when a reusable profile is edited later.
+
+## Conversation Workflow Direction
+
+The meeting room is a UI surface for multi-agent conversation. The reusable product capability is a conversation workflow engine.
+
+Meeting orchestration should therefore be implemented as a main-process domain service that can later run developer -> reviewer -> developer loops from tasks, even when the meeting room UI is not open.
+
+## Token Usage And Cost Direction
+
+Token and cost tracking should separate:
+
+- raw runtime usage records,
+- durable summaries by agent, session, task, model, workspace, and time range,
+- price configuration used for estimated cost.
+
+Usage must show whether it is `reported`, `estimated`, or `manual`. Manager cost dashboards should label estimated cost clearly.
 
 ## Main Runtime Flow
 
@@ -156,7 +235,7 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 | Individual chat | MVP spawned mode, V2 attach mode | Runtime + Renderer |
 | Create new agent | MVP | Runtime + UI |
 | Skill assignment | MVP basic, V1 import/marketplace | Skills + UI |
-| Group chat / meeting room | V1 | Meetings + Runtime |
+| Meeting room multi-agent conversation | V1 | Meetings + Runtime |
 | Task board | V1 | Tasks + UI |
 | Activity timeline | MVP event store, V1 richer filters | Events + UI |
 | Local safety and permissions | Late hardening; presets exist earlier in profiles | Security + Runtime |
@@ -214,10 +293,24 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 - permission approval layer.
 - task board.
 - activity timeline filters.
-- meeting room group chat.
+- meeting room group chat and multi-agent conversation orchestration.
 - richer multi-agent support.
 - agent profiles and personalization.
 - local profile import/export.
+
+## Meeting Room Orchestration Model
+
+The meeting room is the first coordination surface for multiple agents. It must support direct human-manager-to-many-agent conversation, but it should not be limited to a passive chat room.
+
+The architecture should leave room for editable agent-to-agent flows:
+
+- developer agent produces work,
+- reviewer, auditor, QA, or TL agent reviews the work,
+- feedback is routed back to the developer agent,
+- the developer agent revises,
+- the loop stops when acceptance criteria are met, maximum rounds are reached, or a manager escalation rule fires.
+
+Meeting orchestration should be rule-driven and inspectable. Rules should describe speaker order, addressed agent, review target, stop condition, escalation condition, and expected artifact. Runtime events and meeting messages should preserve enough metadata to reconstruct why one agent spoke after another.
 
 ### Phase 6: V2 Extension Points
 
@@ -236,6 +329,10 @@ Mock runtime must be implemented before real Codex CLI runtime so UI, database, 
 - Keep UI state derived from persisted data plus runtime subscriptions.
 - Treat SQLite as the source of truth for durable state.
 - Treat runtime adapters as replaceable providers.
-- Prefer event records for auditing and timeline behavior.
+- Prefer domain event records for auditing and timeline behavior.
 - All local system access must be mediated by main-process services.
 - Any action that may execute or alter local state must pass through safety hooks.
+- Keep IPC handlers thin; place cross-module workflows in application services.
+- Keep domain rules testable without Electron renderer code.
+- Keep `RuntimeEvent` provider details separate from product-level `DomainEvent` behavior.
+- Keep `window.codexOffice` as an explicit preload API and route component calls through renderer stores where practical.

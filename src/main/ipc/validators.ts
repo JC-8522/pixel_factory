@@ -1,14 +1,19 @@
 import type {
   AssignSkillRequest,
   AssignTaskRequest,
+  AssignProfileSkillRequest,
   CreateAgentRequest,
+  CreateAgentProfileRequest,
   CreateMeetingRequest,
   CreateMessageRequest,
   CreateTaskRequest,
+  DuplicateAgentProfileRequest,
   EventFilterRequest,
   FinishMeetingRequest,
   SendMeetingMessageRequest,
+  ScanSkillsRequest,
   SettingsMap,
+  UpdateAgentProfileRequest,
   UpdateAgentPositionRequest,
   UpdateTaskStatusRequest
 } from "../../shared/ipc";
@@ -91,6 +96,108 @@ export const validateAssignSkill = (value: unknown): AssignSkillRequest => {
     agentId: assertNonEmptyString(input.agentId, "agent id"),
     skillId: assertNonEmptyString(input.skillId, "skill id"),
     assignedBy: assertNonEmptyString(input.assignedBy, "assigned by")
+  };
+};
+
+const optionalJsonArray = (value: unknown, label: string): unknown[] | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array`);
+  }
+
+  return value;
+};
+
+export const validateCreateAgentProfile = (value: unknown): CreateAgentProfileRequest => {
+  const input = assertRecord(value, "create profile input");
+  return {
+    id: assertNonEmptyString(input.id, "profile id"),
+    name: assertNonEmptyString(input.name, "profile name"),
+    role: assertNonEmptyString(input.role, "profile role"),
+    description: optionalString(input.description, "profile description"),
+    persona: optionalString(input.persona, "profile persona"),
+    instructions: optionalString(input.instructions, "profile instructions"),
+    defaultModelProfile: optionalString(input.defaultModelProfile, "default model profile"),
+    defaultPermissionMode: optionalString(input.defaultPermissionMode, "default permission mode"),
+    defaultAutoRunMode: optionalString(input.defaultAutoRunMode, "default auto-run mode"),
+    workspaceScope: optionalJsonObject(input.workspaceScope, "workspace scope"),
+    toolAccess: optionalJsonObject(input.toolAccess, "tool access"),
+    memoryPreferences: optionalJsonObject(input.memoryPreferences, "memory preferences"),
+    startupWorkflow: optionalJsonArray(input.startupWorkflow, "startup workflow"),
+    validationPolicy: optionalJsonObject(input.validationPolicy, "validation policy"),
+    collaborationBehavior: optionalJsonObject(input.collaborationBehavior, "collaboration behavior"),
+    communicationStyle: optionalString(input.communicationStyle, "communication style"),
+    riskTolerance: optionalString(input.riskTolerance, "risk tolerance"),
+    outputPreferences: optionalJsonObject(input.outputPreferences, "output preferences"),
+    visualIdentity: optionalJsonObject(input.visualIdentity, "visual identity"),
+    sourcePackId: optionalString(input.sourcePackId, "source pack id")
+  };
+};
+
+export const validateUpdateAgentProfile = (value: unknown): UpdateAgentProfileRequest => {
+  const input = assertRecord(value, "update profile input");
+  const patchInput = assertRecord(input.patch, "profile patch");
+  const patch: UpdateAgentProfileRequest["patch"] = {};
+
+  if ("name" in patchInput) patch.name = assertNonEmptyString(patchInput.name, "profile name");
+  if ("role" in patchInput) patch.role = assertNonEmptyString(patchInput.role, "profile role");
+  if ("description" in patchInput) patch.description = optionalString(patchInput.description, "profile description");
+  if ("persona" in patchInput) patch.persona = optionalString(patchInput.persona, "profile persona");
+  if ("instructions" in patchInput) patch.instructions = optionalString(patchInput.instructions, "profile instructions");
+  if ("defaultModelProfile" in patchInput) patch.defaultModelProfile = optionalString(patchInput.defaultModelProfile, "default model profile");
+  if ("defaultPermissionMode" in patchInput) patch.defaultPermissionMode = optionalString(patchInput.defaultPermissionMode, "default permission mode");
+  if ("defaultAutoRunMode" in patchInput) patch.defaultAutoRunMode = optionalString(patchInput.defaultAutoRunMode, "default auto-run mode");
+  if ("workspaceScope" in patchInput) patch.workspaceScope = optionalJsonObject(patchInput.workspaceScope, "workspace scope");
+  if ("toolAccess" in patchInput) patch.toolAccess = optionalJsonObject(patchInput.toolAccess, "tool access");
+  if ("memoryPreferences" in patchInput) patch.memoryPreferences = optionalJsonObject(patchInput.memoryPreferences, "memory preferences");
+  if ("startupWorkflow" in patchInput) patch.startupWorkflow = optionalJsonArray(patchInput.startupWorkflow, "startup workflow");
+  if ("validationPolicy" in patchInput) patch.validationPolicy = optionalJsonObject(patchInput.validationPolicy, "validation policy");
+  if ("collaborationBehavior" in patchInput) patch.collaborationBehavior = optionalJsonObject(patchInput.collaborationBehavior, "collaboration behavior");
+  if ("communicationStyle" in patchInput) patch.communicationStyle = optionalString(patchInput.communicationStyle, "communication style");
+  if ("riskTolerance" in patchInput) patch.riskTolerance = optionalString(patchInput.riskTolerance, "risk tolerance");
+  if ("outputPreferences" in patchInput) patch.outputPreferences = optionalJsonObject(patchInput.outputPreferences, "output preferences");
+  if ("visualIdentity" in patchInput) patch.visualIdentity = optionalJsonObject(patchInput.visualIdentity, "visual identity");
+  if ("sourcePackId" in patchInput) patch.sourcePackId = optionalString(patchInput.sourcePackId, "source pack id");
+
+  return {
+    profileId: assertNonEmptyString(input.profileId, "profile id"),
+    patch
+  };
+};
+
+export const validateDuplicateAgentProfile = (value: unknown): DuplicateAgentProfileRequest => {
+  const input = assertRecord(value, "duplicate profile input");
+  return {
+    profileId: assertNonEmptyString(input.profileId, "profile id"),
+    newProfileId: assertNonEmptyString(input.newProfileId, "new profile id")
+  };
+};
+
+export const validateAssignProfileSkill = (value: unknown): AssignProfileSkillRequest => {
+  const input = assertRecord(value, "assign profile skill input");
+  return {
+    profileId: assertNonEmptyString(input.profileId, "profile id"),
+    skillId: assertNonEmptyString(input.skillId, "skill id"),
+    required: Boolean(input.required)
+  };
+};
+
+export const validateRemoveProfileSkill = (value: unknown): Omit<AssignProfileSkillRequest, "required"> => {
+  const input = assertRecord(value, "remove profile skill input");
+  return {
+    profileId: assertNonEmptyString(input.profileId, "profile id"),
+    skillId: assertNonEmptyString(input.skillId, "skill id")
+  };
+};
+
+export const validateRemoveSkill = (value: unknown): Omit<AssignSkillRequest, "assignedBy"> => {
+  const input = assertRecord(value, "remove skill input");
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    skillId: assertNonEmptyString(input.skillId, "skill id")
   };
 };
 
@@ -184,6 +291,18 @@ export const validateEventFilter = (value: unknown): EventFilterRequest => {
   };
 };
 
+export const validateScanSkills = (value: unknown): ScanSkillsRequest => {
+  if (value === undefined) {
+    return {};
+  }
+
+  const input = assertRecord(value, "scan skills input");
+  return {
+    roots: optionalStringArray(input.roots, "skill roots"),
+    projectRoot: optionalString(input.projectRoot, "project root") ?? undefined
+  };
+};
+
 export const validateSettingsPatch = (value: unknown): SettingsMap => {
   const input = assertRecord(value, "settings patch");
   optionalJsonValue(input);
@@ -191,4 +310,3 @@ export const validateSettingsPatch = (value: unknown): SettingsMap => {
 };
 
 export const validateAgentStatus = (value: unknown): string => assertStringEnum(value, "agent status", agentStatuses);
-

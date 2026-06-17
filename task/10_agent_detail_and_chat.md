@@ -14,6 +14,10 @@ Agent detail drawer and individual chat.
 
 Build a detail panel that opens when the user clicks an agent. It must show agent metadata, current status, task, working directory, branch, last command, recent logs, active skills, conversation history, touched files, and errors. It must include a chat input that sends messages to the selected agent and streams responses into the UI.
 
+## Architecture Alignment
+
+This task implements Human Console surfaces for Agent Registry, Message Router, Event Logs, and Context / Memory. The chat component collects input and renders messages; message addressing and runtime delivery should move to Message Router as that module becomes explicit.
+
 ## Expected Output
 
 - `src/renderer/components/AgentDetailDrawer.tsx`

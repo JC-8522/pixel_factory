@@ -1,6 +1,9 @@
 import type { AppInfo } from "./types/app";
+import type { AgentRuntimeEvent } from "./types/agent";
 import type {
   AgentRecord,
+  AgentProfileRecord,
+  AgentProfileSkillRecord,
   AgentSkillRecord,
   EventRecord,
   JsonObject,
@@ -20,10 +23,25 @@ export const IPC_CHANNELS = {
   agentsCreate: "agents:create",
   agentsUpdatePosition: "agents:update-position",
   agentsAssignSkill: "agents:assign-skill",
+  agentsRemoveSkill: "agents:remove-skill",
+  profilesList: "profiles:list",
+  profilesGet: "profiles:get",
+  profilesCreate: "profiles:create",
+  profilesUpdate: "profiles:update",
+  profilesDuplicate: "profiles:duplicate",
+  profilesDelete: "profiles:delete",
+  profilesAssignSkill: "profiles:assign-skill",
+  profilesRemoveSkill: "profiles:remove-skill",
+  profilesListSkills: "profiles:list-skills",
+  profilesGenerateSnapshot: "profiles:generate-snapshot",
+  profilesCapabilityMatrix: "profiles:capability-matrix",
+  profilesExport: "profiles:export",
+  profilesImport: "profiles:import",
   sessionsListByAgent: "sessions:list-by-agent",
   messagesListBySession: "messages:list-by-session",
   messagesCreate: "messages:create",
   skillsList: "skills:list",
+  skillsScan: "skills:scan",
   skillsGet: "skills:get",
   skillsListForAgent: "skills:list-for-agent",
   tasksList: "tasks:list",
@@ -44,7 +62,8 @@ export const IPC_CHANNELS = {
   runtimeDiscoverAgents: "runtime:discover-agents",
   runtimeSpawnAgent: "runtime:spawn-agent",
   runtimeSendMessage: "runtime:send-message",
-  runtimeStopAgent: "runtime:stop-agent"
+  runtimeStopAgent: "runtime:stop-agent",
+  runtimeEvent: "runtime:event"
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -73,6 +92,70 @@ export type AssignSkillRequest = {
   agentId: string;
   skillId: string;
   assignedBy: string;
+};
+
+export type CreateAgentProfileRequest = {
+  id: string;
+  name: string;
+  role: string;
+  description?: string | null;
+  persona?: string | null;
+  instructions?: string | null;
+  defaultModelProfile?: string | null;
+  defaultPermissionMode?: string | null;
+  defaultAutoRunMode?: string | null;
+  workspaceScope?: JsonObject;
+  toolAccess?: JsonObject;
+  memoryPreferences?: JsonObject;
+  startupWorkflow?: unknown[];
+  validationPolicy?: JsonObject;
+  collaborationBehavior?: JsonObject;
+  communicationStyle?: string | null;
+  riskTolerance?: string | null;
+  outputPreferences?: JsonObject;
+  visualIdentity?: JsonObject;
+  sourcePackId?: string | null;
+};
+
+export type UpdateAgentProfileRequest = {
+  profileId: string;
+  patch: Partial<Omit<CreateAgentProfileRequest, "id">>;
+};
+
+export type DuplicateAgentProfileRequest = {
+  profileId: string;
+  newProfileId: string;
+};
+
+export type AssignProfileSkillRequest = {
+  profileId: string;
+  skillId: string;
+  required: boolean;
+};
+
+export type AgentProfileSnapshot = JsonObject & {
+  profileId: string;
+  name: string;
+  role: string;
+};
+
+export type AgentCapabilityMatrix = {
+  profileId: string;
+  profileName: string;
+  role: string;
+  skills: Array<{ id: string; name: string; required: boolean; category: string | null }>;
+  permissionPreset: string | null;
+  workspaceScope: JsonObject;
+  toolAccess: JsonObject;
+  validationPolicy: JsonObject;
+  collaborationBehavior: JsonObject;
+};
+
+export type AgentProfileExport = {
+  format: "local-codex-office.agent-profile";
+  version: 1;
+  exportedAt: string;
+  profile: AgentProfileSnapshot;
 };
 
 export type CreateMessageRequest = {
@@ -137,6 +220,11 @@ export type EventFilterRequest = {
   type?: string;
 };
 
+export type ScanSkillsRequest = {
+  roots?: string[];
+  projectRoot?: string;
+};
+
 export type SettingsMap = Record<string, unknown>;
 
 export type TokenUsageSummary = {
@@ -156,6 +244,22 @@ export type CodexOfficeApi = {
     create(input: CreateAgentRequest): Promise<AgentRecord>;
     updatePosition(input: UpdateAgentPositionRequest): Promise<AgentRecord>;
     assignSkill(input: AssignSkillRequest): Promise<AgentSkillRecord>;
+    removeSkill(input: Omit<AssignSkillRequest, "assignedBy">): Promise<AgentSkillRecord | null>;
+  };
+  profiles: {
+    list(): Promise<AgentProfileRecord[]>;
+    get(profileId: string): Promise<AgentProfileRecord | null>;
+    create(input: CreateAgentProfileRequest): Promise<AgentProfileRecord>;
+    update(input: UpdateAgentProfileRequest): Promise<AgentProfileRecord>;
+    duplicate(input: DuplicateAgentProfileRequest): Promise<AgentProfileRecord>;
+    delete(profileId: string): Promise<AgentProfileRecord | null>;
+    assignSkill(input: AssignProfileSkillRequest): Promise<AgentProfileSkillRecord>;
+    removeSkill(input: Omit<AssignProfileSkillRequest, "required">): Promise<AgentProfileSkillRecord | null>;
+    listSkills(profileId: string): Promise<AgentProfileSkillRecord[]>;
+    generateSnapshot(profileId: string): Promise<AgentProfileSnapshot>;
+    capabilityMatrix(profileId: string): Promise<AgentCapabilityMatrix>;
+    export(profileId: string): Promise<AgentProfileExport>;
+    importProfile(input: CreateAgentProfileRequest): Promise<AgentProfileRecord>;
   };
   sessions: {
     listByAgent(agentId: string): Promise<SessionRecord[]>;
@@ -165,6 +269,7 @@ export type CodexOfficeApi = {
     create(input: CreateMessageRequest): Promise<MessageRecord>;
   };
   skills: {
+    scan(input?: ScanSkillsRequest): Promise<SkillRecord[]>;
     list(): Promise<SkillRecord[]>;
     get(skillId: string): Promise<SkillRecord | null>;
     listForAgent(agentId: string): Promise<AgentSkillRecord[]>;
@@ -196,8 +301,9 @@ export type CodexOfficeApi = {
   };
   runtime: {
     discoverAgents(): Promise<AgentRecord[]>;
-    spawnAgent(input: CreateAgentRequest): Promise<never>;
-    sendMessage(sessionId: string, message: string): Promise<never>;
-    stopAgent(sessionId: string): Promise<never>;
+    spawnAgent(input: CreateAgentRequest): Promise<SessionRecord>;
+    sendMessage(sessionId: string, message: string): Promise<MessageRecord>;
+    stopAgent(sessionId: string): Promise<SessionRecord>;
+    onEvent(callback: (event: AgentRuntimeEvent) => void): () => void;
   };
 };

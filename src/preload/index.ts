@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { IpcRendererEvent } from "electron";
 import { IPC_CHANNELS, type CodexOfficeApi } from "../shared/ipc";
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
@@ -12,7 +13,23 @@ const api: CodexOfficeApi = {
     get: (agentId) => invoke(IPC_CHANNELS.agentsGet, agentId),
     create: (input) => invoke(IPC_CHANNELS.agentsCreate, input),
     updatePosition: (input) => invoke(IPC_CHANNELS.agentsUpdatePosition, input),
-    assignSkill: (input) => invoke(IPC_CHANNELS.agentsAssignSkill, input)
+    assignSkill: (input) => invoke(IPC_CHANNELS.agentsAssignSkill, input),
+    removeSkill: (input) => invoke(IPC_CHANNELS.agentsRemoveSkill, input)
+  },
+  profiles: {
+    list: () => invoke(IPC_CHANNELS.profilesList),
+    get: (profileId) => invoke(IPC_CHANNELS.profilesGet, profileId),
+    create: (input) => invoke(IPC_CHANNELS.profilesCreate, input),
+    update: (input) => invoke(IPC_CHANNELS.profilesUpdate, input),
+    duplicate: (input) => invoke(IPC_CHANNELS.profilesDuplicate, input),
+    delete: (profileId) => invoke(IPC_CHANNELS.profilesDelete, profileId),
+    assignSkill: (input) => invoke(IPC_CHANNELS.profilesAssignSkill, input),
+    removeSkill: (input) => invoke(IPC_CHANNELS.profilesRemoveSkill, input),
+    listSkills: (profileId) => invoke(IPC_CHANNELS.profilesListSkills, profileId),
+    generateSnapshot: (profileId) => invoke(IPC_CHANNELS.profilesGenerateSnapshot, profileId),
+    capabilityMatrix: (profileId) => invoke(IPC_CHANNELS.profilesCapabilityMatrix, profileId),
+    export: (profileId) => invoke(IPC_CHANNELS.profilesExport, profileId),
+    importProfile: (input) => invoke(IPC_CHANNELS.profilesImport, input)
   },
   sessions: {
     listByAgent: (agentId) => invoke(IPC_CHANNELS.sessionsListByAgent, agentId)
@@ -22,6 +39,7 @@ const api: CodexOfficeApi = {
     create: (input) => invoke(IPC_CHANNELS.messagesCreate, input)
   },
   skills: {
+    scan: (input) => invoke(IPC_CHANNELS.skillsScan, input),
     list: () => invoke(IPC_CHANNELS.skillsList),
     get: (skillId) => invoke(IPC_CHANNELS.skillsGet, skillId),
     listForAgent: (agentId) => invoke(IPC_CHANNELS.skillsListForAgent, agentId)
@@ -55,7 +73,16 @@ const api: CodexOfficeApi = {
     discoverAgents: () => invoke(IPC_CHANNELS.runtimeDiscoverAgents),
     spawnAgent: (input) => invoke(IPC_CHANNELS.runtimeSpawnAgent, input),
     sendMessage: (sessionId, message) => invoke(IPC_CHANNELS.runtimeSendMessage, sessionId, message),
-    stopAgent: (sessionId) => invoke(IPC_CHANNELS.runtimeStopAgent, sessionId)
+    stopAgent: (sessionId) => invoke(IPC_CHANNELS.runtimeStopAgent, sessionId),
+    onEvent: (callback) => {
+      const listener = (_event: IpcRendererEvent, runtimeEvent: unknown): void => {
+        callback(runtimeEvent as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(IPC_CHANNELS.runtimeEvent, listener);
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.runtimeEvent, listener);
+      };
+    }
   }
 };
 

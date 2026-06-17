@@ -14,6 +14,10 @@ Skill discovery, display, assignment, and prompt injection.
 
 Implement local skill scanning for `~/.codex/skills`, project `.codex/skills`, and `./skills`. Parse `SKILL.md` metadata, persist discovered skills, display assigned skills, and include assigned skill context when creating or messaging an agent.
 
+## Architecture Alignment
+
+This task implements the first Context / Memory boundary. Skills are persisted as reusable context and linked through Agent Registry capability metadata. Prompt injection should be built by main-process context services, not renderer components or runtime adapters.
+
 ## Expected Output
 
 - `src/main/skills/scanSkills.ts`

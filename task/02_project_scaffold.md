@@ -14,6 +14,10 @@ Electron + React + TypeScript application foundation.
 
 Create a runnable desktop app foundation with Electron main process, secure preload bridge, React renderer, Vite development flow, PixiJS dependency, Zustand dependency, SQLite dependency, linting, formatting, and test tooling.
 
+## Architecture Alignment
+
+This task creates the first implementation shell for Human Console, IPC/preload boundary, Runtime Adapter Layer, and Local Persistence. It should leave room for future `src/main` modules such as Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Context / Memory, Permission Policy Engine, Audit Engine, and Event Logs.
+
 ## Expected Output
 
 - `package.json` with scripts for dev, build, test, lint, typecheck, and package.

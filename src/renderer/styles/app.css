@@ -67,7 +67,7 @@ button {
 
 .brand-block p,
 .eyebrow,
-.chat-preview p {
+.empty-note {
   color: #9fb0a8;
 }
 
@@ -146,6 +146,8 @@ button {
 .office-surface {
   position: relative;
   overflow: hidden;
+  display: grid;
+  place-items: stretch;
   min-height: 560px;
   border: 1px solid #314148;
   border-radius: 8px;
@@ -154,6 +156,30 @@ button {
     linear-gradient(0deg, rgba(16, 20, 23, 0.28) 1px, transparent 1px),
     #9db7a5;
   background-size: 32px 32px;
+}
+
+.office-canvas-host {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  background: #11181e;
+}
+
+.office-canvas-element {
+  width: min(100%, 780px);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.office-empty {
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  min-height: 560px;
+  color: #16251f;
+  text-align: center;
 }
 
 .office-zone {
@@ -253,15 +279,39 @@ button {
 }
 
 .detail-panel {
+  overflow: auto;
+  max-height: calc(100vh - 112px);
   border: 1px solid #314148;
   border-radius: 8px;
   padding: 18px;
   background: #172023;
 }
 
+.drawer-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #3d5554;
+  border-radius: 6px;
+  color: #dfe8e2;
+  background: #20302f;
+  cursor: pointer;
+}
+
 .detail-panel h3 {
   margin-bottom: 18px;
   font-size: 22px;
+}
+
+.detail-panel h4 {
+  margin: 22px 0 10px;
+  font-size: 14px;
 }
 
 .detail-panel dl {
@@ -280,11 +330,265 @@ button {
   margin: 3px 0 0;
 }
 
-.chat-preview {
-  margin-top: 22px;
-  border: 1px dashed #3c5055;
+.skill-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.skill-badges,
+.skill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-badge,
+.skill-actions button {
+  border: 1px solid #3d5554;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #dfe8e2;
+  background: #20302f;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.agent-chat {
+  display: grid;
+  gap: 10px;
+}
+
+.message-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.chat-message {
+  border: 1px solid #2d4044;
   border-radius: 8px;
-  padding: 14px;
+  padding: 8px 10px;
+  background: #10181b;
+}
+
+.chat-message[data-role="user"] {
+  border-color: #315f54;
+}
+
+.chat-message span {
+  display: block;
+  margin-bottom: 4px;
+  color: #9fb0a8;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.chat-message p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.chat-form input {
+  min-width: 0;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #eef4ef;
+  background: #101417;
+}
+
+.chat-form button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #11201a;
+  background: #60d394;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.chat-form button:disabled,
+.chat-form input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.log-stream {
+  display: grid;
+  gap: 6px;
+}
+
+.log-line {
+  display: grid;
+  gap: 3px;
+  border-left: 3px solid #3d5554;
+  padding: 6px 8px;
+  background: #10181b;
+}
+
+.log-line[data-severity="warning"],
+.log-line[data-severity="error"] {
+  border-left-color: #f28f3b;
+}
+
+.log-line span {
+  color: #9fb0a8;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.log-line code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.profile-library {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-library-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.profile-library-header h2,
+.profile-panel h3 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.profile-library-header h2 {
+  font-size: 30px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.profile-panel {
+  min-width: 0;
+  border: 1px solid #314148;
+  border-radius: 8px;
+  padding: 16px;
+  background: #172023;
+}
+
+.profile-panel h3 {
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+
+.profile-list,
+.profile-form,
+.capability-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-row {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: #dfe8e2;
+  background: #10181b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-row.active,
+.profile-row:hover {
+  border-color: #60d394;
+  background: #1a2b28;
+}
+
+.profile-row span,
+.profile-facts dt {
+  color: #9fb0a8;
+  font-size: 12px;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.profile-actions button,
+.profile-form button {
+  min-height: 34px;
+  border: 1px solid #3d5554;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #dfe8e2;
+  background: #20302f;
+  cursor: pointer;
+}
+
+.profile-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.profile-form label {
+  display: grid;
+  gap: 5px;
+  color: #9fb0a8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.profile-form input,
+.profile-form select,
+.profile-form textarea {
+  width: 100%;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #eef4ef;
+  background: #101417;
+}
+
+.profile-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.profile-facts {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.profile-facts dd {
+  margin: 3px 0 0;
+}
+
+.profile-export {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 12px;
+  background: #101417;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 960px) {
@@ -298,7 +602,7 @@ button {
   }
 
   .nav-list {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .nav-item {
@@ -306,6 +610,10 @@ button {
   }
 
   .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 }

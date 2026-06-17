@@ -102,4 +102,71 @@ describe("createIpcHandlers", () => {
 
     client.close();
   });
+
+  it("runs the mock runtime through IPC and persists streamed output", async () => {
+    const { client, handlers } = await createHandlers();
+    const session = await handlers.runtimeSpawnAgent({
+      id: "agent-runtime",
+      name: "Runtime",
+      role: "Mock Agent",
+      workingDirectory: "C:/repo",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual"
+    });
+
+    const response = await handlers.runtimeSendMessage(session.id, "please stream this response");
+    const usage = handlers.tokenUsageSummaryByAgent("agent-runtime");
+    const messages = handlers.messagesListBySession(session.id);
+    const stoppedSession = await handlers.runtimeStopAgent(session.id);
+
+    expect(messages.map((message) => message.role)).toEqual(["user", "agent"]);
+    expect(response.content).toContain("please stream this response");
+    expect(response.stream_state).toBe("complete");
+    expect(usage.total_tokens).toBeGreaterThan(0);
+    expect(usage.estimated_cost).toBeGreaterThan(0);
+    expect(handlers.agentsGet("agent-runtime")?.status).toBe("stopped");
+    expect(stoppedSession.status).toBe("stopped");
+    expect(handlers.eventsList({ agentId: "agent-runtime" }).map((event) => event.type)).toEqual(
+      expect.arrayContaining(["session_started", "message_chunk", "token_usage_recorded", "session_stopped"])
+    );
+
+    client.close();
+  });
+
+  it("manages agent profiles through IPC handlers", async () => {
+    const { client, handlers } = await createHandlers();
+
+    upsertSkill(client, {
+      id: "skill-docs",
+      name: "Documentation",
+      rootPath: "C:/skills/docs",
+      skillMdPath: "C:/skills/docs/SKILL.md"
+    });
+
+    const profile = handlers.profilesCreate({
+      id: "profile-docs",
+      name: "Docs Agent",
+      role: "Documentation Writer",
+      instructions: "Write clear docs.",
+      defaultPermissionMode: "readonly",
+      communicationStyle: "concise"
+    });
+    const assignment = handlers.profilesAssignSkill({
+      profileId: profile.id,
+      skillId: "skill-docs",
+      required: true
+    });
+    const matrix = handlers.profilesCapabilityMatrix(profile.id);
+    const snapshot = handlers.profilesGenerateSnapshot(profile.id);
+    const exported = handlers.profilesExport(profile.id);
+
+    expect(handlers.profilesList()).toHaveLength(1);
+    expect(assignment.required).toBe(1);
+    expect(matrix.skills[0]?.name).toBe("Documentation");
+    expect(snapshot.defaultPermissionMode).toBe("readonly");
+    expect(exported.profile.profileId).toBe(profile.id);
+
+    client.close();
+  });
 });
