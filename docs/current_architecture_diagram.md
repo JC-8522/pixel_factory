@@ -1,6 +1,16 @@
-# Current Architecture Diagram
+# Current And Target Architecture Views
 
-This diagram represents the current implementation after Tasks 01-10.
+This document contains two architecture views. They do not conflict because they answer different questions:
+
+- `Current Implementation View`: what the codebase currently looks like after Tasks 01-11.
+- `Target Logical Component View`: what stable product platform components the codebase should evolve toward.
+
+The current view is an implementation view. The target view is a logical system view. They are connected by the mapping table below, but they are not expected to be one-to-one.
+
+For the target system component architecture, see `docs/system_architecture.md`.
+For the product view and feature ownership map, see `docs/product_view.md`.
+
+## Current Implementation View
 
 ```mermaid
 flowchart LR
@@ -82,6 +92,56 @@ flowchart LR
 ```
 
 The boxes labeled `target layer` are the architecture direction for upcoming tasks. Some current code still routes more directly through IPC handlers. Future V1 work should move cross-module workflow logic into application services and domain services.
+
+## Target Logical Component View
+
+The target logical component view describes the product platform boundaries. These components may be implemented by one module, several modules, or a thin service at first.
+
+```mermaid
+flowchart TB
+  HumanConsole["Human Console"]
+  AgentRegistry["Agent Registry"]
+  Orchestration["Orchestration Center"]
+  TaskEngine["Task Engine / DAG"]
+  MessageRouter["Message Router"]
+  ContextMemory["Context / Memory"]
+  PermissionPolicy["Permission Policy Engine"]
+  AuditEngine["Audit Engine"]
+  EventLogs["Event Logs"]
+  RuntimeLayer["Runtime Adapter Layer"]
+
+  HumanConsole --> Orchestration
+  HumanConsole --> AgentRegistry
+  Orchestration --> TaskEngine
+  Orchestration --> MessageRouter
+  Orchestration --> ContextMemory
+  Orchestration --> PermissionPolicy
+  Orchestration --> AuditEngine
+  AgentRegistry --> ContextMemory
+  TaskEngine --> MessageRouter
+  MessageRouter --> RuntimeLayer
+  RuntimeLayer --> EventLogs
+  PermissionPolicy --> AuditEngine
+  AuditEngine --> EventLogs
+```
+
+Current Tasks 01-11 cover the first thin versions of Human Console, Runtime Adapter Layer, Event Logs, Context / Memory for skill prompts, Agent Profiles, profile capability metadata, and partial Agent Registry state. Tasks 12-17 should continue hardening Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Permission Policy Engine, and Audit Engine as explicit implementation modules.
+
+## View Mapping
+
+| Target Logical Component | Current Implementation Mapping | Gap / Evolution |
+| --- | --- | --- |
+| Human Console | `src/renderer/App.tsx`, office canvas, detail drawer, chat, logs, skill badges. | Expand into task board, meeting room, profile library, cost dashboard, settings. |
+| Agent Registry | Agent repositories, session repositories, skill assignments, runtime status fields. | Make an explicit registry service for identity, capability metadata, health, and active session links. |
+| Orchestration Center | Some coordination currently lives in IPC handlers and runtime flows; target layer is shown as Application Services. | Move create-agent, task assignment, meeting start, and usage recording into explicit application services. |
+| Task Engine / DAG | Task schema/store exists as foundation; task board and DAG behavior are planned. | Add task state machine, dependencies, review loops, stop conditions, and escalation rules. |
+| Message Router | Individual chat currently calls runtime send-message APIs directly through store/preload/IPC. | Add a routing layer for direct, broadcast, addressed meeting, and agent-to-agent messages. |
+| Context / Memory | Skill prompt context exists; profile snapshot and memory are planned. | Add context builder for profile snapshots, skills, workspace, task, meeting, preferences, and durable memory. |
+| Permission Policy Engine | Safety hook boundary and security module are planned; full UX is late. | Keep default-allow hook early, then harden with risk rules, approval prompts, scoped allow rules, and redaction in Task 17. |
+| Audit Engine | Runtime event persistence and `events` table exist; domain event normalization is planned. | Add product-level audit records explaining routing, task movement, permission decisions, meeting transitions, and escalation reasons. |
+| Event Logs | `events` table, runtime event persistence, message/session/token persistence. | Preserve raw runtime facts and normalized domain events; split raw runtime logs later only if replay/debugging needs it. |
+| Runtime Adapter Layer | Runtime Registry, Mock Runtime, Codex CLI Runtime. | Add attached runtime, MCP bridge, and future provider adapters without changing renderer product surfaces. |
+| Local Persistence | `sql.js` client, schema, migrations, repositories. | Keep repository boundary narrow so native SQLite can replace `sql.js` later. |
 
 ## Module Notes
 

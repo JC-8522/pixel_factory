@@ -16,6 +16,10 @@ Build the PixiJS office scene with desks, meeting room, whiteboard, idle area, e
 
 Task 02 created a CSS-based office preview shell only. This task must replace that preview with the real PixiJS canvas while preserving the surrounding app shell layout, selected-agent behavior, and store integration.
 
+## Architecture Alignment
+
+This task implements the first visual Human Console. It must render Agent Registry state through renderer stores and never own runtime execution, task policy, permission policy, message routing, or database access directly.
+
 ## Expected Output
 
 - `src/renderer/office/OfficeCanvas.tsx`

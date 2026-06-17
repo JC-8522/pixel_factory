@@ -450,6 +450,147 @@ button {
   overflow-wrap: anywhere;
 }
 
+.profile-library {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-library-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.profile-library-header h2,
+.profile-panel h3 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.profile-library-header h2 {
+  font-size: 30px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.profile-panel {
+  min-width: 0;
+  border: 1px solid #314148;
+  border-radius: 8px;
+  padding: 16px;
+  background: #172023;
+}
+
+.profile-panel h3 {
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+
+.profile-list,
+.profile-form,
+.capability-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-row {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: #dfe8e2;
+  background: #10181b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-row.active,
+.profile-row:hover {
+  border-color: #60d394;
+  background: #1a2b28;
+}
+
+.profile-row span,
+.profile-facts dt {
+  color: #9fb0a8;
+  font-size: 12px;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.profile-actions button,
+.profile-form button {
+  min-height: 34px;
+  border: 1px solid #3d5554;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #dfe8e2;
+  background: #20302f;
+  cursor: pointer;
+}
+
+.profile-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.profile-form label {
+  display: grid;
+  gap: 5px;
+  color: #9fb0a8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.profile-form input,
+.profile-form select,
+.profile-form textarea {
+  width: 100%;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #eef4ef;
+  background: #101417;
+}
+
+.profile-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.profile-facts {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.profile-facts dd {
+  margin: 3px 0 0;
+}
+
+.profile-export {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 12px;
+  background: #101417;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -461,7 +602,7 @@ button {
   }
 
   .nav-list {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .nav-item {
@@ -469,6 +610,10 @@ button {
   }
 
   .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 }

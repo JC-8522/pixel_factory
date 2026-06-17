@@ -16,10 +16,12 @@ export function OfficeCanvas({ agents, selectedAgentId, onSelectAgent, onMoveAge
 
   useEffect(() => {
     let destroyed = false;
+    let initialized = false;
     const app = new Application();
     appRef.current = app;
 
     void app.init({ width: 780, height: 500, backgroundAlpha: 0, antialias: false }).then(() => {
+      initialized = true;
       if (destroyed || !hostRef.current) {
         app.destroy();
         return;
@@ -32,7 +34,9 @@ export function OfficeCanvas({ agents, selectedAgentId, onSelectAgent, onMoveAge
 
     return () => {
       destroyed = true;
-      app.destroy();
+      if (initialized) {
+        app.destroy();
+      }
       appRef.current = null;
     };
   }, []);

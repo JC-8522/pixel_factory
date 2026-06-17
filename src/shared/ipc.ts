@@ -2,6 +2,8 @@ import type { AppInfo } from "./types/app";
 import type { AgentRuntimeEvent } from "./types/agent";
 import type {
   AgentRecord,
+  AgentProfileRecord,
+  AgentProfileSkillRecord,
   AgentSkillRecord,
   EventRecord,
   JsonObject,
@@ -22,6 +24,19 @@ export const IPC_CHANNELS = {
   agentsUpdatePosition: "agents:update-position",
   agentsAssignSkill: "agents:assign-skill",
   agentsRemoveSkill: "agents:remove-skill",
+  profilesList: "profiles:list",
+  profilesGet: "profiles:get",
+  profilesCreate: "profiles:create",
+  profilesUpdate: "profiles:update",
+  profilesDuplicate: "profiles:duplicate",
+  profilesDelete: "profiles:delete",
+  profilesAssignSkill: "profiles:assign-skill",
+  profilesRemoveSkill: "profiles:remove-skill",
+  profilesListSkills: "profiles:list-skills",
+  profilesGenerateSnapshot: "profiles:generate-snapshot",
+  profilesCapabilityMatrix: "profiles:capability-matrix",
+  profilesExport: "profiles:export",
+  profilesImport: "profiles:import",
   sessionsListByAgent: "sessions:list-by-agent",
   messagesListBySession: "messages:list-by-session",
   messagesCreate: "messages:create",
@@ -77,6 +92,70 @@ export type AssignSkillRequest = {
   agentId: string;
   skillId: string;
   assignedBy: string;
+};
+
+export type CreateAgentProfileRequest = {
+  id: string;
+  name: string;
+  role: string;
+  description?: string | null;
+  persona?: string | null;
+  instructions?: string | null;
+  defaultModelProfile?: string | null;
+  defaultPermissionMode?: string | null;
+  defaultAutoRunMode?: string | null;
+  workspaceScope?: JsonObject;
+  toolAccess?: JsonObject;
+  memoryPreferences?: JsonObject;
+  startupWorkflow?: unknown[];
+  validationPolicy?: JsonObject;
+  collaborationBehavior?: JsonObject;
+  communicationStyle?: string | null;
+  riskTolerance?: string | null;
+  outputPreferences?: JsonObject;
+  visualIdentity?: JsonObject;
+  sourcePackId?: string | null;
+};
+
+export type UpdateAgentProfileRequest = {
+  profileId: string;
+  patch: Partial<Omit<CreateAgentProfileRequest, "id">>;
+};
+
+export type DuplicateAgentProfileRequest = {
+  profileId: string;
+  newProfileId: string;
+};
+
+export type AssignProfileSkillRequest = {
+  profileId: string;
+  skillId: string;
+  required: boolean;
+};
+
+export type AgentProfileSnapshot = JsonObject & {
+  profileId: string;
+  name: string;
+  role: string;
+};
+
+export type AgentCapabilityMatrix = {
+  profileId: string;
+  profileName: string;
+  role: string;
+  skills: Array<{ id: string; name: string; required: boolean; category: string | null }>;
+  permissionPreset: string | null;
+  workspaceScope: JsonObject;
+  toolAccess: JsonObject;
+  validationPolicy: JsonObject;
+  collaborationBehavior: JsonObject;
+};
+
+export type AgentProfileExport = {
+  format: "local-codex-office.agent-profile";
+  version: 1;
+  exportedAt: string;
+  profile: AgentProfileSnapshot;
 };
 
 export type CreateMessageRequest = {
@@ -166,6 +245,21 @@ export type CodexOfficeApi = {
     updatePosition(input: UpdateAgentPositionRequest): Promise<AgentRecord>;
     assignSkill(input: AssignSkillRequest): Promise<AgentSkillRecord>;
     removeSkill(input: Omit<AssignSkillRequest, "assignedBy">): Promise<AgentSkillRecord | null>;
+  };
+  profiles: {
+    list(): Promise<AgentProfileRecord[]>;
+    get(profileId: string): Promise<AgentProfileRecord | null>;
+    create(input: CreateAgentProfileRequest): Promise<AgentProfileRecord>;
+    update(input: UpdateAgentProfileRequest): Promise<AgentProfileRecord>;
+    duplicate(input: DuplicateAgentProfileRequest): Promise<AgentProfileRecord>;
+    delete(profileId: string): Promise<AgentProfileRecord | null>;
+    assignSkill(input: AssignProfileSkillRequest): Promise<AgentProfileSkillRecord>;
+    removeSkill(input: Omit<AssignProfileSkillRequest, "required">): Promise<AgentProfileSkillRecord | null>;
+    listSkills(profileId: string): Promise<AgentProfileSkillRecord[]>;
+    generateSnapshot(profileId: string): Promise<AgentProfileSnapshot>;
+    capabilityMatrix(profileId: string): Promise<AgentCapabilityMatrix>;
+    export(profileId: string): Promise<AgentProfileExport>;
+    importProfile(input: CreateAgentProfileRequest): Promise<AgentProfileRecord>;
   };
   sessions: {
     listByAgent(agentId: string): Promise<SessionRecord[]>;

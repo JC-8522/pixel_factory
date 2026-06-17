@@ -18,6 +18,8 @@ Build local Agent Profile management before the create-agent workflow. Profiles 
 
 Agent Profile must become the canonical reusable configuration source for agent creation. Do not treat profile fields as UI-only metadata. The generated profile snapshot should drive runtime prompt context, default skill assignment, permission presets, collaboration behavior, validation expectations, output preferences, and visual identity.
 
+This task should also establish the first thin Agent Registry boundary for profile-driven capability metadata.
+
 ## Expected Output
 
 - `src/main/profiles/profileService.ts`
@@ -30,6 +32,7 @@ Agent Profile must become the canonical reusable configuration source for agent 
 - Profile default skill assignment support.
 - Profile snapshot generation service.
 - Application/domain service boundary for profile CRUD, profile snapshot generation, and capability matrix calculation.
+- Agent Registry integration for agent/profile capability metadata.
 - Permission presets in the profile model: `readonly`, `ask_before_edit`, `workspace_write`, and `auto_run_safe_commands`.
 - Tests for profile CRUD, default skills, import/export, and snapshot immutability.
 

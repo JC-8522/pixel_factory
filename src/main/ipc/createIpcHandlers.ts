@@ -1,24 +1,16 @@
 import type { AppInfo } from "../../shared/types/app";
-import type { AgentRuntimeEvent, RuntimeKind } from "../../shared/types/agent";
+import type { AgentRuntimeEvent } from "../../shared/types/agent";
 import type { DatabaseClient } from "../db/client";
 import {
-  assignSkillToAgent,
-  assignTask,
-  createSession,
   completeMeeting,
-  createAgent,
   createEvent,
   createMeeting,
   createMessage,
-  getMessage,
   createTask,
-  getAgent,
   getEvent,
   getSession,
   getSetting,
   getSkill,
-  listAgentSkills,
-  listAgents,
   listEvents,
   listMeetings,
   listMeetingMessages,
@@ -28,25 +20,49 @@ import {
   listSkills,
   listTasks,
   listTokenUsageByAgent,
-  removeSkillFromAgent,
   setSetting,
   summarizeTokenUsageByAgent,
-  updateAgentPosition,
-  updateTaskStatus,
   addMeetingMessage
 } from "../db/repositories";
+import {
+  attachSkillToRegisteredAgent,
+  detachSkillFromRegisteredAgent,
+  getRegisteredAgent,
+  listRegisteredAgentSkills,
+  listRegisteredAgents,
+  moveRegisteredAgent
+} from "../agentRegistry/agentRegistryService";
+import { createAgentThroughOrchestration, spawnAgentThroughOrchestration } from "../orchestration/agentOrchestrationService";
 import { createDefaultRuntimeRegistry, type RuntimeRegistry } from "../runtime/RuntimeRegistry";
 import { discoverLocalCodexProcesses } from "../runtime/discoverLocalCodexProcesses";
 import { persistRuntimeEvent } from "../runtime/persistRuntimeEvent";
-import { buildSkillPromptContext } from "../skills/buildSkillPromptContext";
+import { routeSessionMessage } from "../messageRouter/messageRouter";
+import { assignTaskThroughEngine, updateTaskStatusThroughEngine } from "../taskEngine/taskEngine";
+import {
+  assignProfileSkill,
+  duplicateProfile,
+  generateProfileSnapshot,
+  getCapabilityMatrix,
+  getProfile,
+  listProfileSkillAssignments,
+  listProfiles,
+  removeProfile,
+  removeProfileSkill,
+  updateProfile,
+  createProfile
+} from "../profiles/profileService";
+import { exportProfile, importProfile } from "../profiles/profileImportExport";
 import { scanSkills } from "../skills/scanSkills";
 import {
   validateAssignSkill,
+  validateAssignProfileSkill,
   validateAssignTask,
   validateCreateAgent,
+  validateCreateAgentProfile,
   validateCreateMeeting,
   validateCreateMessage,
   validateCreateTask,
+  validateDuplicateAgentProfile,
   validateEventFilter,
   validateFinishMeeting,
   validateId,
@@ -54,6 +70,8 @@ import {
   validateSettingsPatch,
   validateScanSkills,
   validateRemoveSkill,
+  validateRemoveProfileSkill,
+  validateUpdateAgentProfile,
   validateUpdateAgentPosition,
   validateUpdateTaskStatus
 } from "./validators";
@@ -77,8 +95,6 @@ const saveAfterAsync = async <T>(client: DatabaseClient, operation: () => Promis
   return result;
 };
 
-const isRuntimeKind = (value: string): value is RuntimeKind => value === "mock" || value === "codex_cli";
-
 export const settingsRowsToMap = (rows: ReturnType<typeof listSettings>): Record<string, unknown> =>
   Object.fromEntries(rows.map((row) => [row.key, JSON.parse(row.value_json) as unknown]));
 
@@ -100,66 +116,69 @@ export const createIpcHandlers = ({
   return {
   appInfo: (): AppInfo => getAppInfo(),
 
-  agentsList: () => listAgents(client),
-  agentsGet: (agentId: unknown) => getAgent(client, validateId(agentId, "agent id")),
+  agentsList: () => listRegisteredAgents(client),
+  agentsGet: (agentId: unknown) => getRegisteredAgent(client, validateId(agentId, "agent id")),
   agentsCreate: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateCreateAgent(input);
-      const agent = createAgent(client, {
-        id: payload.id,
-        name: payload.name,
-        role: payload.role,
-        workingDirectory: payload.workingDirectory,
-        runtimeKind: payload.runtimeKind,
-        permissionMode: payload.permissionMode,
-        autoRunMode: payload.autoRunMode,
-        profileId: payload.profileId,
-        profileSnapshot: payload.profileSnapshot,
-        currentTask: payload.currentTask,
-        metadata: payload.metadata
-      });
-      createEvent(client, {
-        id: `event-agent-created-${payload.id}`,
-        type: "agent_created",
-        actorType: "user",
-        actorId: "local-user",
-        agentId: payload.id,
-        payload: { name: payload.name, role: payload.role }
-      });
-      return agent;
+      return createAgentThroughOrchestration(client, payload);
     }),
   agentsUpdatePosition: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateUpdateAgentPosition(input);
-      return updateAgentPosition(client, payload.agentId, { x: payload.x, y: payload.y });
+      return moveRegisteredAgent(client, payload.agentId, { x: payload.x, y: payload.y });
     }),
   agentsAssignSkill: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateAssignSkill(input);
-      const assignment = assignSkillToAgent(client, payload);
-      createEvent(client, {
-        id: `event-skill-${payload.agentId}-${payload.skillId}`,
-        type: "skill_attached",
-        actorType: "user",
-        actorId: payload.assignedBy,
-        agentId: payload.agentId,
-        payload: { skillId: payload.skillId }
-      });
-      return assignment;
+      return attachSkillToRegisteredAgent(client, payload);
     }),
   agentsRemoveSkill: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateRemoveSkill(input);
-      const removed = removeSkillFromAgent(client, payload);
-      createEvent(client, {
-        id: nextId(`event-skill-removed-${payload.agentId}-${payload.skillId}`),
-        type: "skill_removed",
-        actorType: "user",
-        actorId: "local-user",
-        agentId: payload.agentId,
-        payload: { skillId: payload.skillId }
-      });
-      return removed;
+      return detachSkillFromRegisteredAgent(client, payload, nextId);
+    }),
+
+  profilesList: () => listProfiles(client),
+  profilesGet: (profileId: unknown) => getProfile(client, validateId(profileId, "profile id")),
+  profilesCreate: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateCreateAgentProfile(input);
+      return createProfile(client, payload);
+    }),
+  profilesUpdate: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateUpdateAgentProfile(input);
+      return updateProfile(client, payload.profileId, payload.patch);
+    }),
+  profilesDuplicate: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateDuplicateAgentProfile(input);
+      return duplicateProfile(client, payload.profileId, payload.newProfileId);
+    }),
+  profilesDelete: (profileId: unknown) =>
+    saveAfter(client, () => removeProfile(client, validateId(profileId, "profile id"))),
+  profilesAssignSkill: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateAssignProfileSkill(input);
+      return assignProfileSkill(client, payload);
+    }),
+  profilesRemoveSkill: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateRemoveProfileSkill(input);
+      return removeProfileSkill(client, payload);
+    }),
+  profilesListSkills: (profileId: unknown) =>
+    listProfileSkillAssignments(client, validateId(profileId, "profile id")),
+  profilesGenerateSnapshot: (profileId: unknown) =>
+    generateProfileSnapshot(client, validateId(profileId, "profile id")),
+  profilesCapabilityMatrix: (profileId: unknown) =>
+    getCapabilityMatrix(client, validateId(profileId, "profile id")),
+  profilesExport: (profileId: unknown) => exportProfile(client, validateId(profileId, "profile id")),
+  profilesImport: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateCreateAgentProfile(input);
+      return importProfile(client, payload);
     }),
 
   sessionsListByAgent: (agentId: unknown) => listSessionsForAgent(client, validateId(agentId, "agent id")),
@@ -189,7 +208,7 @@ export const createIpcHandlers = ({
       return scanSkills(client, payload);
     }),
   skillsGet: (skillId: unknown) => getSkill(client, validateId(skillId, "skill id")),
-  skillsListForAgent: (agentId: unknown) => listAgentSkills(client, validateId(agentId, "agent id")),
+  skillsListForAgent: (agentId: unknown) => listRegisteredAgentSkills(client, validateId(agentId, "agent id")),
 
   tasksList: () => listTasks(client),
   tasksCreate: (input: unknown) =>
@@ -200,22 +219,12 @@ export const createIpcHandlers = ({
   tasksAssign: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateAssignTask(input);
-      const task = assignTask(client, payload.taskId, payload.agentId);
-      createEvent(client, {
-        id: `event-task-assigned-${payload.taskId}-${payload.agentId}`,
-        type: "task_assigned",
-        actorType: "user",
-        actorId: "local-user",
-        agentId: payload.agentId,
-        taskId: payload.taskId,
-        payload: { taskId: payload.taskId, agentId: payload.agentId }
-      });
-      return task;
+      return assignTaskThroughEngine(client, payload);
     }),
   tasksUpdateStatus: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateUpdateTaskStatus(input);
-      return updateTaskStatus(client, payload);
+      return updateTaskStatusThroughEngine(client, payload);
     }),
 
   meetingsList: () => listMeetings(client),
@@ -255,115 +264,20 @@ export const createIpcHandlers = ({
     }),
 
   runtimeDiscoverAgents: async () => {
-    const [storedAgents, detectedAgents] = await Promise.all([Promise.resolve(listAgents(client)), discoverLocalCodexProcesses()]);
+    const [storedAgents, detectedAgents] = await Promise.all([Promise.resolve(listRegisteredAgents(client)), discoverLocalCodexProcesses()]);
     const storedIds = new Set(storedAgents.map((agent) => agent.id));
     return [...storedAgents, ...detectedAgents.filter((agent) => !storedIds.has(agent.id))];
   },
   runtimeSpawnAgent: (input: unknown) =>
     saveAfterAsync(client, async () => {
       const payload = validateCreateAgent(input);
-      if (!isRuntimeKind(payload.runtimeKind)) {
-        throw new Error("Unsupported runtime kind.");
-      }
-
-      const existingAgent = getAgent(client, payload.id);
-      const agent =
-        existingAgent ??
-        createAgent(client, {
-          id: payload.id,
-          name: payload.name,
-          role: payload.role,
-          workingDirectory: payload.workingDirectory,
-          runtimeKind: payload.runtimeKind,
-          permissionMode: payload.permissionMode,
-          autoRunMode: payload.autoRunMode,
-          profileId: payload.profileId,
-          profileSnapshot: payload.profileSnapshot,
-          currentTask: payload.currentTask,
-          metadata: payload.metadata
-        });
-
-      if (!existingAgent) {
-        createEvent(client, {
-          id: nextId(`event-agent-created-${payload.id}`),
-          type: "agent_created",
-          actorType: "user",
-          actorId: "local-user",
-          agentId: payload.id,
-          payload: { name: payload.name, role: payload.role }
-        });
-      }
-
-      const session = createSession(client, {
-        id: nextId(`session-${agent.id}`),
-        agentId: agent.id,
-        runtimeKind: payload.runtimeKind,
-        status: "running",
-        workingDirectory: agent.working_directory,
-        initialPrompt: payload.currentTask,
-        modelProfile: typeof payload.profileSnapshot?.defaultModelProfile === "string" ? payload.profileSnapshot.defaultModelProfile : null
-      });
-
-      await runtimeRegistry.spawn(payload.runtimeKind, {
-        agentId: agent.id,
-        sessionId: session.id,
-        workingDirectory: agent.working_directory,
-        initialPrompt: payload.currentTask,
-        modelProfile: session.model_profile,
-        permissionMode: payload.permissionMode,
-        skillPromptContext: buildSkillPromptContext(client, agent.id)
-      });
-
-      return getSession(client, session.id) ?? session;
+      return spawnAgentThroughOrchestration(client, runtimeRegistry, payload, nextId);
     }),
   runtimeSendMessage: (sessionId: unknown, message: unknown) =>
     saveAfterAsync(client, async () => {
       const validSessionId = validateId(sessionId, "session id");
       const validMessage = validateId(message, "runtime message");
-      const session = getSession(client, validSessionId);
-
-      if (!session) {
-        throw new Error(`Session not found: ${validSessionId}`);
-      }
-
-      const userMessage = createMessage(client, {
-        id: nextId(`message-user-${validSessionId}`),
-        sessionId: validSessionId,
-        agentId: session.agent_id,
-        role: "user",
-        content: validMessage
-      });
-      const responseMessage = createMessage(client, {
-        id: nextId(`message-agent-${validSessionId}`),
-        sessionId: validSessionId,
-        agentId: session.agent_id,
-        role: "agent",
-        content: "",
-        streamState: "streaming",
-        parentMessageId: userMessage.id
-      });
-      createEvent(client, {
-        id: nextId(`event-message-${userMessage.id}`),
-        type: "message_sent",
-        actorType: "user",
-        actorId: "local-user",
-        agentId: session.agent_id,
-        sessionId: validSessionId,
-        payload: { messageId: userMessage.id, role: "user" }
-      });
-      client.save();
-
-      await runtimeRegistry.sendMessage({
-        sessionId: validSessionId,
-        agentId: session.agent_id,
-        message: validMessage,
-        inputMessageId: userMessage.id,
-        responseMessageId: responseMessage.id,
-        modelProfile: session.model_profile,
-        skillPromptContext: buildSkillPromptContext(client, session.agent_id)
-      });
-
-      return getMessage(client, responseMessage.id) ?? responseMessage;
+      return routeSessionMessage(client, runtimeRegistry, { sessionId: validSessionId, message: validMessage }, nextId);
     }),
   runtimeStopAgent: (sessionId: unknown) =>
     saveAfterAsync(client, async () => {

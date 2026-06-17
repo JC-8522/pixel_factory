@@ -16,6 +16,8 @@ Build the task board with columns Backlog, Assigned, In Progress, Waiting Review
 
 This task should introduce or use application services and domain events for task transitions, timeline records, run history, health, and usage summaries. Task board UI should not parse runtime-provider logs directly.
 
+Task state behavior belongs in Task Engine / DAG. Timeline and run history explanations belong in Audit Engine and Event Logs.
+
 ## Expected Output
 
 - `src/renderer/components/TaskBoard.tsx`
@@ -33,6 +35,8 @@ This task should introduce or use application services and domain events for tas
 - Manager cost dashboard display for token usage and estimated cost by agent, session, task, model/profile, workspace, and time range.
 - Usage price configuration for estimated cost when provider-reported cost is unavailable.
 - Domain event normalization for task/timeline/dashboard records.
+- Task Engine task state transition boundary.
+- Audit Engine records for task movement, assignment, run history, and cost visibility.
 - Tests for task lifecycle and event filtering.
 
 ## Expected Feature

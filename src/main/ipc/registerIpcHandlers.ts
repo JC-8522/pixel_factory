@@ -12,6 +12,24 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
   ipcMain.handle(IPC_CHANNELS.agentsAssignSkill, (_event, input) => handlers.agentsAssignSkill(input));
   ipcMain.handle(IPC_CHANNELS.agentsRemoveSkill, (_event, input) => handlers.agentsRemoveSkill(input));
 
+  ipcMain.handle(IPC_CHANNELS.profilesList, () => handlers.profilesList());
+  ipcMain.handle(IPC_CHANNELS.profilesGet, (_event, profileId) => handlers.profilesGet(profileId));
+  ipcMain.handle(IPC_CHANNELS.profilesCreate, (_event, input) => handlers.profilesCreate(input));
+  ipcMain.handle(IPC_CHANNELS.profilesUpdate, (_event, input) => handlers.profilesUpdate(input));
+  ipcMain.handle(IPC_CHANNELS.profilesDuplicate, (_event, input) => handlers.profilesDuplicate(input));
+  ipcMain.handle(IPC_CHANNELS.profilesDelete, (_event, profileId) => handlers.profilesDelete(profileId));
+  ipcMain.handle(IPC_CHANNELS.profilesAssignSkill, (_event, input) => handlers.profilesAssignSkill(input));
+  ipcMain.handle(IPC_CHANNELS.profilesRemoveSkill, (_event, input) => handlers.profilesRemoveSkill(input));
+  ipcMain.handle(IPC_CHANNELS.profilesListSkills, (_event, profileId) => handlers.profilesListSkills(profileId));
+  ipcMain.handle(IPC_CHANNELS.profilesGenerateSnapshot, (_event, profileId) =>
+    handlers.profilesGenerateSnapshot(profileId)
+  );
+  ipcMain.handle(IPC_CHANNELS.profilesCapabilityMatrix, (_event, profileId) =>
+    handlers.profilesCapabilityMatrix(profileId)
+  );
+  ipcMain.handle(IPC_CHANNELS.profilesExport, (_event, profileId) => handlers.profilesExport(profileId));
+  ipcMain.handle(IPC_CHANNELS.profilesImport, (_event, input) => handlers.profilesImport(input));
+
   ipcMain.handle(IPC_CHANNELS.sessionsListByAgent, (_event, agentId) => handlers.sessionsListByAgent(agentId));
 
   ipcMain.handle(IPC_CHANNELS.messagesListBySession, (_event, sessionId) =>

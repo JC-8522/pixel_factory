@@ -133,4 +133,40 @@ describe("createIpcHandlers", () => {
 
     client.close();
   });
+
+  it("manages agent profiles through IPC handlers", async () => {
+    const { client, handlers } = await createHandlers();
+
+    upsertSkill(client, {
+      id: "skill-docs",
+      name: "Documentation",
+      rootPath: "C:/skills/docs",
+      skillMdPath: "C:/skills/docs/SKILL.md"
+    });
+
+    const profile = handlers.profilesCreate({
+      id: "profile-docs",
+      name: "Docs Agent",
+      role: "Documentation Writer",
+      instructions: "Write clear docs.",
+      defaultPermissionMode: "readonly",
+      communicationStyle: "concise"
+    });
+    const assignment = handlers.profilesAssignSkill({
+      profileId: profile.id,
+      skillId: "skill-docs",
+      required: true
+    });
+    const matrix = handlers.profilesCapabilityMatrix(profile.id);
+    const snapshot = handlers.profilesGenerateSnapshot(profile.id);
+    const exported = handlers.profilesExport(profile.id);
+
+    expect(handlers.profilesList()).toHaveLength(1);
+    expect(assignment.required).toBe(1);
+    expect(matrix.skills[0]?.name).toBe("Documentation");
+    expect(snapshot.defaultPermissionMode).toBe("readonly");
+    expect(exported.profile.profileId).toBe(profile.id);
+
+    client.close();
+  });
 });

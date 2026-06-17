@@ -6,6 +6,13 @@ Local Codex Office is a local desktop app that visualizes Codex agents as pixel-
 
 The application is local-first. It is not a cloud service. Local process control, filesystem reads, log streaming, skill scanning, SQLite persistence, and safety checks all live in the Electron main process.
 
+Primary companion documents:
+
+- `docs/system_architecture.md` defines the major system components and their responsibilities.
+- `docs/domain_model.md` defines target layering, event concepts, workflow concepts, and domain rules.
+- `docs/module_boundaries.md` maps architecture components to implementation modules.
+- `docs/product_view.md` defines product views, supported features, ownership types, and stages.
+
 ## Technology Stack
 
 - Electron for desktop shell and local system access.
@@ -38,6 +45,25 @@ Renderer Components
 IPC handlers should validate requests and delegate. Product workflows should live in application services, not inside React components or IPC handler bodies.
 
 The detailed domain model is documented in `docs/domain_model.md`.
+
+## Core System Components
+
+The system architecture is organized around these first-class components:
+
+| Component | Role |
+| --- | --- |
+| Human Console | The manager-facing control surface for observing agents, creating agents, chatting, assigning work, reviewing cost, and approving actions. |
+| Agent Registry | The source of truth for agent identity, profile snapshot, skills, capability metadata, status, runtime kind, and active session link. |
+| Orchestration Center | The application brain that coordinates multi-step workflows across agents, tasks, meetings, messages, context, permissions, audit, and runtime adapters. |
+| Task Engine / DAG | The workflow execution model for task states, dependencies, review loops, stop conditions, and escalation rules. |
+| Message Router | The routing layer for direct user-agent messages, broadcast messages, addressed meeting messages, and agent-agent feedback. |
+| Context / Memory | The context builder for profile snapshots, assigned skills, workspace context, memory preferences, task context, and meeting context. |
+| Permission Policy Engine | The policy layer for command risk, permission presets, allow rules, deny decisions, and safe command gates. |
+| Audit Engine | The product-level explainability layer for domain events, timeline records, transition reasons, and permission decisions. |
+| Event Logs | Durable storage for raw runtime events, domain events, timeline events, and replay inputs. |
+| Runtime Adapter Layer | Provider integration for mock runtime, Codex CLI runtime, attach mode, MCP, and future providers. |
+
+These components are documented in detail in `docs/system_architecture.md`.
 
 ## User And Agent Role Model
 

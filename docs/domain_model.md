@@ -2,6 +2,8 @@
 
 This document defines the target product architecture that Tasks 11-18 should follow. It separates UI, IPC, application services, domain services, runtime adapters, and persistence so future features can grow without turning IPC handlers or React components into business-logic containers.
 
+For the full first-class system component list, see `docs/system_architecture.md`. For product views and feature ownership, see `docs/product_view.md`.
+
 ## Target Layer Diagram
 
 ```mermaid
@@ -18,12 +20,17 @@ flowchart TB
 
   subgraph Main["Electron Main Process"]
     IpcHandlers["Thin IPC Handlers"]
-    AppServices["Application Services"]
+    Orchestration["Orchestration Center / Application Services"]
     DomainServices["Domain Services"]
+    AgentRegistry["Agent Registry"]
+    TaskEngine["Task Engine / DAG"]
+    MessageRouter["Message Router"]
+    ContextMemory["Context / Memory"]
+    PermissionPolicy["Permission Policy Engine"]
+    AuditEngine["Audit Engine"]
     EventBus["Event Normalizer / Domain Event Bus"]
     RuntimeRegistry["Runtime Registry"]
     Repositories["Database Repositories"]
-    SafetyHooks["Safety Hooks"]
   end
 
   subgraph Domain["Core Domains"]
@@ -49,10 +56,15 @@ flowchart TB
   Stores --> RendererServices
   RendererServices --> WindowApi
   WindowApi --> IpcHandlers
-  IpcHandlers --> AppServices
-  AppServices --> DomainServices
-  AppServices --> EventBus
-  AppServices --> SafetyHooks
+  IpcHandlers --> Orchestration
+  Orchestration --> DomainServices
+  Orchestration --> AgentRegistry
+  Orchestration --> TaskEngine
+  Orchestration --> MessageRouter
+  Orchestration --> ContextMemory
+  Orchestration --> PermissionPolicy
+  Orchestration --> AuditEngine
+  AuditEngine --> EventBus
   DomainServices --> Profiles
   DomainServices --> Agents
   DomainServices --> Sessions
@@ -65,7 +77,7 @@ flowchart TB
   RuntimeRegistry --> MockRuntime
   RuntimeRegistry --> CodexRuntime
   RuntimeRegistry --> FutureRuntime
-  AppServices --> RuntimeRegistry
+  MessageRouter --> RuntimeRegistry
   RuntimeRegistry --> EventBus
   Repositories --> Sqlite
   Skills --> LocalFiles
@@ -91,7 +103,7 @@ IPC handlers validate payloads, call application services, and return serializab
 
 ### Application Services
 
-Application services coordinate a complete user action across domain services, repositories, runtime adapters, event publishing, and safety hooks.
+Application services form the implementation layer of the `Orchestration Center`. They coordinate a complete user action across domain services, repositories, runtime adapters, event publishing, and safety hooks.
 
 Examples:
 
@@ -114,6 +126,64 @@ Examples:
 - runtime event normalization,
 - token cost estimation,
 - permission policy decisions.
+
+### Agent Registry
+
+Agent Registry is the source of truth for agent identity and capability state. It owns agent records, active session links, profile snapshot references, assigned skills, visible status, runtime kind, and capability matrix metadata.
+
+It does not start processes directly. Runtime execution is delegated through Message Router and Runtime Adapter Layer.
+
+### Task Engine / DAG
+
+Task Engine owns task state transitions, task dependencies, review-loop state, retry rules, stop conditions, and manager escalation rules.
+
+Task Board is only one UI surface over Task Engine. Future automation should be able to run task graphs without the task board being open.
+
+### Message Router
+
+Message Router owns message addressing and delivery:
+
+- human manager to one agent,
+- human manager to many agents,
+- agent to agent,
+- meeting broadcast,
+- reviewer feedback back to developer,
+- workflow-generated messages.
+
+Message Router does not decide task policy. It receives routing intent from Orchestration Center or Task Engine and delivers messages through runtime sessions.
+
+### Context / Memory
+
+Context / Memory builds the context that agents receive:
+
+- profile snapshot,
+- assigned skills,
+- workspace scope,
+- task context,
+- meeting context,
+- user preferences,
+- durable memory records when implemented.
+
+Renderer-provided context is never trusted as authoritative. Main-process services build context from persisted product data.
+
+### Permission Policy Engine
+
+Permission Policy Engine owns permission presets, command risk rules, allow/deny decisions, scoped allow rules, and safe command gates.
+
+The full permission UI is late, but the runtime path should call this engine through a default-allow hook before Task 17.
+
+### Audit Engine
+
+Audit Engine writes product-level explanations:
+
+- who asked for an action,
+- which agent or workflow acted,
+- why a task moved,
+- why a message was routed,
+- why a meeting escalated,
+- why a command was allowed or denied.
+
+Event Logs store facts. Audit Engine makes product decisions explainable.
 
 ### Runtime Adapters
 

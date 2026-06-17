@@ -8,12 +8,22 @@ type AgentChatProps = {
   onRuntimeEvent?: (event: AgentRuntimeEvent) => void;
 };
 
+const isDetectedExternalAgent = (agent: AgentRecord): boolean => {
+  try {
+    const metadata = JSON.parse(agent.metadata_json) as { detected?: boolean };
+    return metadata.detected === true;
+  } catch {
+    return agent.permission_mode === "external" || agent.auto_run_mode === "external";
+  }
+};
+
 export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactElement {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const { messagesBySession, hydrateSession } = useChatStore();
 
+  const readOnlyExternalAgent = isDetectedExternalAgent(agent);
   const activeSession = useMemo(() => sessions.at(-1) ?? null, [sessions]);
   const messages: MessageRecord[] = activeSession ? messagesBySession[activeSession.id] ?? [] : [];
 
@@ -46,6 +56,10 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
   }, [agent.id, activeSession?.id, hydrateSession, onRuntimeEvent]);
 
   const ensureSession = async (): Promise<SessionRecord> => {
+    if (readOnlyExternalAgent) {
+      throw new Error("Detected external Codex processes are read-only in MVP.");
+    }
+
     const latest = (await refreshSessions()).at(-1);
     if (latest && !["completed", "stopped", "failed"].includes(latest.status)) {
       return latest;
@@ -99,12 +113,12 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
       </div>
       <form className="chat-form" onSubmit={(event) => void send(event)}>
         <input
-          disabled={busy}
+          disabled={busy || readOnlyExternalAgent}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Send a message to this agent"
+          placeholder={readOnlyExternalAgent ? "Detected process is read-only" : "Send a message to this agent"}
           value={draft}
         />
-        <button disabled={busy || draft.trim().length === 0} type="submit">
+        <button disabled={busy || readOnlyExternalAgent || draft.trim().length === 0} type="submit">
           Send
         </button>
       </form>

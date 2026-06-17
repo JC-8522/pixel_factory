@@ -20,6 +20,8 @@ Build the create-agent form and connect it to the runtime, database, skill assig
 
 The create-agent workflow should be implemented through a main-process application service. The renderer form collects intent; the main process validates it, generates any profile snapshot, applies default skills, creates durable records, and starts the runtime.
 
+This task should route creation through Orchestration Center and register the resulting agent through Agent Registry. Initial chat/session creation should use Message Router rather than embedding message delivery in the renderer.
+
 ## Expected Output
 
 - `src/renderer/components/CreateAgentDialog.tsx`
@@ -35,6 +37,8 @@ The create-agent workflow should be implemented through a main-process applicati
 - Agent appears in the office after creation.
 - Initial task appears in chat/session history.
 - Main-process create-agent application service that coordinates profile snapshot, skill defaults, repositories, runtime spawn, and domain events.
+- Agent Registry registration/update for the created agent.
+- Message Router handoff for initial task/session message delivery.
 - Tests for form validation and successful creation.
 
 ## Expected Feature

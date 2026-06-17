@@ -2,6 +2,7 @@ export * from "./agents";
 export * from "./events";
 export * from "./meetings";
 export * from "./messages";
+export * from "./profiles";
 export * from "./sessions";
 export * from "./settings";
 export * from "./skills";

@@ -16,6 +16,8 @@ Add extension points and the first usable implementation for attaching to existi
 
 Attach and MCP integrations must emit runtime events through the same runtime/event normalization pipeline as mock and Codex CLI spawned runtime. Renderer UI should not need provider-specific branches for attach mode or MCP sessions.
 
+Attach mode and MCP should integrate through Runtime Adapter Layer, Message Router, Agent Registry, Audit Engine, and Event Logs. They must not create a parallel product architecture.
+
 ## Expected Output
 
 - `src/main/runtime/AttachedCodexRuntime.ts` or documented stub if reliable attach is not yet possible.
@@ -24,6 +26,9 @@ Attach and MCP integrations must emit runtime events through the same runtime/ev
 - Project Workspace Selector UI and store.
 - Timeline replay event query APIs.
 - RuntimeEvent to DomainEvent mapping for attach/MCP provider signals.
+- Agent Registry representation for attached sessions where reliable identity exists.
+- Message Router integration for controllable attached/MCP sessions.
+- Audit Engine records for attach capability, read-only limits, control limits, and provider failures.
 - GitHub integration boundary interface.
 - Plugin registry interface.
 - Office theme model and renderer support.

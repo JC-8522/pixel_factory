@@ -14,6 +14,10 @@ Architecture foundation and implementation roadmap.
 
 Convert the product design into a technical architecture that future agents can implement without guessing module boundaries.
 
+## Architecture Alignment
+
+This task owns the first definition of the system component map: Human Console, Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Context / Memory, Permission Policy Engine, Audit Engine, Event Logs, Runtime Adapter Layer, and Local Persistence.
+
 ## Expected Output
 
 - `docs/architecture.md`
@@ -22,6 +26,8 @@ Convert the product design into a technical architecture that future agents can 
 - `docs/ipc_contracts.md`
 - `docs/data_model.md`
 - `docs/runtime_adapter.md`
+- `docs/system_architecture.md`
+- `docs/product_view.md`
 - A short list of explicit non-goals for MVP, V1, and V2.
 
 ## Expected Feature

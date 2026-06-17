@@ -14,6 +14,10 @@ Runtime adapter interface and deterministic mock runtime.
 
 Define the `AgentRuntime` interface and implement `MockAgentRuntime` first. The mock runtime must support agent creation, message sending, response streaming, token usage events, status changes, stopping, and deterministic test scenarios.
 
+## Architecture Alignment
+
+This task implements the first Runtime Adapter Layer and Runtime Registry. Runtime adapters emit provider signals only; Message Router, Orchestration Center, Audit Engine, Event Logs, and Usage / Cost should own product meaning around messages, workflows, audit, persistence, and cost.
+
 ## Expected Output
 
 - `src/shared/types/agent.ts`

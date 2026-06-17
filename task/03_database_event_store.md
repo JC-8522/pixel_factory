@@ -16,6 +16,10 @@ Local persistence and event timeline foundation.
 
 Implement a SQLite database layer with schema, migrations, repositories, and event recording for agents, sessions, messages, token usage, skills, tasks, meetings, settings, and activity events.
 
+## Architecture Alignment
+
+This task implements the Local Persistence foundation for Agent Registry, Event Logs, Audit Engine, Task Engine / DAG, Message Router, Context / Memory, Usage / Cost, Permission Policy Engine, and future Agent Packs. Repository boundaries must stay narrow so higher-level components own product rules.
+
 ## Expected Output
 
 - `src/main/db/schema.ts`

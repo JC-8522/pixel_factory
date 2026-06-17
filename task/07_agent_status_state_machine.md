@@ -14,6 +14,10 @@ Agent status mapping and timeline event generation.
 
 Implement a state machine that maps runtime events and log patterns into the product's agent statuses: `idle`, `thinking`, `running_command`, `reading_files`, `editing_files`, `waiting_user_input`, `error`, `completed`, and `stopped`.
 
+## Architecture Alignment
+
+This task creates part of Agent Registry and Audit Engine behavior. Runtime events are interpreted into product status and timeline/domain events. Raw provider logs should remain Event Logs input, while visible agent status belongs to Agent Registry state.
+
 ## Expected Output
 
 - `src/main/runtime/agentStatusMachine.ts`

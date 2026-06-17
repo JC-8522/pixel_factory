@@ -4,6 +4,9 @@
 
 The final product is a local desktop office for Codex agents. Users can see agents as pixel workers, create and control local agents, chat with them, assign skills, organize work, run meetings, and review activity safely.
 
+Product view and feature ownership are defined in `docs/product_view.md`.
+System component boundaries are defined in `docs/system_architecture.md`.
+
 ## MVP 0.1 Scope
 
 MVP must deliver a usable local vertical slice:
@@ -29,6 +32,7 @@ MVP must deliver a usable local vertical slice:
 - basic token usage tracking from mock runtime and any reported Codex runtime usage.
 - early safety hook boundary in the runtime path, with full approval UX deferred.
 - documented application service/domain layering for future V1 features.
+- documented system component map covering Human Console, Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Context / Memory, Permission Policy Engine, Audit Engine, and Event Logs.
 
 ## MVP Acceptance
 
@@ -69,7 +73,8 @@ V1 expands the product from a single-agent MVP into a practical multi-agent work
 - richer timeline filters,
 - task and meeting result summaries,
 - application service layer for create-agent, runtime messaging, task assignment, meeting workflows, and usage recording,
-- domain event normalization so runtime-provider details do not leak into task board, meeting room, timeline, or dashboard UI.
+- domain event normalization so runtime-provider details do not leak into task board, meeting room, timeline, or dashboard UI,
+- explicit Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Context / Memory, Permission Policy Engine, Audit Engine, and Event Logs boundaries.
 
 ## V2 Scope
 
@@ -147,10 +152,10 @@ V3 can turn the project into a community-sharing ecosystem:
 | Task Board | V1 | planned |
 | Activity Timeline | MVP base, V1 filters | MVP event/log base completed; V1 filters planned |
 | Local Safety & Permission Layer | V1 full, MVP hooks | runtime hook boundary planned before full UX; full layer late in Task 17 |
-| Agent Profiles / Personalization | V1 | planned next in Task 11 |
+| Agent Profiles / Personalization | V1 | Task 11 completed |
 | Community Agent Packs | V2 install/import, V3 registry | planned |
-| Agent Profile Library | V1 | planned |
-| Agent Capability Matrix | V1 | planned |
+| Agent Profile Library | V1 | Task 11 completed |
+| Agent Capability Matrix | V1 | Task 11 completed |
 | Permission Presets | V1 model, late safety UX | planned |
 | Agent Health | V1 | planned |
 | Project Workspace Selector | V2 | planned |
@@ -159,6 +164,8 @@ V3 can turn the project into a community-sharing ecosystem:
 | Token Usage & Cost Tracking | MVP base, V1 dashboard | MVP raw usage base completed; V1 price config and manager dashboard planned |
 | Application Service Layer | V1 architecture hardening | planned across Tasks 11-14 |
 | RuntimeEvent / DomainEvent Split | V1 architecture hardening | planned across Tasks 11-14 |
+| Product View / Feature Ownership | Architecture documentation | documented |
+| System Component Map | Architecture documentation | documented |
 
 ## Delivery Milestones
 

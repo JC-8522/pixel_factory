@@ -20,6 +20,8 @@ The product model may already contain permission presets from Agent Profiles. Th
 
 Earlier runtime tasks should already have a safety hook boundary, even if it defaults to allow for local-owner MVP use. This task hardens that hook into real policy enforcement without changing runtime adapter contracts.
 
+This task owns the Permission Policy Engine hardening. Every allow/deny decision should produce Audit Engine records and Event Logs entries.
+
 ## Expected Output
 
 - `src/main/security/riskRules.ts`
@@ -27,6 +29,8 @@ Earlier runtime tasks should already have a safety hook boundary, even if it def
 - `src/main/security/secretsRedaction.ts`
 - `src/main/runtime/safeCommandGate.ts`
 - Application/domain service integration for permission decisions and audit/domain events.
+- Permission Policy Engine enforcement for runtime command gates.
+- Audit Engine records for requests, decisions, denials, scoped allow rules, and redaction behavior.
 - IPC APIs for permission requests and decisions.
 - Renderer permission dialog.
 - Settings UI for project allow rules.

@@ -14,6 +14,10 @@ App-controlled Codex CLI runtime.
 
 Implement `CodexCliRuntime` using Node.js child processes in the Electron main process. It must spawn Codex with a working directory, initial task, selected model/profile, assigned skills, and permission mode. It must stream stdout/stderr into runtime events, capture or estimate token usage where possible, and support stopping/restarting app-created sessions.
 
+## Architecture Alignment
+
+This task extends the Runtime Adapter Layer with app-controlled Codex CLI sessions. It must not own Agent Registry state, task policy, message routing policy, permission policy, or audit explanation. Those concerns belong to Agent Registry, Task Engine / DAG, Message Router, Permission Policy Engine, Audit Engine, and Event Logs.
+
 ## Expected Output
 
 - `src/main/runtime/CodexCliRuntime.ts`

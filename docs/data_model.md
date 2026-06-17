@@ -43,6 +43,24 @@ permission_rules
 agent_packs
 ```
 
+## Component Data Ownership
+
+The major architecture components map to data ownership as follows:
+
+| Component | Primary Tables Now | Likely Future Tables |
+| --- | --- | --- |
+| Agent Registry | `agents`, `agent_profiles`, `agent_skills`, `sessions`, `skills` | `agent_capabilities`, `agent_health_snapshots` |
+| Orchestration Center | coordinates records across domains | `workflow_runs`, `workflow_steps` |
+| Task Engine / DAG | `tasks`, `task_events` | `task_dependencies`, `task_dag_nodes`, `task_dag_edges` |
+| Message Router | `messages`, `meeting_messages` | `message_routes`, `conversation_threads` |
+| Context / Memory | `agent_profiles`, `agent_profile_skills`, `skills`, `settings` | `memory_records`, `context_snapshots`, `workspace_contexts` |
+| Permission Policy Engine | `permission_rules`, `settings` | `permission_requests`, `permission_decisions` |
+| Audit Engine | `events`, `task_events`, `meeting_transitions` | `audit_records` if audit needs to split from timeline events |
+| Event Logs | `events` | `runtime_event_logs` if raw provider logs need separate retention/replay |
+| Usage / Cost | `token_usage`, `model_price_configs` | `usage_rollups` |
+
+Future tables should be added only when the current `events`, `messages`, `tasks`, and repository boundaries become too overloaded. The architecture defines the ownership boundary first; migrations can stay incremental.
+
 ## Common Columns
 
 Most tables should include:

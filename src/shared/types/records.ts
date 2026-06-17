@@ -28,6 +28,38 @@ export type AgentSkillRecord = {
   assigned_by: string;
 };
 
+export type AgentProfileRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  role: string;
+  persona: string | null;
+  instructions: string | null;
+  default_model_profile: string | null;
+  default_permission_mode: string | null;
+  default_auto_run_mode: string | null;
+  workspace_scope_json: string;
+  tool_access_json: string;
+  memory_preferences_json: string;
+  startup_workflow_json: string;
+  validation_policy_json: string;
+  collaboration_behavior_json: string;
+  communication_style: string | null;
+  risk_tolerance: string | null;
+  output_preferences_json: string;
+  visual_identity_json: string;
+  source_pack_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AgentProfileSkillRecord = {
+  profile_id: string;
+  skill_id: string;
+  required: number;
+  created_at: string;
+};
+
 export type SessionRecord = {
   id: string;
   agent_id: string;

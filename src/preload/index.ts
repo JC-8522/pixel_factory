@@ -16,6 +16,21 @@ const api: CodexOfficeApi = {
     assignSkill: (input) => invoke(IPC_CHANNELS.agentsAssignSkill, input),
     removeSkill: (input) => invoke(IPC_CHANNELS.agentsRemoveSkill, input)
   },
+  profiles: {
+    list: () => invoke(IPC_CHANNELS.profilesList),
+    get: (profileId) => invoke(IPC_CHANNELS.profilesGet, profileId),
+    create: (input) => invoke(IPC_CHANNELS.profilesCreate, input),
+    update: (input) => invoke(IPC_CHANNELS.profilesUpdate, input),
+    duplicate: (input) => invoke(IPC_CHANNELS.profilesDuplicate, input),
+    delete: (profileId) => invoke(IPC_CHANNELS.profilesDelete, profileId),
+    assignSkill: (input) => invoke(IPC_CHANNELS.profilesAssignSkill, input),
+    removeSkill: (input) => invoke(IPC_CHANNELS.profilesRemoveSkill, input),
+    listSkills: (profileId) => invoke(IPC_CHANNELS.profilesListSkills, profileId),
+    generateSnapshot: (profileId) => invoke(IPC_CHANNELS.profilesGenerateSnapshot, profileId),
+    capabilityMatrix: (profileId) => invoke(IPC_CHANNELS.profilesCapabilityMatrix, profileId),
+    export: (profileId) => invoke(IPC_CHANNELS.profilesExport, profileId),
+    importProfile: (input) => invoke(IPC_CHANNELS.profilesImport, input)
+  },
   sessions: {
     listByAgent: (agentId) => invoke(IPC_CHANNELS.sessionsListByAgent, agentId)
   },

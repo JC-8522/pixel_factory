@@ -24,6 +24,8 @@ Implement meeting creation with title, goal, participants, moderator agent, outp
 
 Build the orchestration as a reusable conversation workflow engine below the meeting room UI. The meeting room is one surface for this engine; future task automation should be able to run developer -> reviewer -> developer loops without requiring the meeting UI to be open.
 
+Meeting message delivery belongs in Message Router. Meeting/review policy belongs in Orchestration Center and Task Engine / DAG. Meeting transition explanations belong in Audit Engine.
+
 ## Expected Output
 
 - `src/renderer/components/MeetingRoom.tsx`
@@ -32,6 +34,8 @@ Build the orchestration as a reusable conversation workflow engine below the mee
 - `src/main/meetings/meetingOrchestrator.ts`
 - `src/main/meetings/meetingFlowRules.ts`
 - `src/main/workflows/conversationOrchestrator.ts` or equivalent reusable workflow domain service.
+- Message Router support for broadcast, addressed, and agent-to-agent meeting messages.
+- Audit Engine records for handoff, review, feedback, stop, and escalation decisions.
 - Meeting message persistence.
 - Meeting message routing metadata for source agent, target agent, parent message, and flow rule.
 - Editable flow rule persistence for speaker order, review routing, stop conditions, and manager escalation conditions.

@@ -1,17 +1,35 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import type { AgentRuntimeEvent } from "../shared/types/agent";
 import type { AppInfo } from "../shared/types/app";
+import type { AgentRecord } from "../shared/types/records";
 import { AgentDetailDrawer } from "./components/AgentDetailDrawer";
+import { AgentProfileLibrary } from "./components/AgentProfileLibrary";
 import { OfficeCanvas } from "./office/OfficeCanvas";
 import { useAgentStore } from "./stores/agentStore";
 import { useEventStore } from "./stores/eventStore";
 import { useSkillStore } from "./stores/skillStore";
 
 const createId = (prefix: string): string => `${prefix}-${Date.now()}`;
+type WorkspaceView = "office" | "profiles";
+
+const isDetectedExternalAgent = (agentId: string, agents: AgentRecord[]): boolean => {
+  const agent = agents.find((item) => item.id === agentId) ?? null;
+  if (!agent) {
+    return false;
+  }
+
+  try {
+    const metadata = JSON.parse(agent.metadata_json) as { detected?: boolean };
+    return metadata.detected === true || agent.permission_mode === "external" || agent.auto_run_mode === "external";
+  } catch {
+    return agent.permission_mode === "external" || agent.auto_run_mode === "external";
+  }
+};
 
 export function App(): ReactElement {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [view, setView] = useState<WorkspaceView>("office");
   const { agents, hydrate, updatePosition } = useAgentStore();
   const { scan } = useSkillStore();
   const { hydrate: hydrateEvents } = useEventStore();
@@ -63,9 +81,12 @@ export function App(): ReactElement {
 
   const onMoveAgent = useCallback(
     (agentId: string, x: number, y: number) => {
+      if (isDetectedExternalAgent(agentId, agents)) {
+        return;
+      }
       void updatePosition({ agentId, x, y });
     },
-    [updatePosition]
+    [agents, updatePosition]
   );
 
   const onRuntimeEvent = useCallback((event: AgentRuntimeEvent) => {
@@ -86,7 +107,8 @@ export function App(): ReactElement {
         </div>
 
         <nav className="nav-list" aria-label="Workspace sections">
-          <button className="nav-item active" type="button">Office</button>
+          <button className={view === "office" ? "nav-item active" : "nav-item"} onClick={() => setView("office")} type="button">Office</button>
+          <button className={view === "profiles" ? "nav-item active" : "nav-item"} onClick={() => setView("profiles")} type="button">Profiles</button>
           <button className="nav-item" onClick={() => void discoverAgents()} type="button">Discover</button>
           <button className="nav-item" onClick={() => void scan()} type="button">Scan Skills</button>
           <button className="nav-item" type="button">Tasks</button>
@@ -95,33 +117,39 @@ export function App(): ReactElement {
       </aside>
 
       <section className="workspace">
-        <header className="toolbar">
-          <div>
-            <p className="eyebrow">Human manager workspace</p>
-            <h2>Pixel Office</h2>
-          </div>
-          <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
-        </header>
-
-        <div className="content-grid">
-          <section className="office-surface" aria-label="Pixel office">
-            {agents.length === 0 ? (
-              <div className="office-empty">
-                <p>No agents yet.</p>
-                <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
+        {view === "profiles" ? (
+          <AgentProfileLibrary />
+        ) : (
+          <>
+            <header className="toolbar">
+              <div>
+                <p className="eyebrow">Human manager workspace</p>
+                <h2>Pixel Office</h2>
               </div>
-            ) : (
-              <OfficeCanvas
-                agents={agents}
-                onMoveAgent={onMoveAgent}
-                onSelectAgent={setSelectedAgentId}
-                selectedAgentId={selectedAgentId}
-              />
-            )}
-          </section>
+              <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
+            </header>
 
-          <AgentDetailDrawer agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onRuntimeEvent={onRuntimeEvent} />
-        </div>
+            <div className="content-grid">
+              <section className="office-surface" aria-label="Pixel office">
+                {agents.length === 0 ? (
+                  <div className="office-empty">
+                    <p>No agents yet.</p>
+                    <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
+                  </div>
+                ) : (
+                  <OfficeCanvas
+                    agents={agents}
+                    onMoveAgent={onMoveAgent}
+                    onSelectAgent={setSelectedAgentId}
+                    selectedAgentId={selectedAgentId}
+                  />
+                )}
+              </section>
+
+              <AgentDetailDrawer agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onRuntimeEvent={onRuntimeEvent} />
+            </div>
+          </>
+        )}
       </section>
     </main>
   );

@@ -11,8 +11,14 @@ src/
     services/
     domain/
     events/
+    audit/
     db/
     runtime/
+    agentRegistry/
+    orchestration/
+    taskEngine/
+    messageRouter/
+    context/
     profiles/
     agentPacks/
     usage/
@@ -62,7 +68,7 @@ IPC handlers should stay thin. They should not contain profile snapshot generati
 
 ### `src/main/services`
 
-Owns application services that coordinate complete user actions across domain services, repositories, runtime adapters, event publishing, and safety hooks.
+Owns application services that coordinate complete user actions across domain services, repositories, runtime adapters, event publishing, and safety hooks. This is the implementation layer for the Orchestration Center.
 
 Examples:
 
@@ -74,6 +80,22 @@ Examples:
 - record token usage and update summaries.
 
 Application services may call repositories, runtime adapters, domain services, and safety hooks. They must not import renderer code.
+
+### `src/main/orchestration`
+
+Owns the Orchestration Center implementation.
+
+Responsibilities:
+
+- coordinate complete product workflows,
+- call Agent Registry for agent identity and capability state,
+- call Task Engine for task/DAG state,
+- call Message Router for message delivery,
+- call Context / Memory before runtime execution,
+- call Permission Policy Engine before local actions,
+- call Audit Engine for explainability records.
+
+It must not contain React code, raw SQL, or provider-specific runtime parsing.
 
 ### `src/main/domain`
 
@@ -101,6 +123,21 @@ Responsibilities:
 - persist audit/timeline events through repositories,
 - broadcast sanitized event updates to renderer subscribers.
 
+### `src/main/audit`
+
+Owns the Audit Engine.
+
+Responsibilities:
+
+- create product-level audit records,
+- explain why workflow transitions happened,
+- record permission decisions,
+- record message routing reasons,
+- record task state transition reasons,
+- record meeting escalation reasons.
+
+Audit Engine writes domain/audit events through `src/main/events` and repositories. It should not store raw provider logs as its only explanation source.
+
 ### `src/main/db`
 
 Owns SQLite client, schema, migrations, and repository functions.
@@ -120,6 +157,70 @@ Owns agent runtime providers:
 - status machine integration.
 
 Runtime adapters should emit provider signals and avoid owning product workflows such as task transitions, meeting handoffs, or cost dashboard aggregation.
+
+### `src/main/agentRegistry`
+
+Owns the Agent Registry implementation.
+
+Responsibilities:
+
+- agent identity,
+- role and profile snapshot references,
+- assigned skills and capability metadata,
+- current visible status,
+- runtime kind,
+- active session link,
+- health summary inputs.
+
+It may use repositories and domain services. It must not spawn processes directly.
+
+### `src/main/taskEngine`
+
+Owns Task Engine and future DAG behavior.
+
+Responsibilities:
+
+- task state machine,
+- task dependencies,
+- DAG node/edge model,
+- review loops,
+- retry rules,
+- stop conditions,
+- manager escalation conditions.
+
+The task board UI should call task APIs; it must not implement task/DAG policy itself.
+
+### `src/main/messageRouter`
+
+Owns message addressing and delivery.
+
+Responsibilities:
+
+- human-to-agent messages,
+- human-to-many-agent messages,
+- agent-to-agent messages,
+- meeting broadcasts,
+- addressed meeting messages,
+- review feedback routing,
+- workflow-generated messages.
+
+Message Router can route to runtime sessions but should not own task policy, profile policy, or permission policy.
+
+### `src/main/context`
+
+Owns Context / Memory.
+
+Responsibilities:
+
+- profile snapshot context,
+- assigned skill context,
+- workspace/project context,
+- task context,
+- meeting context,
+- user preference context,
+- durable memory records when implemented.
+
+Context must be built in the main process from persisted data. Renderer-provided snapshots are not authoritative.
 
 ### `src/main/skills`
 
@@ -163,7 +264,7 @@ Owns token usage and cost tracking:
 
 ### `src/main/security`
 
-Owns safety enforcement:
+Owns Permission Policy Engine and safety enforcement:
 
 - command risk rules,
 - permission policies,
@@ -173,7 +274,9 @@ Owns safety enforcement:
 
 ### `src/main/tasks`
 
-Owns task lifecycle services that coordinate task records, agent assignment, and event emission.
+Owns task record persistence coordination and task board-facing APIs.
+
+Task execution policy and DAG rules belong in `src/main/taskEngine`.
 
 ### `src/main/meetings`
 
@@ -181,7 +284,7 @@ Owns meeting metadata, participants, messages, notes, and meeting persistence co
 
 ### `src/main/workflows`
 
-Owns reusable conversation workflow orchestration.
+Owns reusable conversation workflow orchestration. This module may be implemented as part of Orchestration Center, but its rules must remain reusable outside the meeting room UI.
 
 Responsibilities:
 
@@ -297,6 +400,10 @@ Contains reusable payload validators that can run in preload, main, or tests.
 - Product workflows live in application services or domain services, not in IPC handlers or renderer components.
 - Conversation workflow logic must be reusable outside the meeting room UI.
 - Token usage storage must keep raw usage records separate from cost summaries and price configuration.
+- Agent Registry owns agent identity and capability state; Runtime Registry only maps sessions to runtime adapters.
+- Message Router owns message delivery and addressing; chat components only render and collect input.
+- Task Engine owns task state and DAG behavior; task board components only render and request changes.
+- Audit Engine owns explainability records; Event Logs own durable facts.
 
 ## Forbidden Coupling
 
@@ -308,3 +415,7 @@ Contains reusable payload validators that can run in preload, main, or tests.
 - IPC handlers containing large business logic instead of calling services.
 - React components directly implementing meeting orchestration, task transition rules, or profile snapshot rules.
 - Runtime adapters updating task board, meeting room, or cost dashboard state directly.
+- Message Router deciding permission policy.
+- Task Engine parsing Codex CLI provider logs directly.
+- Agent Registry spawning child processes directly.
+- Audit Engine depending only on stdout/stderr when a domain decision reason is available.

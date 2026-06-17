@@ -20,8 +20,8 @@ Build a local desktop application called Local Codex Office. It visualizes local
 | 08 | Completed | `08_skill_system.md` | Scan local skills, parse `SKILL.md`, assign skills, and inject skill context into prompts. |
 | 09 | Completed | `09_pixel_office_view.md` | Render the PixiJS office and pixel agents with persistent positions. |
 | 10 | Completed | `10_agent_detail_and_chat.md` | Build agent detail drawer, chat UI, response streaming, and message persistence. |
-| 11 | Next | `11_agent_profiles_and_personalization.md` | Build reusable personalized Agent Profiles and capability matrix. |
-| 12 | Planned | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection and main-process application service coordination. |
+| 11 | Completed | `11_agent_profiles_and_personalization.md` | Build reusable personalized Agent Profiles and capability matrix. |
+| 12 | Next | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection and main-process application service coordination. |
 | 13 | Planned | `13_task_board_and_activity_timeline.md` | Add project task board, domain-event timeline, run history, agent health, and manager cost dashboard. |
 | 14 | Planned | `14_meeting_room_group_chat.md` | Add meeting-room multi-agent conversation backed by a reusable conversation workflow engine. |
 | 15 | Planned | `15_agent_pack_manifest_and_install.md` | Add source-readable Agent Pack manifest, inspection, reviewed install, and future workflow-template packaging. |
@@ -31,11 +31,13 @@ Build a local desktop application called Local Codex Office. It visualizes local
 
 ## Current Work
 
-Start from `11_agent_profiles_and_personalization.md`.
+Start from `12_create_agent_flow.md`.
 
 Architecture direction for upcoming tasks:
 
+- Use `docs/system_architecture.md` as the first-class component reference.
 - Use `docs/domain_model.md` as the target layering reference.
+- Use `docs/product_view.md` as the product view and feature ownership reference.
 - Keep renderer components focused on presentation; route shared data/actions through Zustand stores and `window.codexOffice`.
 - Keep IPC handlers thin; move cross-module workflows into main-process application services.
 - Keep reusable product rules in domain services that can be tested without Electron renderer code.
@@ -44,6 +46,10 @@ Architecture direction for upcoming tasks:
 - Treat the meeting room as a UI over a reusable conversation workflow engine.
 - Keep token usage raw records separate from cost summaries and model price configuration.
 - Keep the safety hook on the runtime path, with full approval UX deferred to Task 17.
+- Keep Agent Registry separate from Runtime Registry.
+- Keep Message Router separate from chat UI.
+- Keep Task Engine / DAG separate from task board UI.
+- Keep Audit Engine separate from raw Event Logs.
 
 Tasks 01-10 are complete because the merged foundation and runtime/UI branch include:
 
@@ -58,6 +64,16 @@ Tasks 01-10 are complete because the merged foundation and runtime/UI branch inc
 - local skill scanning, `SKILL.md` parsing, skill assignment/removal, and skill prompt context injection,
 - PixiJS office canvas with clickable and draggable pixel agents,
 - agent detail drawer, logs, skill badges, and individual chat connected to runtime sessions.
+
+Task 11 is complete because the current branch includes:
+
+- Agent Profile repositories and service boundaries,
+- profile CRUD, duplicate, delete, import/export data path, and immutable snapshot generation,
+- profile default skill assignment and capability matrix support,
+- typed profile IPC contracts, preload APIs, validators, and renderer Zustand store,
+- Agent Profile Library, Profile Editor, and Capability Matrix UI in the Human Console,
+- thin Agent Registry, Orchestration Center, Message Router, Context / Memory, Task Engine, and Audit Engine code boundaries used by existing flows,
+- tests for profile capability matrix, snapshot immutability, export/import, and profile IPC handlers.
 
 ## Completion Rule
 
@@ -77,3 +93,18 @@ The final product is complete only when all tasks pass their validation goals an
 - attach/MCP extension points,
 - safety permission layer,
 - and verified tests.
+
+## Verification Standard For Future Development
+
+Every implementation task must include complete verification before it is considered done:
+
+- run TypeScript typecheck,
+- run lint,
+- run relevant unit/integration tests,
+- run production build when app code changes,
+- start the Electron app when UI, preload, IPC, runtime, or renderer code changes,
+- confirm the app window renders a real UI rather than a blank or black screen,
+- inspect captured dev logs for renderer errors,
+- verify at least one affected user flow manually or with an automated UI check where available.
+
+If screenshot capture is not available or is unsafe because it would capture unrelated desktop content, the task must still report the limitation and use narrower evidence such as Electron dev logs, renderer console forwarding, process health, and user-confirmed visual inspection.
