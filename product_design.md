@@ -12,6 +12,20 @@ Core concept:
 
 > A local Agent Operating System for one-person companies. The human manager runs a visible digital team of specialized agents through a Human Console: creating roles, assigning work, routing messages, reviewing output, tracking cost, enforcing permissions, and auditing every important action.
 
+Moat principle:
+
+> The defensible value is not calling many agents at once. The defensible value is training agents into reusable digital employees: each agent accumulates role-specific behavior, reusable skills, review feedback, workflow memory, and operating knowledge that can be applied again without the manager re-explaining the same process.
+
+The product should optimize for an agent cultivation loop:
+
+1. The manager assigns work to an agent.
+2. The agent executes with its profile, skills, context, and workflow rules.
+3. The manager or reviewer agent evaluates the output.
+4. Corrections, successful patterns, and operating rules are captured as reusable skills, profile updates, workflow templates, or review policies.
+5. Future tasks reuse that accumulated company knowledge.
+
+This means Skills, Agent Profiles, Task Engine, Message Router, Audit Engine, and Event Logs are not secondary features. They are the core system that turns repeated work into a growing one-person-company operating asset.
+
 The visual metaphor remains important:
 
 > Each local Codex agent becomes a clickable pixel worker inside an office-like console. The office is not decorative; it is a visual model of organization, state, workflow, and accountability.

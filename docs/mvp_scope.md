@@ -6,6 +6,16 @@ The final product is a local Agent Operating System for one-person companies. A 
 
 The pixel office is the visual control surface for the Agent OS. It should make agent state, work ownership, meetings, cost, and risk easy to understand without reducing the product to an AI group chat tool.
 
+The core moat is agent training and reusable operating knowledge. The product should help the manager turn repeated work into durable assets: agent profiles, reusable skills, workflow templates, review rules, task histories, cost history, and audit/event memory. Multi-agent invocation is useful, but it is not the product's defensible center.
+
+The MVP should preserve a clear path toward this loop:
+
+1. assign work,
+2. execute with a personalized agent,
+3. review the result,
+4. capture feedback or successful patterns,
+5. reuse the learned skill or workflow on future tasks.
+
 Product view and feature ownership are defined in `docs/product_view.md`.
 System component boundaries are defined in `docs/system_architecture.md`.
 

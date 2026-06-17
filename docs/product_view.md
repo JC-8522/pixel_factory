@@ -6,6 +6,8 @@ The product positioning is: a local Agent Operating System for one-person compan
 
 The Pixel Office is the primary Human Console / Mission Control view. It exists to make agent state, work ownership, cost, meetings, and audit signals visible and actionable.
 
+The core product promise is agent cultivation. Users should feel that they are training digital employees, not repeatedly prompting disposable assistants. Product views must therefore make reusable skills, profile changes, feedback loops, workflow memory, review outcomes, and cost patterns visible enough for the manager to improve the team over time.
+
 ## Human Console View Diagram
 
 ```mermaid
@@ -17,6 +19,7 @@ flowchart TB
     CreateAgent["Create Agent"]
     ProfileLibrary["Agent Profile Library"]
     Skills["Skill Assignment"]
+    TrainingLoop["Agent Training Loop"]
     TaskBoard["Task Board"]
     MeetingRoom["Meeting Room"]
     Timeline["Activity Timeline"]
@@ -28,6 +31,8 @@ flowchart TB
   Office --> AgentDetail
   AgentDetail --> IndividualChat
   AgentDetail --> Skills
+  Skills --> TrainingLoop
+  TrainingLoop --> ProfileLibrary
   CreateAgent --> ProfileLibrary
   TaskBoard --> MeetingRoom
   MeetingRoom --> TaskBoard
@@ -60,6 +65,7 @@ flowchart TB
 | Create Agent | Create an app-controlled agent. | Name, role, working directory, initial task, runtime spawn. | Agent Management | Human Console, Agent Registry, Orchestration Center, Runtime Adapter Layer | Partial MVP, full profile flow in Task 12 |
 | Agent Profile Library | Manage reusable agent configurations. | CRUD, duplicate, import/export, default skills, permission presets, capability matrix. | Agent Management | Agent Registry, Context / Memory, Permission Policy Engine | Task 11 complete |
 | Skill Assignment | Personalize an agent with skills. | Scan skills, parse `SKILL.md`, assign/remove skill, inject skill context. | Context / Knowledge | Context / Memory, Agent Registry, Runtime Adapter Layer | MVP base complete |
+| Agent Training Loop | Turn task feedback into reusable employee behavior. | Review result, capture correction, propose skill/profile/workflow update, reuse on the next task. | Context / Knowledge | Context / Memory, Agent Registry, Task Engine / DAG, Audit Engine, Event Logs | V1/V2 |
 | Task Board | Manage work assigned to agents. | Backlog, assigned, in progress, waiting review, done, failed, task assignment. | Workflow / Coordination | Task Engine / DAG, Orchestration Center, Audit Engine | Task 13 |
 | Activity Timeline | Understand what happened. | Event filters by agent/task/type/time, runtime events, domain events, audit records. | Governance / Audit | Audit Engine, Event Logs, Agent Registry | MVP base plus Task 13 filters |
 | Run History / Session Archive | Revisit previous agent runs. | Prompts, messages, logs, status transitions, files touched, errors, usage. | Governance / Audit | Event Logs, Audit Engine, Runtime Adapter Layer | Task 13 |

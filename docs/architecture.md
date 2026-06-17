@@ -6,6 +6,8 @@ Local Codex Office is a local Agent Operating System for one-person companies. I
 
 The pixel office is the Human Console / Mission Control layer of the OS. It visualizes Codex agents as pixel-art office workers so the human manager can inspect status, assign work, review cost, coordinate meetings, and audit local execution. Chat and meetings are important interaction surfaces, but the product is broader than an AI group chat tool.
 
+The product moat is the agent training loop, not raw multi-agent invocation. Architecture should preserve durable places to turn work into reusable company knowledge: Agent Profiles for digital employee identity, Skills for reusable operating procedures, Task Engine for repeatable workflows, Message Router for coordinated handoffs, Audit/Event Logs for reviewable history, and Context / Memory for continuity.
+
 The application is local-first. It is not a cloud service. Local process control, filesystem reads, log streaming, skill scanning, SQLite persistence, and safety checks all live in the Electron main process.
 
 Primary companion documents:

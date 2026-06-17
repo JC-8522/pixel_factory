@@ -4,6 +4,8 @@ This document defines the major system components for Local Codex Office, a loca
 
 The visual office is the Human Console / Mission Control layer. It should make the agent organization visible without turning the product into only an AI group chat tool.
 
+The system should be designed around agent cultivation. A one-person company gains leverage when agents become reusable digital employees: their roles, skills, review feedback, task history, workflow rules, and cost patterns compound over time. Calling many agents is only a coordination mechanism; the durable asset is the trained agent plus reusable operating knowledge.
+
 ## Target System Diagram
 
 ```mermaid

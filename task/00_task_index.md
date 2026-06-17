@@ -8,6 +8,8 @@ Build a local Agent Operating System for one-person companies. Local Codex Offic
 
 The pixel office is the Human Console / Mission Control layer of the system. It visualizes local Codex agents as pixel-art workers so the user can understand organization, status, work ownership, cost, meetings, and risk at a glance. The product is not primarily an AI group chat tool; chat and meetings are surfaces inside a broader operating system.
 
+Core moat: the product must help the manager train agents into reusable digital employees. Skills, profiles, task history, review feedback, workflow templates, cost tracking, and event logs should compound into reusable company operating knowledge. Calling multiple agents is a feature; cultivating agents and reusable skills is the durable product advantage.
+
 ## Task Sequence
 
 | Task | Status | Prompt | Purpose |
