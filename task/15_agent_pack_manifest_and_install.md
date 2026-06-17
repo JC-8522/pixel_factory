@@ -63,6 +63,18 @@ Agent Packs are transparent and source-readable. The app never executes package 
 - Show included Agent Profiles and optional workflow templates before install.
 - Uninstall an Agent Pack without corrupting user-created profiles.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Navigate to the Agent Pack review surface.
+- Pick or enter a local Agent Pack folder path and inspect it without executing scripts.
+- Review included profiles, skills, assets, permissions, validation status, and author/version metadata in the UI.
+- Install a valid reviewed pack, then verify installed profiles appear in the Agent Profile Library.
+- Inspect a malformed pack and confirm validation errors are clear.
+- Capture focused screenshots of inspection, validation errors, reviewed install, and installed profile visibility.
+- Inspect dev logs after pack workflows and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `16_attach_mode_mcp_and_v2_integrations.md`. External integration work can build on the Agent Pack boundary.

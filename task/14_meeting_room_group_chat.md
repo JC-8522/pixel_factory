@@ -71,6 +71,36 @@ The meeting room can coordinate multiple agents in a predictable and inspectable
 - Confirm a meeting output can become a task board item.
 - Confirm the workflow engine can evaluate a developer -> reviewer -> developer loop without depending on the meeting room component.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Navigate to the Meeting Room and create a meeting with at least two visible agents.
+- Send a manager message to all agents, then send or route a message to a selected agent.
+- Configure a developer -> reviewer -> developer flow through the visible flow editor.
+- Watch the shared conversation update and inspect routing metadata or audit notes in the UI.
+- Save a moderator summary or meeting note and convert one note item into a task.
+- Capture focused screenshots of the meeting setup, active conversation, flow editor, and saved summary.
+- Inspect dev logs after the meeting workflow and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `15_agent_pack_manifest_and_install.md`. Meeting outputs, agent profiles, and reusable meeting flow templates should be packageable in future Agent Packs.
+
+## Completion Notes
+
+Completed on the current implementation branch.
+
+- Added Meeting Room navigation to the Human Console.
+- Added meeting creation with title, goal, moderator, participants, conversation mode, and editable flow rules.
+- Added participant persistence through meeting IPC and repository APIs.
+- Added reusable conversation workflow types and a main-process workflow evaluator for developer -> reviewer -> developer loops.
+- Added Meeting Orchestrator service for creating meetings, persisting flow rules, routing messages with source/target/parent/rule metadata, saving moderator summaries, and writing audit events.
+- Added Meeting Room UI for manager broadcast/addressed messages, simulated review loops, saved summaries, and conversion of meeting outputs into Task Board items.
+- Added workflow tests independent from React UI.
+
+Human app acceptance evidence:
+
+- Meeting room screenshot: `out/task14-accept-meeting-room.png`
+- Verified a live Electron workflow with two visible participants, manager broadcast, agent-to-agent routed messages, review feedback routed back to developer, acceptance stop, saved summary, and conversion to task.
+- Verified message metadata displays source agent, target agent, parent/routing context where available, and triggering flow rule.

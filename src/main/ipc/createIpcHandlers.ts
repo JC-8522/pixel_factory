@@ -2,9 +2,7 @@ import type { AppInfo } from "../../shared/types/app";
 import type { AgentRuntimeEvent } from "../../shared/types/agent";
 import type { DatabaseClient } from "../db/client";
 import {
-  completeMeeting,
   createEvent,
-  createMeeting,
   createMessage,
   createTask,
   getEvent,
@@ -14,6 +12,7 @@ import {
   listEvents,
   listMeetings,
   listMeetingMessages,
+  listMeetingParticipants,
   listMessagesBySession,
   listSessionsForAgent,
   listSettings,
@@ -22,7 +21,6 @@ import {
   listTokenUsageByAgent,
   setSetting,
   summarizeTokenUsageByAgent,
-  addMeetingMessage
 } from "../db/repositories";
 import {
   attachSkillToRegisteredAgent,
@@ -38,6 +36,11 @@ import { discoverLocalCodexProcesses } from "../runtime/discoverLocalCodexProces
 import { persistRuntimeEvent } from "../runtime/persistRuntimeEvent";
 import { routeSessionMessage } from "../messageRouter/messageRouter";
 import { assignTaskThroughEngine, updateTaskStatusThroughEngine } from "../taskEngine/taskEngine";
+import {
+  createMeetingThroughOrchestration,
+  finishMeetingThroughOrchestration,
+  sendMeetingMessageThroughRouter
+} from "../meetings/meetingOrchestrator";
 import {
   assignProfileSkill,
   duplicateProfile,
@@ -214,7 +217,17 @@ export const createIpcHandlers = ({
   tasksCreate: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateCreateTask(input);
-      return createTask(client, payload);
+      const task = createTask(client, payload);
+      createEvent(client, {
+        id: `event-task-created-${task.id}`,
+        type: "task_created",
+        actorType: "user",
+        actorId: "local-user",
+        agentId: task.assigned_agent_id,
+        taskId: task.id,
+        payload: { title: task.title, createdFrom: task.created_from }
+      });
+      return task;
     }),
   tasksAssign: (input: unknown) =>
     saveAfter(client, () => {
@@ -231,19 +244,21 @@ export const createIpcHandlers = ({
   meetingsCreate: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateCreateMeeting(input);
-      return createMeeting(client, payload);
+      return createMeetingThroughOrchestration(client, payload);
     }),
+  meetingsListParticipants: (meetingId: unknown) =>
+    listMeetingParticipants(client, validateId(meetingId, "meeting id")),
   meetingsListMessages: (meetingId: unknown) =>
     listMeetingMessages(client, validateId(meetingId, "meeting id")),
   meetingsSendMessage: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateSendMeetingMessage(input);
-      return addMeetingMessage(client, payload);
+      return sendMeetingMessageThroughRouter(client, payload);
     }),
   meetingsFinish: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateFinishMeeting(input);
-      return completeMeeting(client, payload.meetingId, payload.summary);
+      return finishMeetingThroughOrchestration(client, payload);
     }),
 
   eventsList: (filter?: unknown) => listEvents(client, validateEventFilter(filter)),

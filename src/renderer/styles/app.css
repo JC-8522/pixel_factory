@@ -591,6 +591,508 @@ button {
   white-space: pre-wrap;
 }
 
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 9, 10, 0.72);
+}
+
+.dialog-panel {
+  width: min(760px, 100%);
+  max-height: min(92vh, 760px);
+  overflow: auto;
+  border: 1px solid #3d5554;
+  border-radius: 8px;
+  background: #172023;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
+}
+
+.dialog-header,
+.dialog-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid #263238;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.dialog-actions {
+  border-top: 1px solid #263238;
+  border-bottom: 0;
+  padding: 14px 0 0;
+}
+
+.icon-button,
+.dialog-actions button,
+.directory-row button {
+  min-height: 36px;
+  border: 1px solid #3d5554;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #dfe8e2;
+  background: #20302f;
+  cursor: pointer;
+}
+
+.icon-button {
+  width: 36px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.create-agent-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.create-agent-form label {
+  display: grid;
+  gap: 6px;
+  color: #9fb0a8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.create-agent-form input,
+.create-agent-form select,
+.create-agent-form textarea {
+  width: 100%;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: #eef4ef;
+  background: #101417;
+}
+
+.create-agent-form textarea {
+  min-height: 94px;
+  resize: vertical;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.directory-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.profile-hint {
+  margin: 0;
+  border: 1px solid #38524b;
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: #c8d8d0;
+  background: #12231f;
+}
+
+.skill-checklist {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.skill-checklist legend {
+  padding: 0 6px;
+  color: #9fb0a8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.skill-checklist label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  color: #dfe8e2;
+  text-transform: none;
+}
+
+.skill-checklist input {
+  width: auto;
+}
+
+.skill-checklist em {
+  color: #60d394;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.form-error {
+  color: #ffb19f;
+  font-size: 12px;
+  text-transform: none;
+}
+
+.task-workspace,
+.meeting-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.task-create-form,
+.meeting-compose {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(180px, 1.4fr) 180px auto;
+  gap: 10px;
+}
+
+.task-create-form input,
+.task-create-form select,
+.task-create-form button,
+.task-card select,
+.timeline-filters select,
+.meeting-compose input,
+.meeting-compose select,
+.meeting-compose button,
+.meeting-actions button,
+.flow-rule input,
+.flow-rule select,
+.flow-editor button,
+.summary-box {
+  min-height: 36px;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #eef4ef;
+  background: #101417;
+}
+
+.task-create-form button,
+.meeting-compose button,
+.meeting-actions button,
+.flow-editor button {
+  cursor: pointer;
+  color: #11201a;
+  background: #60d394;
+  font-weight: 700;
+}
+
+.task-columns {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(180px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.task-column {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 320px;
+  border: 1px solid #314148;
+  border-radius: 8px;
+  padding: 10px;
+  background: #151d20;
+}
+
+.column-heading,
+.panel-heading,
+.meeting-banner,
+.meeting-message div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.column-heading h3,
+.panel-heading h3,
+.meeting-banner h3 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.column-heading span,
+.panel-heading span {
+  color: #9fb0a8;
+  font-size: 12px;
+}
+
+.task-card,
+.cost-card,
+.timeline-event,
+.meeting-message {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #2d4044;
+  border-radius: 8px;
+  padding: 10px;
+  background: #10181b;
+}
+
+.task-card[data-status="done"] {
+  border-color: #60d394;
+}
+
+.task-card[data-status="failed"],
+.timeline-event[data-severity="error"] {
+  border-color: #ffb19f;
+}
+
+.task-card-title {
+  border: 0;
+  padding: 0;
+  color: #eef4ef;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 800;
+}
+
+.task-card p,
+.meeting-banner p,
+.meeting-message p {
+  margin: 0;
+  color: #c8d8d0;
+}
+
+.task-meta,
+.task-card-controls,
+.usage-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.task-meta span,
+.task-result,
+.meeting-message code {
+  color: #9fb0a8;
+  font-size: 12px;
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.2fr);
+  gap: 12px;
+}
+
+.ops-panel,
+.flow-editor,
+.meeting-main {
+  min-width: 0;
+  border: 1px solid #314148;
+  border-radius: 8px;
+  padding: 14px;
+  background: #172023;
+}
+
+.health-list,
+.run-list,
+.timeline-list,
+.meeting-list,
+.meeting-messages,
+.flow-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.health-row,
+.run-row,
+.meeting-row {
+  display: grid;
+  gap: 4px 10px;
+  width: 100%;
+  border: 1px solid #314148;
+  border-radius: 6px;
+  padding: 9px;
+  color: #dfe8e2;
+  background: #10181b;
+  cursor: pointer;
+  text-align: left;
+}
+
+.health-row,
+.run-row {
+  grid-template-columns: 1fr auto;
+}
+
+.meeting-row {
+  grid-template-columns: 1fr;
+}
+
+.health-row strong,
+.run-row strong,
+.task-card-title,
+.cost-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meeting-row strong {
+  min-width: 0;
+  overflow-wrap: normal;
+}
+
+.health-row.active,
+.run-row.active,
+.meeting-row.active {
+  border-color: #60d394;
+  background: #1a2b28;
+}
+
+.health-row small,
+.run-row span,
+.run-row small,
+.meeting-row span {
+  color: #9fb0a8;
+}
+
+.run-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.compact-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.compact-facts dt {
+  color: #9fb0a8;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.compact-facts dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.message-list.compact {
+  max-height: 180px;
+}
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.usage-table {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.usage-row {
+  grid-template-columns: 1fr auto auto auto;
+  border-bottom: 1px solid #263238;
+  padding: 5px 0;
+  color: #c8d8d0;
+  font-size: 12px;
+}
+
+.timeline-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.timeline-event code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.meeting-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.2fr) minmax(320px, 0.9fr);
+  gap: 12px;
+}
+
+.meeting-main {
+  overflow: hidden;
+}
+
+.participant-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.participant-strip span {
+  border: 1px solid #3d5554;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #20302f;
+  font-size: 12px;
+}
+
+.meeting-messages {
+  max-height: 430px;
+  overflow: auto;
+  margin: 12px 0;
+}
+
+.meeting-message[data-role="user"] {
+  border-color: #60d394;
+}
+
+.meeting-message[data-role="moderator"] {
+  border-color: #f2c14e;
+}
+
+.meeting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.summary-box {
+  width: 100%;
+  min-height: 90px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.meeting-compose {
+  grid-template-columns: minmax(140px, 0.7fr) minmax(0, 1fr) auto;
+}
+
+.flow-rule {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.flow-rule span {
+  color: #9fb0a8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.meeting-dialog .flow-editor {
+  background: #10181b;
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -615,5 +1117,23 @@ button {
 
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid,
+  .directory-row {
+    grid-template-columns: 1fr;
+  }
+
+  .task-create-form,
+  .meeting-compose,
+  .ops-grid,
+  .run-grid,
+  .meeting-layout,
+  .timeline-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .task-columns {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 }

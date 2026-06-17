@@ -17,6 +17,7 @@ import type {
   UpdateAgentPositionRequest,
   UpdateTaskStatusRequest
 } from "../../shared/ipc";
+import type { ConversationFlowRule } from "../../shared/types/conversation";
 import {
   assertNonEmptyString,
   assertRecord,
@@ -74,8 +75,10 @@ export const validateCreateAgent = (value: unknown): CreateAgentRequest => {
     runtimeKind: assertNonEmptyString(input.runtimeKind, "runtime kind"),
     permissionMode: assertNonEmptyString(input.permissionMode, "permission mode"),
     autoRunMode: assertNonEmptyString(input.autoRunMode, "auto-run mode"),
+    modelProfile: optionalString(input.modelProfile, "model profile"),
     profileId: optionalString(input.profileId, "profile id"),
     profileSnapshot: optionalJsonObject(input.profileSnapshot, "profile snapshot"),
+    skillIds: optionalStringArray(input.skillIds, "selected skills"),
     currentTask: optionalString(input.currentTask, "current task"),
     metadata: optionalJsonObject(input.metadata, "metadata")
   };
@@ -248,12 +251,16 @@ export const validateUpdateTaskStatus = (value: unknown): UpdateTaskStatusReques
 
 export const validateCreateMeeting = (value: unknown): CreateMeetingRequest => {
   const input = assertRecord(value, "create meeting input");
+  const flowRules = optionalJsonArray(input.flowRules, "flow rules") as ConversationFlowRule[] | undefined;
   return {
     id: assertNonEmptyString(input.id, "meeting id"),
     title: assertNonEmptyString(input.title, "meeting title"),
     goal: assertNonEmptyString(input.goal, "meeting goal"),
     moderatorAgentId: optionalString(input.moderatorAgentId, "moderator agent id"),
-    outputFormat: optionalString(input.outputFormat, "output format")
+    outputFormat: optionalString(input.outputFormat, "output format"),
+    participantAgentIds: optionalStringArray(input.participantAgentIds, "participant agent ids"),
+    conversationMode: optionalString(input.conversationMode, "conversation mode"),
+    flowRules
   };
 };
 

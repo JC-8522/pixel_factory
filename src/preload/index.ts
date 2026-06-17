@@ -6,7 +6,8 @@ const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRender
 
 const api: CodexOfficeApi = {
   app: {
-    getInfo: () => invoke(IPC_CHANNELS.appInfo)
+    getInfo: () => invoke(IPC_CHANNELS.appInfo),
+    pickWorkingDirectory: () => invoke(IPC_CHANNELS.appPickWorkingDirectory)
   },
   agents: {
     list: () => invoke(IPC_CHANNELS.agentsList),
@@ -53,6 +54,7 @@ const api: CodexOfficeApi = {
   meetings: {
     list: () => invoke(IPC_CHANNELS.meetingsList),
     create: (input) => invoke(IPC_CHANNELS.meetingsCreate, input),
+    listParticipants: (meetingId) => invoke(IPC_CHANNELS.meetingsListParticipants, meetingId),
     listMessages: (meetingId) => invoke(IPC_CHANNELS.meetingsListMessages, meetingId),
     sendMessage: (input) => invoke(IPC_CHANNELS.meetingsSendMessage, input),
     finish: (input) => invoke(IPC_CHANNELS.meetingsFinish, input)

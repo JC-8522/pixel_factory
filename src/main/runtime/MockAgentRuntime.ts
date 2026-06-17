@@ -149,9 +149,11 @@ export class MockAgentRuntime implements AgentRuntime {
   }
 
   private async emit(event: RuntimeEventDraft): Promise<void> {
+    const eventScope = event as { agentId: string; sessionId?: string };
+    const scope = eventScope.sessionId ?? eventScope.agentId;
     const runtimeEvent = {
       ...event,
-      id: `mock-event-${++this.sequence}`,
+      id: `mock-event-${scope}-${++this.sequence}`,
       at: new Date().toISOString()
     } as AgentRuntimeEvent;
 

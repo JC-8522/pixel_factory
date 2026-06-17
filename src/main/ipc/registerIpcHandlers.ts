@@ -1,9 +1,17 @@
-import { ipcMain } from "electron";
+import { dialog, ipcMain } from "electron";
 import { IPC_CHANNELS } from "../../shared/ipc";
 import type { IpcHandlers } from "./createIpcHandlers";
 
 export const registerIpcHandlers = (handlers: IpcHandlers): void => {
   ipcMain.handle(IPC_CHANNELS.appInfo, () => handlers.appInfo());
+  ipcMain.handle(IPC_CHANNELS.appPickWorkingDirectory, async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory", "createDirectory"],
+      title: "Select agent working directory"
+    });
+
+    return result.canceled ? null : result.filePaths[0] ?? null;
+  });
 
   ipcMain.handle(IPC_CHANNELS.agentsList, () => handlers.agentsList());
   ipcMain.handle(IPC_CHANNELS.agentsGet, (_event, agentId) => handlers.agentsGet(agentId));
@@ -49,6 +57,9 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
 
   ipcMain.handle(IPC_CHANNELS.meetingsList, () => handlers.meetingsList());
   ipcMain.handle(IPC_CHANNELS.meetingsCreate, (_event, input) => handlers.meetingsCreate(input));
+  ipcMain.handle(IPC_CHANNELS.meetingsListParticipants, (_event, meetingId) =>
+    handlers.meetingsListParticipants(meetingId)
+  );
   ipcMain.handle(IPC_CHANNELS.meetingsListMessages, (_event, meetingId) =>
     handlers.meetingsListMessages(meetingId)
   );

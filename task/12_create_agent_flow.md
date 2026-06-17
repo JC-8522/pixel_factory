@@ -64,6 +64,39 @@ A newly created agent has a database record, assigned skills, optional profile s
 - Confirm the renderer never provides a trusted `profile_snapshot_json`; main-process service generates it.
 - Confirm agent creation emits stable domain events for timeline consumers.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Open the create-agent workflow from the Office view.
+- Fill the form as a human manager: name, role, working directory, initial task, runtime, auto-run mode, permission mode, and optional Agent Profile.
+- Create one mock/runtime-safe agent without a profile and one agent from an Agent Profile when profile data exists.
+- Capture a focused screenshot of the create-agent dialog before submit and the Office view after the agent appears.
+- Click the created pixel worker and confirm the detail drawer/chat history reflects the initial task.
+- Inspect dev logs after the flow and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `13_task_board_and_activity_timeline.md`. Created agents and their sessions should now be usable by task assignment workflows.
+
+## Follow-Up UX Polish
+
+- The Create Agent dialog skill checklist can become long when many local skills are scanned. Add search, category filtering, selected-only filtering, and collapsible sections in a later polish pass so managers can quickly find and review assigned skills.
+
+## Completion Notes
+
+Completed in `task-12-create-agent-flow`.
+
+- The UI now exposes a Create Agent dialog from the Office view.
+- Agent Profile selection preloads role, default permission mode, auto-run mode, model profile, and default skills.
+- The renderer sends intent only; the main process generates immutable `profile_snapshot_json`.
+- The main-process orchestration service creates the agent, applies selected/default skills, starts the runtime session, and routes the initial task through Message Router.
+- The created agent appears in the office canvas and opens in the detail drawer with chat history.
+- Existing local databases are backfilled for `token_usage`, session usage columns, and message usage columns.
+- Mock runtime event IDs now include the session scope so app restarts do not collide with persisted event IDs.
+
+Human app acceptance evidence:
+
+- Dialog screenshot: `out/task12-accept-create-agent-dialog.png`
+- Created agent screenshot: `out/task12-accept-created-agent-office.png`
+- Verified profile snapshot, session, user/agent messages, token usage summary, domain events, and rendered office canvas through Electron CDP.

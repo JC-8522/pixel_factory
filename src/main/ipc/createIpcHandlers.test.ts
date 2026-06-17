@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createMigratedDatabaseClient, type DatabaseClient } from "../db/client";
-import { createSession, createTokenUsage, upsertSkill } from "../db/repositories";
+import { createSession, createTokenUsage, listAgentSkills, upsertSkill } from "../db/repositories";
 import { createIpcHandlers } from "./createIpcHandlers";
 
 const tempDirs: string[] = [];
@@ -166,6 +166,57 @@ describe("createIpcHandlers", () => {
     expect(matrix.skills[0]?.name).toBe("Documentation");
     expect(snapshot.defaultPermissionMode).toBe("readonly");
     expect(exported.profile.profileId).toBe(profile.id);
+
+    client.close();
+  });
+
+  it("creates runtime agents from profiles with main-process snapshots, default skills, and initial task messages", async () => {
+    const { client, handlers } = await createHandlers();
+
+    upsertSkill(client, {
+      id: "skill-product",
+      name: "Product Design",
+      rootPath: "C:/skills/product",
+      skillMdPath: "C:/skills/product/SKILL.md"
+    });
+
+    const profile = handlers.profilesCreate({
+      id: "profile-product",
+      name: "Product Agent",
+      role: "Product Strategist",
+      instructions: "Think in product loops.",
+      defaultModelProfile: "codex-balanced",
+      defaultPermissionMode: "readonly",
+      defaultAutoRunMode: "manual"
+    });
+    handlers.profilesAssignSkill({ profileId: profile.id, skillId: "skill-product", required: true });
+
+    const session = await handlers.runtimeSpawnAgent({
+      id: "agent-from-profile",
+      name: "Product Pixel",
+      role: "Product Strategist",
+      workingDirectory: "C:/repo",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual",
+      profileId: profile.id,
+      profileSnapshot: { profileId: "spoofed", name: "Bad", role: "Bad" },
+      currentTask: "Review the onboarding flow."
+    });
+    const agent = handlers.agentsGet("agent-from-profile");
+    const snapshot = JSON.parse(agent?.profile_snapshot_json ?? "{}") as { profileId?: string; instructions?: string };
+    const messages = handlers.messagesListBySession(session.id);
+
+    expect(agent?.profile_id).toBe(profile.id);
+    expect(snapshot.profileId).toBe(profile.id);
+    expect(snapshot.instructions).toBe("Think in product loops.");
+    expect(listAgentSkills(client, "agent-from-profile").map((skill) => skill.skill_id)).toEqual(["skill-product"]);
+    expect(session.model_profile).toBe("codex-balanced");
+    expect(messages.map((message) => message.role)).toEqual(["user", "agent"]);
+    expect(messages[0]?.content).toBe("Review the onboarding flow.");
+    expect(handlers.eventsList({ agentId: "agent-from-profile" }).map((event) => event.type)).toEqual(
+      expect.arrayContaining(["agent_created", "skill_attached", "message_sent", "session_completed"])
+    );
 
     client.close();
   });

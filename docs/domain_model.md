@@ -1,6 +1,8 @@
 # Domain Model And Target Layering
 
-This document defines the target product architecture that Tasks 11-18 should follow. It separates UI, IPC, application services, domain services, runtime adapters, and persistence so future features can grow without turning IPC handlers or React components into business-logic containers.
+This document defines the target product architecture that Tasks 11-18 should follow. The product is a local Agent Operating System for one-person companies, so the architecture must separate visual control surfaces from the durable systems that coordinate agent work.
+
+It separates UI, IPC, application services, domain services, runtime adapters, and persistence so future features can grow without turning IPC handlers or React components into business-logic containers.
 
 For the full first-class system component list, see `docs/system_architecture.md`. For product views and feature ownership, see `docs/product_view.md`.
 

@@ -2,7 +2,11 @@
 
 This document defines what the product supports from the manager's point of view and maps each feature to an ownership type and system component.
 
-## Product View Diagram
+The product positioning is: a local Agent Operating System for one-person companies. The human user acts as the company manager/operator, while specialized agents behave like a visible digital team. The product views below are not standalone chat tools; they are control surfaces inside the Agent OS.
+
+The Pixel Office is the primary Human Console / Mission Control view. It exists to make agent state, work ownership, cost, meetings, and audit signals visible and actionable.
+
+## Human Console View Diagram
 
 ```mermaid
 flowchart TB

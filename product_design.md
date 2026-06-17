@@ -2,13 +2,19 @@
 
 ## 1. Product Summary
 
-Build a local desktop application using TypeScript/JavaScript that visualizes local Codex agents as pixel-art workers inside an office view.
+Build a local Agent Operating System for one-person companies using TypeScript/JavaScript. The product helps a solo founder, builder, or independent operator create, configure, coordinate, audit, and safely run specialized local Codex agents as a visible digital team.
+
+The visual office is the Human Console / Mission Control layer of the operating system. It uses pixel-art workers to make agent identity, status, tasks, meetings, cost, and audit state understandable at a glance. The product is not primarily an AI group chat tool; chat and meetings are interaction surfaces inside a broader agent operating system.
 
 The app depends on the user's local Codex environment. It does not run as a cloud service. It should monitor, display, and control local Codex agent sessions through local process integration, log streaming, config files, and optional MCP/Codex CLI integration.
 
 Core concept:
 
-> A visual office where each local Codex agent becomes a clickable pixel character. Users can chat with agents, assign skills, group agents into meetings, and observe what each agent is doing.
+> A local Agent Operating System for one-person companies. The human manager runs a visible digital team of specialized agents through a Human Console: creating roles, assigning work, routing messages, reviewing output, tracking cost, enforcing permissions, and auditing every important action.
+
+The visual metaphor remains important:
+
+> Each local Codex agent becomes a clickable pixel worker inside an office-like console. The office is not decorative; it is a visual model of organization, state, workflow, and accountability.
 
 Codex Skills are reusable folders containing `SKILL.md` plus optional scripts/references/assets, and Codex can discover skills from the local skills directory.
 
@@ -625,7 +631,7 @@ Security matters especially because malicious Codex-related packages have recent
 
 ## Additional Planned Product Features
 
-These features should be included in the roadmap because they make the product feel like a real local agent office instead of only a process viewer.
+These features should be included in the roadmap because they make the product feel like a real local Agent Operating System for a one-person company instead of only a process viewer or chat surface.
 
 ### Agent Profile Library
 

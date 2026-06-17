@@ -22,4 +22,20 @@ export const assignTaskThroughEngine = (
 export const updateTaskStatusThroughEngine = (
   client: DatabaseClient,
   input: { taskId: string; status: string; resultSummary?: string | null }
-): TaskRecord => updateTaskStatus(client, input);
+): TaskRecord => {
+  const task = updateTaskStatus(client, input);
+  recordAuditEvent(client, {
+    id: `event-task-status-${input.taskId}-${input.status}-${Date.now()}`,
+    type: "task_status_changed",
+    actorType: "user",
+    actorId: "local-user",
+    agentId: task.assigned_agent_id,
+    taskId: input.taskId,
+    payload: {
+      taskId: input.taskId,
+      status: input.status,
+      resultSummary: input.resultSummary ?? null
+    }
+  });
+  return task;
+};

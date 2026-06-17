@@ -164,6 +164,13 @@ export type MeetingRecord = {
   updated_at: string;
 };
 
+export type MeetingParticipantRecord = {
+  meeting_id: string;
+  agent_id: string;
+  role: string;
+  joined_at: string;
+};
+
 export type MeetingMessageRecord = {
   id: string;
   meeting_id: string;

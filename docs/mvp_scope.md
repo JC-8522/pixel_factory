@@ -2,7 +2,9 @@
 
 ## Product Goal
 
-The final product is a local desktop office for Codex agents. Users can see agents as pixel workers, create and control local agents, chat with them, assign skills, organize work, run meetings, and review activity safely.
+The final product is a local Agent Operating System for one-person companies. A solo founder, builder, or independent operator can create and control local Codex agents, assign them roles and skills, organize work, coordinate reviews, monitor cost, enforce safety boundaries, and audit activity through a visual Human Console.
+
+The pixel office is the visual control surface for the Agent OS. It should make agent state, work ownership, meetings, cost, and risk easy to understand without reducing the product to an AI group chat tool.
 
 Product view and feature ownership are defined in `docs/product_view.md`.
 System component boundaries are defined in `docs/system_architecture.md`.
@@ -76,6 +78,28 @@ V1 expands the product from a single-agent MVP into a practical multi-agent work
 - domain event normalization so runtime-provider details do not leak into task board, meeting room, timeline, or dashboard UI,
 - explicit Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Context / Memory, Permission Policy Engine, Audit Engine, and Event Logs boundaries.
 
+## Current Core Architecture Risks
+
+The main product risk is no longer basic UI scaffolding. The next architecture risk is whether the platform can coordinate agent work safely and explainably as workflows become more autonomous.
+
+The five core areas to harden are:
+
+1. Task State Machine / Task Engine
+   - Current state: visible task board and basic task transitions exist.
+   - Needed next: formal transition rules, dependency/DAG model, review requirements, retry rules, stop conditions, and manager escalation.
+2. Message Router
+   - Current state: individual chat and meeting message routing metadata exist.
+   - Needed next: durable route records, broadcast/addressed delivery semantics, agent-to-agent delivery through live runtimes, and conversation thread reconstruction.
+3. Permission Policy
+   - Current state: permission fields and presets exist in profile/create-agent models; full enforcement is deferred.
+   - Needed next: command risk rules, allow/deny decisions, scoped allow rules, approval prompts, and audit records for every sensitive action.
+4. Execution Sandbox
+   - Current state: app-controlled runtime path and safety-hook direction exist.
+   - Needed next: explicit working-directory scoping, command allow/deny boundaries, environment isolation, filesystem access rules, and safe defaults before broader automation.
+5. Event Logs / Audit Trail
+   - Current state: events table, runtime events, task events, meeting events, and timeline filters exist.
+   - Needed next: consistent domain event naming, raw-vs-domain event separation, route/permission/task transition explanations, replay-ready retention, and event integrity rules.
+
 ## V2 Scope
 
 V2 adds advanced integration and extensibility:
@@ -90,7 +114,7 @@ V2 adds advanced integration and extensibility:
 - install Agent Pack from local folder or GitHub URL,
 - plugin system,
 - shared office themes,
-- richer external agent provider support.
+- richer external agent provider support,
 - Agent Pack Import Review Screen.
 
 ## V3 / Open Source Ecosystem Vision
@@ -146,24 +170,24 @@ V3 can turn the project into a community-sharing ecosystem:
 | Pixel Office View | MVP basic, V1 enhanced | MVP base completed |
 | Agent Detail Panel | MVP | completed |
 | Chat With Individual Agent | MVP spawned, V2 attached | MVP spawned completed; V2 attached planned |
-| Create New Agent | MVP | partial MVP quick action completed; full profile-based flow planned in Task 12 |
+| Create New Agent | MVP | Task 12 completed with profile-based create-agent flow, working directory picker, skill overrides, runtime spawn, profile snapshot, and Manager Agent role |
 | Skill Assignment | MVP basic, V1 marketplace/import | MVP base completed; marketplace/import planned |
-| Group Chat / Meeting Room | V1 | planned; must use reusable conversation workflow engine |
-| Task Board | V1 | planned |
-| Activity Timeline | MVP base, V1 filters | MVP event/log base completed; V1 filters planned |
-| Local Safety & Permission Layer | V1 full, MVP hooks | runtime hook boundary planned before full UX; full layer late in Task 17 |
+| Group Chat / Meeting Room | V1 | Task 14 foundation completed with meeting creation, participants, addressed/broadcast messages, flow rules, routing metadata, summary save, and meeting-output-to-task conversion |
+| Task Board | V1 | Task 13 completed with Backlog, Assigned, In Progress, Waiting Review, Done, Failed, assignment, and visible status movement |
+| Activity Timeline | MVP base, V1 filters | Task 13 filters completed for agent, task, and event type; formal event taxonomy still needs hardening |
+| Local Safety & Permission Layer | V1 full, MVP hooks | permission fields/presets exist; full Permission Policy and approval UX remain Task 17 |
 | Agent Profiles / Personalization | V1 | Task 11 completed |
 | Community Agent Packs | V2 install/import, V3 registry | planned |
 | Agent Profile Library | V1 | Task 11 completed |
 | Agent Capability Matrix | V1 | Task 11 completed |
-| Permission Presets | V1 model, late safety UX | planned |
-| Agent Health | V1 | planned |
+| Permission Presets | V1 model, late safety UX | model support exists in Agent Profiles and Create Agent; policy enforcement remains Task 17 |
+| Agent Health | V1 | Task 13 base completed; heartbeat/process-liveness/last-error semantics need hardening |
 | Project Workspace Selector | V2 | planned |
-| Run History / Session Archive | V1 | planned |
+| Run History / Session Archive | V1 | Task 13 base completed with sessions, prompts, messages, token usage, and cost summary |
 | Agent Pack Import Review Screen | V2 | planned |
-| Token Usage & Cost Tracking | MVP base, V1 dashboard | MVP raw usage base completed; V1 price config and manager dashboard planned |
-| Application Service Layer | V1 architecture hardening | planned across Tasks 11-14 |
-| RuntimeEvent / DomainEvent Split | V1 architecture hardening | planned across Tasks 11-14 |
+| Token Usage & Cost Tracking | MVP base, V1 dashboard | Task 13 dashboard completed; price config, time range, workspace grouping, and clearer reported/estimated labeling remain |
+| Application Service Layer | V1 architecture hardening | partially implemented across profile/create-agent/task/meeting flows; continue moving complex workflows out of IPC handlers |
+| RuntimeEvent / DomainEvent Split | V1 architecture hardening | partially implemented through audit/events; needs formal event taxonomy and normalizer |
 | Product View / Feature Ownership | Architecture documentation | documented |
 | System Component Map | Architecture documentation | documented |
 

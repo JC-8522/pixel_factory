@@ -54,6 +54,18 @@ Existing MVP and V1 features keep working, and future integrations have typed bo
 - Confirm theme selection changes office visuals.
 - Confirm all unfinished V2 integrations are documented as explicit follow-up work.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Verify the existing spawned-agent workflow still works from the UI.
+- Navigate to project workspace, attach mode, integration, and theme controls.
+- Create/select a project workspace and confirm visible agents/tasks/events remain scoped to it.
+- Attempt attach mode from the UI; if disabled, confirm the disabled state explains why.
+- Change the office theme and confirm the visual change in the rendered office.
+- Capture focused screenshots of workspace selection, attach/MCP state, and theme change.
+- Inspect dev logs after integration workflows and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `17_local_safety_permission_layer.md`. Safety can be finalized after integration boundaries are stable.

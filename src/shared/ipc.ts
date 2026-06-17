@@ -1,5 +1,6 @@
 import type { AppInfo } from "./types/app";
 import type { AgentRuntimeEvent } from "./types/agent";
+import type { ConversationFlowRule } from "./types/conversation";
 import type {
   AgentRecord,
   AgentProfileRecord,
@@ -8,6 +9,7 @@ import type {
   EventRecord,
   JsonObject,
   MeetingMessageRecord,
+  MeetingParticipantRecord,
   MeetingRecord,
   MessageRecord,
   SessionRecord,
@@ -18,6 +20,7 @@ import type {
 
 export const IPC_CHANNELS = {
   appInfo: "app:info",
+  appPickWorkingDirectory: "app:pick-working-directory",
   agentsList: "agents:list",
   agentsGet: "agents:get",
   agentsCreate: "agents:create",
@@ -50,6 +53,7 @@ export const IPC_CHANNELS = {
   tasksUpdateStatus: "tasks:update-status",
   meetingsList: "meetings:list",
   meetingsCreate: "meetings:create",
+  meetingsListParticipants: "meetings:list-participants",
   meetingsListMessages: "meetings:list-messages",
   meetingsSendMessage: "meetings:send-message",
   meetingsFinish: "meetings:finish",
@@ -76,8 +80,10 @@ export type CreateAgentRequest = {
   runtimeKind: string;
   permissionMode: string;
   autoRunMode: string;
+  modelProfile?: string | null;
   profileId?: string | null;
   profileSnapshot?: JsonObject;
+  skillIds?: string[];
   currentTask?: string | null;
   metadata?: JsonObject;
 };
@@ -197,6 +203,9 @@ export type CreateMeetingRequest = {
   goal: string;
   moderatorAgentId?: string | null;
   outputFormat?: string | null;
+  participantAgentIds?: string[];
+  conversationMode?: string | null;
+  flowRules?: ConversationFlowRule[];
 };
 
 export type SendMeetingMessageRequest = {
@@ -237,6 +246,7 @@ export type TokenUsageSummary = {
 export type CodexOfficeApi = {
   app: {
     getInfo(): Promise<AppInfo>;
+    pickWorkingDirectory(): Promise<string | null>;
   };
   agents: {
     list(): Promise<AgentRecord[]>;
@@ -283,6 +293,7 @@ export type CodexOfficeApi = {
   meetings: {
     list(): Promise<MeetingRecord[]>;
     create(input: CreateMeetingRequest): Promise<MeetingRecord>;
+    listParticipants(meetingId: string): Promise<MeetingParticipantRecord[]>;
     listMessages(meetingId: string): Promise<MeetingMessageRecord[]>;
     sendMessage(input: SendMeetingMessageRequest): Promise<MeetingMessageRecord>;
     finish(input: FinishMeetingRequest): Promise<MeetingRecord>;

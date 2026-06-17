@@ -5,6 +5,8 @@ This document contains two architecture views. They do not conflict because they
 - `Current Implementation View`: what the codebase currently looks like after Tasks 01-11.
 - `Target Logical Component View`: what stable product platform components the codebase should evolve toward.
 
+The product target is a local Agent Operating System for one-person companies. The visual office is the Human Console / Mission Control layer; it is not the full architecture by itself.
+
 The current view is an implementation view. The target view is a logical system view. They are connected by the mapping table below, but they are not expected to be one-to-one.
 
 For the target system component architecture, see `docs/system_architecture.md`.

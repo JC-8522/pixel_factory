@@ -56,6 +56,18 @@ Risky actions are detected, blocked until approval, redacted where necessary, an
 - Confirm runtime adapters call the safety hook instead of implementing permission logic themselves.
 - Confirm permission decisions create stable domain events for timeline/audit UI.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Trigger a safe command path and confirm it proceeds without an approval dialog.
+- Trigger risky delete, install, or network-like command paths through a controlled mock/runtime-safe flow.
+- Approve once, always allow in project, and deny through the visible permission dialog.
+- Confirm denied actions do not execute and appear in the activity/audit UI.
+- Open settings and inspect scoped allow rules.
+- Capture focused screenshots of the permission dialog, denied event, and settings rule state.
+- Inspect dev logs after safety workflows and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `18_qa_polish_packaging.md`. Final QA must include safety events and permission-denial flows.
