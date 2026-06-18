@@ -13,6 +13,10 @@ import type {
   SendMeetingMessageRequest,
   ScanSkillsRequest,
   SettingsMap,
+  CreateProjectWorkspaceRequest,
+  OfficeTheme,
+  PermissionDecisionInput,
+  TimelineReplayRequest,
   UpdateAgentProfileRequest,
   UpdateAgentPositionRequest,
   UpdateTaskStatusRequest
@@ -310,6 +314,32 @@ export const validateScanSkills = (value: unknown): ScanSkillsRequest => {
   };
 };
 
+export const validateAgentPackPath = (value: unknown): string => assertNonEmptyString(value, "agent pack path");
+
+export const validateCreateProjectWorkspace = (value: unknown): CreateProjectWorkspaceRequest => {
+  const input = assertRecord(value, "create project workspace input");
+  return {
+    id: assertNonEmptyString(input.id, "workspace id"),
+    name: assertNonEmptyString(input.name, "workspace name"),
+    rootPath: assertNonEmptyString(input.rootPath, "workspace root path")
+  };
+};
+
+const officeThemes = ["default", "forest", "focus"] as const;
+
+export const validateOfficeTheme = (value: unknown): OfficeTheme =>
+  assertStringEnum(value, "office theme", officeThemes);
+
+export const validateTimelineReplay = (value: unknown): TimelineReplayRequest => {
+  if (value === undefined) return {};
+  const input = assertRecord(value, "timeline replay input");
+  return {
+    limit: optionalNumber(input.limit, "timeline replay limit"),
+    type: optionalString(input.type, "timeline replay type") ?? undefined,
+    after: optionalString(input.after, "timeline replay after") ?? undefined
+  };
+};
+
 export const validateSettingsPatch = (value: unknown): SettingsMap => {
   const input = assertRecord(value, "settings patch");
   optionalJsonValue(input);
@@ -317,3 +347,19 @@ export const validateSettingsPatch = (value: unknown): SettingsMap => {
 };
 
 export const validateAgentStatus = (value: unknown): string => assertStringEnum(value, "agent status", agentStatuses);
+
+export const validatePermissionDecision = (value: unknown): PermissionDecisionInput => {
+  const input = assertRecord(value, "permission decision input");
+  return {
+    requestId: assertNonEmptyString(input.requestId, "permission request id"),
+    decision: assertStringEnum(input.decision, "permission decision", ["allow_once", "allow_project", "deny"] as const)
+  };
+};
+
+export const validateOptionalProjectPath = (value: unknown): string | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return assertNonEmptyString(value, "project path");
+};

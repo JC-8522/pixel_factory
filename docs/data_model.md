@@ -53,7 +53,7 @@ The major architecture components map to data ownership as follows:
 | Orchestration Center | coordinates records across domains | `workflow_runs`, `workflow_steps` |
 | Task Engine / DAG | `tasks`, `task_events` | `task_dependencies`, `task_dag_nodes`, `task_dag_edges` |
 | Message Router | `messages`, `meeting_messages` | `message_routes`, `conversation_threads` |
-| Context / Memory | `agent_profiles`, `agent_profile_skills`, `skills`, `settings` | `memory_records`, `context_snapshots`, `workspace_contexts` |
+| Context / Memory | `agent_profiles`, `agent_profile_skills`, `skills`, `settings` | `memory_records`, `business_memory_assets`, `context_snapshots`, `workspace_contexts` |
 | Permission Policy Engine | `permission_rules`, `settings` | `permission_requests`, `permission_decisions` |
 | Audit Engine | `events`, `task_events`, `meeting_transitions` | `audit_records` if audit needs to split from timeline events |
 | Event Logs | `events` | `runtime_event_logs` if raw provider logs need separate retention/replay |
@@ -121,6 +121,30 @@ Common role examples:
 - `Security Reviewer`
 - `Architect`
 - `Documentation Writer`
+
+## `agent_packs`
+
+Stores reviewed local Agent Pack installation metadata.
+
+Columns:
+
+- `id`
+- `name`
+- `description`
+- `author`
+- `version`
+- `source_type`
+- `source_uri`
+- `installed_path`
+- `checksum`
+- `signature_status`
+- `permission_manifest_json`
+- `validation_status`
+- `metadata_json`
+- `installed_at`
+- `updated_at`
+
+Agent Pack inspection must be source-readable and must not execute package scripts. Installed profiles reference the pack through `agent_profiles.source_pack_id`.
 
 ## `agent_profiles`
 

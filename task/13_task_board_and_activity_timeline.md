@@ -18,6 +18,8 @@ This task should introduce or use application services and domain events for tas
 
 Task state behavior belongs in Task Engine / DAG. Timeline and run history explanations belong in Audit Engine and Event Logs.
 
+Task Board and Timeline should preserve the evidence needed to later promote repeated work into Workflow Assets and Business Memory Assets.
+
 ## Expected Output
 
 - `src/renderer/components/TaskBoard.tsx`
@@ -62,6 +64,7 @@ Tasks and events form a coherent project management loop: create work, assign wo
 - View whether usage is `reported` or `estimated`.
 - Configure or load a model price config and confirm estimated cost uses that config.
 - Confirm task board and timeline consume domain events instead of provider-specific runtime log formats.
+- Confirm timeline evidence is sufficient to support later workflow extraction or business-memory capture.
 
 ## Human App Acceptance
 

@@ -156,7 +156,7 @@ Message Router does not decide task policy. It receives routing intent from Orch
 
 ### Context / Memory
 
-Context / Memory builds the context that agents receive:
+Context / Memory builds the context that agents receive and owns durable Business Memory Assets:
 
 - profile snapshot,
 - assigned skills,
@@ -164,7 +164,21 @@ Context / Memory builds the context that agents receive:
 - task context,
 - meeting context,
 - user preferences,
-- durable memory records when implemented.
+- durable business memory records.
+
+Business Memory Assets should capture reusable company knowledge:
+
+- customers,
+- projects,
+- decisions,
+- preferences,
+- constraints,
+- metrics,
+- competitors,
+- brand voice,
+- historical context.
+
+Business memory must be inspectable and curated. It should not be only raw chat history.
 
 Renderer-provided context is never trusted as authoritative. Main-process services build context from persisted product data.
 

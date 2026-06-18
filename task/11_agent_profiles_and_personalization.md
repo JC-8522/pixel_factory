@@ -18,6 +18,8 @@ Build local Agent Profile management before the create-agent workflow. Profiles 
 
 Agent Profile must become the canonical reusable configuration source for agent creation. Do not treat profile fields as UI-only metadata. The generated profile snapshot should drive runtime prompt context, default skill assignment, permission presets, collaboration behavior, validation expectations, output preferences, and visual identity.
 
+Profiles should also prepare agents to consume Business Memory Assets later. Profile fields may define memory preferences, retrieval expectations, and business-context sensitivity, but profile data is not a replacement for reusable Business Memory Assets.
+
 This task should also establish the first thin Agent Registry boundary for profile-driven capability metadata.
 
 ## Expected Output
@@ -49,6 +51,7 @@ The user can create, edit, duplicate, delete, import, export, and inspect reusab
 - default workspace/project scope,
 - tool access/capabilities,
 - memory/preferences,
+- business memory preferences/retrieval hints,
 - startup workflow,
 - validation policy,
 - collaboration behavior,
@@ -65,6 +68,7 @@ Profiles are durable, reusable, and safe to apply to future agents without mutat
 ## Verification Steps
 
 - Create a profile with role, persona, instructions, default skills, and visual identity.
+- Confirm memory/preferences fields can describe how the agent should use future Business Memory Assets.
 - Edit and duplicate a profile.
 - Delete a profile that is not required by an existing safety rule.
 - Import and export a source-readable profile file.

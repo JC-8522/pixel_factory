@@ -11,10 +11,7 @@ export type OfficeZone = {
 };
 
 export const officeZones: OfficeZone[] = [
-  { id: "meeting", label: "Meeting room", x: 24, y: 24, width: 260, height: 150, color: 0x27384a },
-  { id: "whiteboard", label: "Whiteboard", x: 306, y: 24, width: 230, height: 150, color: 0x31463b },
-  { id: "desks", label: "Desks", x: 24, y: 198, width: 512, height: 260, color: 0x28313f },
-  { id: "skills", label: "Skill shelf", x: 560, y: 24, width: 190, height: 434, color: 0x3c3344 }
+  { id: "desks", label: "Agent desks", x: 24, y: 24, width: 726, height: 434, color: 0x28313f }
 ];
 
 export const statusColor = (status: AgentStatus | string): number => {

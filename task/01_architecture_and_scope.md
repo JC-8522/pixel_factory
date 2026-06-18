@@ -14,6 +14,12 @@ Architecture foundation and implementation roadmap.
 
 Convert the product design into a technical architecture that future agents can implement without guessing module boundaries.
 
+The architecture must explicitly preserve three reusable company asset classes:
+
+- Skill Assets for reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how.
+- Workflow Assets for reusable task flows, review loops, routing rules, handoff patterns, stop conditions, and manager-escalation rules.
+- Business Memory Assets for durable company, customer, project, decision, preference, constraint, metric, competitor, brand, and historical context.
+
 ## Architecture Alignment
 
 This task owns the first definition of the system component map: Human Console, Agent Registry, Orchestration Center, Task Engine / DAG, Message Router, Context / Memory, Permission Policy Engine, Audit Engine, Event Logs, Runtime Adapter Layer, and Local Persistence.
@@ -42,6 +48,7 @@ The project has a clear technical blueprint that future agents can follow before
 - All local access must go through typed IPC APIs.
 - Runtime integration must use an `AgentRuntime` abstraction.
 - MVP prioritizes spawned app-controlled agents before attach mode.
+- Context / Memory must be designed to evolve from prompt-context support into inspectable Business Memory Asset support.
 
 ## Validation Goal
 

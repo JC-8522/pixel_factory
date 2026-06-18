@@ -14,17 +14,25 @@ Core concept:
 
 Moat principle:
 
-> The defensible value is not calling many agents at once. The defensible value is training agents into reusable digital employees: each agent accumulates role-specific behavior, reusable skills, review feedback, workflow memory, and operating knowledge that can be applied again without the manager re-explaining the same process.
+> The defensible value is not calling many agents at once. The defensible value is training agents into reusable digital employees: each agent accumulates role-specific behavior, reusable skills, review feedback, workflow memory, business memory, and operating knowledge that can be applied again without the manager re-explaining the same process.
 
 The product should optimize for an agent cultivation loop:
 
 1. The manager assigns work to an agent.
 2. The agent executes with its profile, skills, context, and workflow rules.
 3. The manager or reviewer agent evaluates the output.
-4. Corrections, successful patterns, and operating rules are captured as reusable skills, profile updates, workflow templates, or review policies.
+4. Corrections, successful patterns, operating rules, and business facts are captured as reusable skills, profile updates, workflow templates, review policies, or business memory records.
 5. Future tasks reuse that accumulated company knowledge.
 
-This means Skills, Agent Profiles, Task Engine, Message Router, Audit Engine, and Event Logs are not secondary features. They are the core system that turns repeated work into a growing one-person-company operating asset.
+This means Skills, Agent Profiles, Task Engine, Message Router, Context / Memory, Audit Engine, and Event Logs are not secondary features. They are the core system that turns repeated work into growing one-person-company operating assets.
+
+The product should explicitly manage three reusable asset classes:
+
+1. Skill Assets: reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how that make an agent better at a category of work.
+2. Workflow Assets: reusable task flows, review loops, stop conditions, routing rules, handoff patterns, and manager-escalation rules.
+3. Business Memory Assets: durable knowledge about the company, customers, projects, decisions, preferences, constraints, metrics, competitors, brand voice, and historical context that agents should reuse across future work.
+
+Business Memory is not generic chat history. It is curated operating knowledge for the one-person company. Agents should be able to retrieve relevant business memory when planning, executing, reviewing, or escalating work.
 
 The visual metaphor remains important:
 

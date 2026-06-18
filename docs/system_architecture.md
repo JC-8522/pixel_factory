@@ -4,7 +4,13 @@ This document defines the major system components for Local Codex Office, a loca
 
 The visual office is the Human Console / Mission Control layer. It should make the agent organization visible without turning the product into only an AI group chat tool.
 
-The system should be designed around agent cultivation. A one-person company gains leverage when agents become reusable digital employees: their roles, skills, review feedback, task history, workflow rules, and cost patterns compound over time. Calling many agents is only a coordination mechanism; the durable asset is the trained agent plus reusable operating knowledge.
+The system should be designed around agent cultivation. A one-person company gains leverage when agents become reusable digital employees: their roles, skills, review feedback, task history, workflow rules, business memory, and cost patterns compound over time. Calling many agents is only a coordination mechanism; the durable asset is the trained agent plus reusable operating knowledge.
+
+The platform should manage three reusable asset classes:
+
+- Skill Assets for reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how.
+- Workflow Assets for reusable task flows, review loops, routing rules, handoff patterns, stop conditions, and manager escalation.
+- Business Memory Assets for durable company, customer, project, decision, preference, constraint, metric, competitor, brand, and historical context.
 
 ## Target System Diagram
 
@@ -59,7 +65,7 @@ flowchart TB
 | Orchestration Center | The application brain that coordinates multi-step product workflows. | Create-agent flow, run workflows, meeting workflows, task-to-agent assignment, escalation coordination. | Provider-specific runtime parsing, React rendering, raw DB queries. |
 | Task Engine / DAG | The execution model for tasks, dependencies, review loops, and stop conditions. | Task states, dependencies, DAG nodes/edges, retry/review rules, workflow progress. | Chat transport, runtime provider details. |
 | Message Router | The routing layer for user-agent and agent-agent messages. | Direct messages, broadcast messages, addressed meeting messages, review feedback routing, conversation metadata. | Agent identity source of truth, long-term memory. |
-| Context / Memory | The context builder for runtime prompts and agent continuity. | Profile snapshots, assigned skill context, workspace context, user preferences, memory records, task/meeting context. | Permission approval, process spawning. |
+| Context / Memory | The context builder for runtime prompts, agent continuity, and business memory assets. | Profile snapshots, assigned skill context, workspace context, user preferences, business memory records, task/meeting context. | Permission approval, process spawning. |
 | Permission Policy Engine | The policy layer for actions that can affect local state. | Permission presets, command risk rules, allow/deny decisions, scoped allow rules. | UI rendering of approval dialogs, raw runtime event storage. |
 | Audit Engine | The product-level explainability and audit layer. | Domain event creation, audit trail, timeline records, transition reasons, permission decision records. | Low-level provider logs as the only source of truth. |
 | Event Logs | Durable raw and normalized event storage. | Runtime events, domain events, timeline events, replay inputs. | Product policy decisions. |

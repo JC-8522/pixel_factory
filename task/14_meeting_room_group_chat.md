@@ -26,6 +26,8 @@ Build the orchestration as a reusable conversation workflow engine below the mee
 
 Meeting message delivery belongs in Message Router. Meeting/review policy belongs in Orchestration Center and Task Engine / DAG. Meeting transition explanations belong in Audit Engine.
 
+Meeting outcomes should also be usable as future Workflow Assets or Business Memory Assets, not only transient discussion text.
+
 ## Expected Output
 
 - `src/renderer/components/MeetingRoom.tsx`
@@ -43,6 +45,7 @@ Meeting message delivery belongs in Message Router. Meeting/review policy belong
 - Moderator summary generation flow.
 - Meeting note storage.
 - Conversion from meeting note item to task.
+- Business-memory-ready meeting note storage that can later be promoted into reusable company knowledge.
 - Tests for meeting flow using mock agents.
 - Tests for workflow rules independent from React UI.
 
@@ -69,6 +72,7 @@ The meeting room can coordinate multiple agents in a predictable and inspectable
 - Confirm moderator produces a final summary.
 - Confirm the meeting note is saved.
 - Confirm a meeting output can become a task board item.
+- Confirm meeting outputs are preserved clearly enough to later become workflow templates or business-memory entries.
 - Confirm the workflow engine can evaluate a developer -> reviewer -> developer loop without depending on the meeting room component.
 
 ## Human App Acceptance

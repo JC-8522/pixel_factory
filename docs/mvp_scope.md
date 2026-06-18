@@ -6,7 +6,13 @@ The final product is a local Agent Operating System for one-person companies. A 
 
 The pixel office is the visual control surface for the Agent OS. It should make agent state, work ownership, meetings, cost, and risk easy to understand without reducing the product to an AI group chat tool.
 
-The core moat is agent training and reusable operating knowledge. The product should help the manager turn repeated work into durable assets: agent profiles, reusable skills, workflow templates, review rules, task histories, cost history, and audit/event memory. Multi-agent invocation is useful, but it is not the product's defensible center.
+The core moat is agent training and reusable operating knowledge. The product should help the manager turn repeated work into durable assets: agent profiles, reusable skills, workflow templates, review rules, task histories, cost history, audit/event memory, and business memory. Multi-agent invocation is useful, but it is not the product's defensible center.
+
+The durable assets should be treated as three product asset classes:
+
+- Skill Assets: reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how.
+- Workflow Assets: reusable task flows, review loops, routing rules, handoff patterns, stop conditions, and manager-escalation rules.
+- Business Memory Assets: durable company, customer, project, decision, preference, constraint, metric, competitor, brand, and historical context that agents can reuse across future work.
 
 The MVP should preserve a clear path toward this loop:
 
@@ -14,7 +20,7 @@ The MVP should preserve a clear path toward this loop:
 2. execute with a personalized agent,
 3. review the result,
 4. capture feedback or successful patterns,
-5. reuse the learned skill or workflow on future tasks.
+5. reuse the learned skill, workflow, or business memory on future tasks.
 
 Product view and feature ownership are defined in `docs/product_view.md`.
 System component boundaries are defined in `docs/system_architecture.md`.
@@ -187,16 +193,16 @@ V3 can turn the project into a community-sharing ecosystem:
 | Activity Timeline | MVP base, V1 filters | Task 13 filters completed for agent, task, and event type; formal event taxonomy still needs hardening |
 | Local Safety & Permission Layer | V1 full, MVP hooks | permission fields/presets exist; full Permission Policy and approval UX remain Task 17 |
 | Agent Profiles / Personalization | V1 | Task 11 completed |
-| Community Agent Packs | V2 install/import, V3 registry | planned |
+| Community Agent Packs | V2 install/import, V3 registry | Task 15 local source-readable pack inspection/install completed; remote registry remains V3 |
 | Agent Profile Library | V1 | Task 11 completed |
 | Agent Capability Matrix | V1 | Task 11 completed |
 | Permission Presets | V1 model, late safety UX | model support exists in Agent Profiles and Create Agent; policy enforcement remains Task 17 |
 | Agent Health | V1 | Task 13 base completed; heartbeat/process-liveness/last-error semantics need hardening |
-| Project Workspace Selector | V2 | planned |
+| Project Workspace Selector | V2 | Task 16 foundation completed with persisted workspace create/select and Integrations UI |
 | Run History / Session Archive | V1 | Task 13 base completed with sessions, prompts, messages, token usage, and cost summary |
-| Agent Pack Import Review Screen | V2 | planned |
+| Agent Pack Import Review Screen | V2 | Task 15 completed with local folder path, manifest review, permission display, validation errors, install, uninstall, and installed profiles |
 | Token Usage & Cost Tracking | MVP base, V1 dashboard | Task 13 dashboard completed; price config, time range, workspace grouping, and clearer reported/estimated labeling remain |
-| Application Service Layer | V1 architecture hardening | partially implemented across profile/create-agent/task/meeting flows; continue moving complex workflows out of IPC handlers |
+| Application Service Layer | V1 architecture hardening | partially implemented across profile/create-agent/task/meeting/agent-pack/integration flows; continue moving complex workflows out of IPC handlers |
 | RuntimeEvent / DomainEvent Split | V1 architecture hardening | partially implemented through audit/events; needs formal event taxonomy and normalizer |
 | Product View / Feature Ownership | Architecture documentation | documented |
 | System Component Map | Architecture documentation | documented |

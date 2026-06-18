@@ -5,6 +5,7 @@ import type {
   AgentRecord,
   AgentProfileRecord,
   AgentProfileSkillRecord,
+  AgentPackRecord,
   AgentSkillRecord,
   EventRecord,
   JsonObject,
@@ -12,6 +13,7 @@ import type {
   MeetingParticipantRecord,
   MeetingRecord,
   MessageRecord,
+  PermissionRuleRecord,
   SessionRecord,
   SkillRecord,
   TaskRecord,
@@ -40,6 +42,11 @@ export const IPC_CHANNELS = {
   profilesCapabilityMatrix: "profiles:capability-matrix",
   profilesExport: "profiles:export",
   profilesImport: "profiles:import",
+  agentPacksInspect: "agent-packs:inspect",
+  agentPacksInstall: "agent-packs:install",
+  agentPacksUninstall: "agent-packs:uninstall",
+  agentPacksListInstalled: "agent-packs:list-installed",
+  agentPacksValidate: "agent-packs:validate",
   sessionsListByAgent: "sessions:list-by-agent",
   messagesListBySession: "messages:list-by-session",
   messagesCreate: "messages:create",
@@ -61,8 +68,20 @@ export const IPC_CHANNELS = {
   eventsGet: "events:get",
   tokenUsageListByAgent: "token-usage:list-by-agent",
   tokenUsageSummaryByAgent: "token-usage:summary-by-agent",
+  integrationsStatus: "integrations:status",
+  workspacesList: "workspaces:list",
+  workspacesCreate: "workspaces:create",
+  workspacesSelect: "workspaces:select",
+  workspacesGetActive: "workspaces:get-active",
+  officeThemeGet: "office-theme:get",
+  officeThemeSet: "office-theme:set",
+  timelineReplay: "timeline:replay",
   settingsGet: "settings:get",
   settingsUpdate: "settings:update",
+  permissionsGetRequest: "permissions:get-request",
+  permissionsDecide: "permissions:decide",
+  permissionsListRules: "permissions:list-rules",
+  permissionsRevokeRule: "permissions:revoke-rule",
   runtimeDiscoverAgents: "runtime:discover-agents",
   runtimeSpawnAgent: "runtime:spawn-agent",
   runtimeSendMessage: "runtime:send-message",
@@ -208,6 +227,41 @@ export type CreateMeetingRequest = {
   flowRules?: ConversationFlowRule[];
 };
 
+export type AgentPackInspection = {
+  path: string;
+  manifestPath: string;
+  manifest: JsonObject | null;
+  validationStatus: "valid" | "invalid" | "warning";
+  validationErrors: string[];
+  validationWarnings: string[];
+  checksum: string | null;
+  signatureStatus: "not_provided" | "present_unverified";
+  scriptExecution: "not_executed";
+  permissionReview: {
+    status: "none" | "review_required";
+    manifest: JsonObject;
+  };
+  summary: {
+    id: string | null;
+    name: string | null;
+    author: string | null;
+    version: string | null;
+    profiles: number;
+    skillDependencies: number;
+    bundledSkills: number;
+    scripts: number;
+    assets: number;
+    workflowTemplates: number;
+    validationTests: number;
+  };
+};
+
+export type AgentPackInstallResult = {
+  pack: AgentPackRecord;
+  installedProfileIds: string[];
+  installedSkillIds: string[];
+};
+
 export type SendMeetingMessageRequest = {
   id: string;
   meetingId: string;
@@ -243,6 +297,75 @@ export type TokenUsageSummary = {
   estimated_cost: number;
 };
 
+export type ProjectWorkspace = {
+  id: string;
+  name: string;
+  rootPath: string;
+  createdAt: string;
+};
+
+export type CreateProjectWorkspaceRequest = {
+  id: string;
+  name: string;
+  rootPath: string;
+};
+
+export type OfficeTheme = "default" | "forest" | "focus";
+
+export type V2IntegrationStatus = {
+  attach: {
+    runtimeKind: "codex_cli_attached";
+    status: "read_only" | "disabled";
+    reason: string;
+    controllable: boolean;
+    detectedSessions: number;
+  };
+  mcp: {
+    runtimeKind: "mcp";
+    configured: boolean;
+    status: "not_configured" | "ready" | "error";
+    reason: string;
+  };
+  github: { configured: false; status: "not_configured"; reason: string };
+  plugins: { configured: false; status: "not_configured"; reason: string };
+};
+
+export type TimelineReplayRequest = {
+  limit?: number;
+  type?: string;
+  after?: string;
+};
+
+export type PermissionRiskKind = "delete" | "install" | "network" | "credential" | "system";
+
+export type PermissionRequestRecord = {
+  id: string;
+  agentId: string;
+  sessionId: string;
+  projectPath: string;
+  command: string;
+  redactedCommand: string;
+  riskKinds: PermissionRiskKind[];
+  reasons: string[];
+  riskLevel: "safe" | "review";
+  createdAt: string;
+};
+
+export type PermissionDecisionInput = {
+  requestId: string;
+  decision: "allow_once" | "allow_project" | "deny";
+};
+
+export type PermissionDecisionResult = {
+  requestId: string;
+  status: "approved" | "denied";
+  storedRuleId?: string | null;
+};
+
+export type RuntimeSendMessageResult =
+  | { status: "sent"; message: MessageRecord }
+  | { status: "permission_required"; requestId: string };
+
 export type CodexOfficeApi = {
   app: {
     getInfo(): Promise<AppInfo>;
@@ -270,6 +393,13 @@ export type CodexOfficeApi = {
     capabilityMatrix(profileId: string): Promise<AgentCapabilityMatrix>;
     export(profileId: string): Promise<AgentProfileExport>;
     importProfile(input: CreateAgentProfileRequest): Promise<AgentProfileRecord>;
+  };
+  agentPacks: {
+    inspect(folderPath: string): Promise<AgentPackInspection>;
+    install(folderPath: string): Promise<AgentPackInstallResult>;
+    uninstall(packId: string): Promise<AgentPackRecord | null>;
+    listInstalled(): Promise<AgentPackRecord[]>;
+    validate(folderPath: string): Promise<AgentPackInspection>;
   };
   sessions: {
     listByAgent(agentId: string): Promise<SessionRecord[]>;
@@ -306,14 +436,36 @@ export type CodexOfficeApi = {
     listByAgent(agentId: string): Promise<TokenUsageRecord[]>;
     summaryByAgent(agentId: string): Promise<TokenUsageSummary>;
   };
+  integrations: {
+    status(): Promise<V2IntegrationStatus>;
+  };
+  workspaces: {
+    list(): Promise<ProjectWorkspace[]>;
+    create(input: CreateProjectWorkspaceRequest): Promise<ProjectWorkspace>;
+    select(workspaceId: string): Promise<ProjectWorkspace>;
+    getActive(): Promise<string>;
+  };
+  officeTheme: {
+    get(): Promise<OfficeTheme>;
+    set(theme: OfficeTheme): Promise<OfficeTheme>;
+  };
+  timeline: {
+    replay(input?: TimelineReplayRequest): Promise<EventRecord[]>;
+  };
   settings: {
     get(): Promise<SettingsMap>;
     update(patch: SettingsMap): Promise<SettingsMap>;
   };
+  permissions: {
+    getRequest(requestId: string): Promise<PermissionRequestRecord | null>;
+    decide(input: PermissionDecisionInput): Promise<PermissionDecisionResult>;
+    listRules(projectPath?: string): Promise<PermissionRuleRecord[]>;
+    revokeRule(ruleId: string): Promise<PermissionRuleRecord | null>;
+  };
   runtime: {
     discoverAgents(): Promise<AgentRecord[]>;
     spawnAgent(input: CreateAgentRequest): Promise<SessionRecord>;
-    sendMessage(sessionId: string, message: string): Promise<MessageRecord>;
+    sendMessage(sessionId: string, message: string): Promise<RuntimeSendMessageResult>;
     stopAgent(sessionId: string): Promise<SessionRecord>;
     onEvent(callback: (event: AgentRuntimeEvent) => void): () => void;
   };

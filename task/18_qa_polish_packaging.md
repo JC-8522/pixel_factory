@@ -63,3 +63,27 @@ The final app satisfies the product design and all previous tasks' validation go
 ## Continuation
 
 After this task passes validation, the product is ready for the next planning cycle or release. Do not add new feature scope during this task unless required to satisfy an existing validation goal.
+
+## Completion Notes
+
+- Added QA/polish outputs:
+  - Create Agent skill search, category filter, selected-only toggle, and collapsible skill groups
+  - `docs/release_checklist.md`
+  - `docs/known_limitations.md`
+- Verified with:
+  - `tsc --noEmit`
+  - `eslint .`
+  - `vitest run`
+  - production build via `electron-vite build`
+  - packaged Windows unpacked build via `electron-builder --dir`
+- Human-style UI evidence:
+  - office, profiles, agent packs, tasks, meeting room, integrations, permissions, and smaller-window screenshots in `out/task18-*.png`
+  - packaged app screenshot in `out/task18-packaged-office.png`
+- Packaged output:
+  - `release/win-unpacked/Local Codex Office.exe`
+- Final verification notes:
+  - packaged app opens to a usable UI,
+  - primary navigation renders,
+  - Create Agent entry point is visible,
+  - existing persisted agents/tasks/settings render after restart,
+  - expected permission-request flows no longer appear as main-process handler errors in fresh logs.

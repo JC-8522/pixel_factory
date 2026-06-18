@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactElement } from "react";
+import type { PermissionRequestRecord, RuntimeSendMessageResult } from "../../shared/ipc";
 import type { AgentRuntimeEvent } from "../../shared/types/agent";
 import type { AgentRecord, MessageRecord, SessionRecord } from "../../shared/types/records";
 import { useChatStore } from "../stores/chatStore";
+import { PermissionDecisionDialog } from "./PermissionDecisionDialog";
 
 type AgentChatProps = {
   agent: AgentRecord;
@@ -11,9 +13,9 @@ type AgentChatProps = {
 const isDetectedExternalAgent = (agent: AgentRecord): boolean => {
   try {
     const metadata = JSON.parse(agent.metadata_json) as { detected?: boolean };
-    return metadata.detected === true;
+    return metadata.detected === true || agent.runtime_kind === "codex_cli_attached" || agent.permission_mode === "external" || agent.auto_run_mode === "external";
   } catch {
-    return agent.permission_mode === "external" || agent.auto_run_mode === "external";
+    return agent.runtime_kind === "codex_cli_attached" || agent.permission_mode === "external" || agent.auto_run_mode === "external";
   }
 };
 
@@ -21,6 +23,10 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [permissionRequest, setPermissionRequest] = useState<PermissionRequestRecord | null>(null);
+  const [pendingMessage, setPendingMessage] = useState<{ sessionId: string; message: string } | null>(null);
+  const [decisionBusy, setDecisionBusy] = useState(false);
   const { messagesBySession, hydrateSession } = useChatStore();
 
   const readOnlyExternalAgent = isDetectedExternalAgent(agent);
@@ -78,6 +84,32 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     return session;
   };
 
+  const tryLoadPermissionRequest = async (requestId: string, sessionId: string, message: string): Promise<void> => {
+    const request = await window.codexOffice.permissions.getRequest(requestId);
+    if (!request) {
+      throw new Error("Permission request expired before the dialog could open.");
+    }
+
+    setPermissionRequest(request);
+    setPendingMessage({ sessionId, message });
+  };
+
+  const sendRuntimeMessage = async (sessionId: string, message: string): Promise<void> => {
+    try {
+      const result: RuntimeSendMessageResult = await window.codexOffice.runtime.sendMessage(sessionId, message);
+      if (result.status === "permission_required") {
+        await tryLoadPermissionRequest(result.requestId, sessionId, message);
+        return;
+      }
+      await hydrateSession(sessionId);
+      await refreshSessions();
+      setDraft("");
+      setSubmitError(null);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const send = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     const message = draft.trim();
@@ -86,19 +118,47 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     }
 
     setBusy(true);
-    setDraft("");
+    setSubmitError(null);
     try {
       const session = await ensureSession();
-      await window.codexOffice.runtime.sendMessage(session.id, message);
-      await hydrateSession(session.id);
-      await refreshSessions();
+      await sendRuntimeMessage(session.id, message);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to send message.");
     } finally {
       setBusy(false);
     }
   };
 
+  const handleDecision = async (decision: "allow_once" | "allow_project" | "deny"): Promise<void> => {
+    if (!permissionRequest) {
+      return;
+    }
+
+    setDecisionBusy(true);
+    try {
+      const result = await window.codexOffice.permissions.decide({
+        requestId: permissionRequest.id,
+        decision
+      });
+
+      if (result.status === "approved" && pendingMessage) {
+        await sendRuntimeMessage(pendingMessage.sessionId, pendingMessage.message);
+      } else {
+        setSubmitError("Command was denied before execution.");
+      }
+
+      setPermissionRequest(null);
+      setPendingMessage(null);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to save permission decision.");
+    } finally {
+      setDecisionBusy(false);
+    }
+  };
+
   return (
     <section className="agent-chat">
+      <p className="chat-hint">Use regular chat, or try command review with `cmd: pwd` or `cmd: npm install package-name`.</p>
       <div className="message-list">
         {messages.length === 0 ? (
           <p className="empty-note">Start a conversation with this agent.</p>
@@ -122,6 +182,18 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
           Send
         </button>
       </form>
+      {submitError ? <p className="form-error">{submitError}</p> : null}
+      {permissionRequest ? (
+        <PermissionDecisionDialog
+          busy={decisionBusy}
+          onClose={() => {
+            setPermissionRequest(null);
+            setPendingMessage(null);
+          }}
+          onDecide={handleDecision}
+          request={permissionRequest}
+        />
+      ) : null}
     </section>
   );
 }

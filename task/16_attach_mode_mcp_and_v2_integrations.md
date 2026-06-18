@@ -6,6 +6,8 @@ You are the Integration Agent for Local Codex Office.
 
 MVP focuses on spawned mode. V2 adds attach mode, MCP-based orchestration, GitHub integration hooks, multi-project workspace support, plugin system foundations, timeline replay, and shared office themes.
 
+V2 must also preserve a clean path for workspace-scoped Skill Assets, Workflow Assets, and Business Memory Assets.
+
 ## Feature
 
 Future-ready integration layer.
@@ -17,6 +19,8 @@ Add extension points and the first usable implementation for attaching to existi
 Attach and MCP integrations must emit runtime events through the same runtime/event normalization pipeline as mock and Codex CLI spawned runtime. Renderer UI should not need provider-specific branches for attach mode or MCP sessions.
 
 Attach mode and MCP should integrate through Runtime Adapter Layer, Message Router, Agent Registry, Audit Engine, and Event Logs. They must not create a parallel product architecture.
+
+Workspace support should be designed so future Skill Assets, Workflow Assets, and Business Memory Assets can be scoped per project without rewriting the product architecture.
 
 ## Expected Output
 
@@ -69,3 +73,19 @@ Existing MVP and V1 features keep working, and future integrations have typed bo
 ## Continuation
 
 After this task passes validation, continue with `17_local_safety_permission_layer.md`. Safety can be finalized after integration boundaries are stable.
+
+## Completion Notes
+
+Completed on the current implementation branch.
+
+Implemented:
+
+- `AttachedCodexRuntime` read-only fallback
+- `McpRuntimeBridge` typed contract and disabled bridge
+- Project Workspace settings APIs and Integrations UI
+- Office Theme settings APIs and renderer theme switching
+- Timeline Replay API over Event Logs
+- GitHub and Plugin Registry V2 boundary interfaces
+- Audit events for integration status, workspace changes, and theme selection
+- `docs/v2_integrations.md`
+- Electron CDP acceptance script and screenshots for spawned-mode regression, workspace selection, attach/MCP state, theme change, and timeline replay

@@ -11,8 +11,6 @@ import {
 
 const createId = (prefix: string): string => `${prefix}-${Date.now()}`;
 
-const roleOptions = ["Developer Agent", "Reviewer Agent", "QA Agent", "Manager Agent", "Research Agent"];
-
 type CreateAgentDialogProps = {
   agentCount: number;
   onClose(): void;
@@ -21,9 +19,9 @@ type CreateAgentDialogProps = {
 
 const initialForm = (agentCount: number): CreateAgentFormState => ({
   name: `Agent ${agentCount + 1}`,
-  role: "Developer Agent",
+  role: "Developer",
   workingDirectory: ".",
-  runtimeKind: "mock",
+  runtimeKind: "codex_cli",
   permissionMode: "ask",
   autoRunMode: "manual",
   initialTask: "Introduce yourself and explain how you can help the manager."
@@ -37,6 +35,7 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [modelProfile, setModelProfile] = useState("");
+  const [skillQuery, setSkillQuery] = useState("");
   const [errors, setErrors] = useState<CreateAgentFormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,6 +55,24 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
   );
 
   const selectedProfileSkillIds = useMemo(() => profileSkills.map((skill) => skill.skill_id), [profileSkills]);
+  const visibleSkills = useMemo(
+    () =>
+      skills.filter((skill) => {
+        const normalizedQuery = skillQuery.trim().toLowerCase();
+        if (normalizedQuery.length === 0) {
+          return false;
+        }
+        const matchesQuery =
+          skill.name.toLowerCase().includes(normalizedQuery) ||
+          (skill.description ?? "").toLowerCase().includes(normalizedQuery);
+        return matchesQuery;
+      }),
+    [skillQuery, skills]
+  );
+  const selectedSkills = useMemo(
+    () => skills.filter((skill) => selectedSkillIds.includes(skill.id)),
+    [selectedSkillIds, skills]
+  );
 
   const updateField = (field: keyof CreateAgentFormState, value: string): void => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -80,7 +97,6 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
         ...current,
         role: profile.role || current.role,
         permissionMode: profile.default_permission_mode || current.permissionMode,
-        autoRunMode: profile.default_auto_run_mode || current.autoRunMode,
         initialTask: profile.instructions || current.initialTask
       }));
       setModelProfile(profile.default_model_profile ?? "");
@@ -103,8 +119,8 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     const nextErrors = validateCreateAgentForm(form);
-    setErrors(nextErrors);
-    setSubmitError(null);
+        setErrors(nextErrors);
+        setSubmitError(null);
 
     if (hasCreateAgentFormErrors(nextErrors)) {
       return;
@@ -118,16 +134,16 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
         name: form.name.trim(),
         role: form.role,
         workingDirectory: form.workingDirectory.trim(),
-        runtimeKind: form.runtimeKind,
+        runtimeKind: "codex_cli",
         permissionMode: form.permissionMode,
-        autoRunMode: form.autoRunMode,
+        autoRunMode: "manual",
         modelProfile: modelProfile.trim() || null,
         profileId: selectedProfileId || null,
         skillIds: selectedSkillIds,
         currentTask: form.initialTask.trim(),
         metadata: {
           createdFromUi: true,
-          managerControlled: form.role !== "Manager Agent"
+          managerControlled: true
         }
       };
 
@@ -164,13 +180,7 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
 
             <label>
               Role
-              <select onChange={(event) => updateField("role", event.target.value)} value={form.role}>
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
+              <input onChange={(event) => updateField("role", event.target.value)} placeholder="Developer, growth, operator, reviewer..." value={form.role} />
               {errors.role ? <span className="form-error">{errors.role}</span> : null}
             </label>
           </div>
@@ -196,48 +206,43 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
 
           <div className="form-grid">
             <label>
-              Runtime
-              <select onChange={(event) => updateField("runtimeKind", event.target.value)} value={form.runtimeKind}>
-                <option value="mock">Mock runtime</option>
-                <option value="codex_cli">Codex CLI</option>
-              </select>
-              {errors.runtimeKind ? <span className="form-error">{errors.runtimeKind}</span> : null}
-            </label>
-
-            <label>
               Model profile
               <input onChange={(event) => setModelProfile(event.target.value)} placeholder="default" value={modelProfile} />
             </label>
-          </div>
-
-          <div className="form-grid">
             <label>
-              Permission mode
-              <select onChange={(event) => updateField("permissionMode", event.target.value)} value={form.permissionMode}>
-                <option value="ask">Ask</option>
-                <option value="readonly">Read-only</option>
-                <option value="full">Full local</option>
-              </select>
-              {errors.permissionMode ? <span className="form-error">{errors.permissionMode}</span> : null}
-            </label>
-
-            <label>
-              Auto-run mode
-              <select onChange={(event) => updateField("autoRunMode", event.target.value)} value={form.autoRunMode}>
-                <option value="manual">Manual</option>
-                <option value="auto">Auto</option>
-                <option value="external">External</option>
-              </select>
-              {errors.autoRunMode ? <span className="form-error">{errors.autoRunMode}</span> : null}
+              Runtime
+              <input readOnly value="Local Codex" />
             </label>
           </div>
+
+          <label>
+            Permission mode
+            <select onChange={(event) => updateField("permissionMode", event.target.value)} value={form.permissionMode}>
+              <option value="ask">Ask</option>
+              <option value="readonly">Read-only</option>
+              <option value="full">Full local</option>
+            </select>
+            {errors.permissionMode ? <span className="form-error">{errors.permissionMode}</span> : null}
+          </label>
 
           <fieldset className="skill-checklist">
             <legend>Skills</legend>
+            <div className="skill-toolbar">
+              <input
+                aria-label="Search skills"
+                onChange={(event) => setSkillQuery(event.target.value)}
+                placeholder="Search skills"
+                value={skillQuery}
+              />
+            </div>
             {skills.length === 0 ? (
-              <p className="empty-note">No skills scanned yet.</p>
+              <p className="empty-note">No skills available yet.</p>
+            ) : skillQuery.trim().length === 0 ? (
+              <p className="empty-note">Search to find skills.</p>
+            ) : visibleSkills.length === 0 ? (
+              <p className="empty-note">No skills match this search.</p>
             ) : (
-              skills.map((skill) => (
+              visibleSkills.slice(0, 12).map((skill) => (
                 <label key={skill.id}>
                   <input
                     checked={selectedSkillIds.includes(skill.id)}
@@ -249,6 +254,18 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
                 </label>
               ))
             )}
+            {selectedSkills.length > 0 ? (
+              <div className="skill-selected-list">
+                <strong>Selected</strong>
+                <div className="skill-badges">
+                  {selectedSkills.map((skill) => (
+                    <button className="skill-badge" key={skill.id} onClick={() => toggleSkill(skill.id)} type="button">
+                      {skill.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </fieldset>
 
           <label>

@@ -1,6 +1,6 @@
 import type { AgentStatus } from "./app";
 
-export type RuntimeKind = "mock" | "codex_cli";
+export type RuntimeKind = "mock" | "codex_cli" | "codex_cli_attached" | "mcp";
 
 export type TokenUsage = {
   inputTokens: number;

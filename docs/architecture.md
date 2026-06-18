@@ -6,7 +6,15 @@ Local Codex Office is a local Agent Operating System for one-person companies. I
 
 The pixel office is the Human Console / Mission Control layer of the OS. It visualizes Codex agents as pixel-art office workers so the human manager can inspect status, assign work, review cost, coordinate meetings, and audit local execution. Chat and meetings are important interaction surfaces, but the product is broader than an AI group chat tool.
 
-The product moat is the agent training loop, not raw multi-agent invocation. Architecture should preserve durable places to turn work into reusable company knowledge: Agent Profiles for digital employee identity, Skills for reusable operating procedures, Task Engine for repeatable workflows, Message Router for coordinated handoffs, Audit/Event Logs for reviewable history, and Context / Memory for continuity.
+The product moat is the agent training loop, not raw multi-agent invocation. Architecture should preserve durable places to turn work into reusable company knowledge: Agent Profiles for digital employee identity, Skills for reusable operating procedures, Task Engine for repeatable workflows, Message Router for coordinated handoffs, Audit/Event Logs for reviewable history, and Context / Memory for continuity and business memory.
+
+The architecture should model reusable operating knowledge as three asset classes:
+
+- Skill Assets: reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how.
+- Workflow Assets: reusable task flows, review loops, routing rules, handoff patterns, stop conditions, and manager-escalation rules.
+- Business Memory Assets: durable company, customer, project, decision, preference, constraint, metric, competitor, brand, and historical context.
+
+Context / Memory owns business-memory retrieval and injection. Business Memory Assets should be curated and inspectable, not treated as unstructured chat transcript accumulation.
 
 The application is local-first. It is not a cloud service. Local process control, filesystem reads, log streaming, skill scanning, SQLite persistence, and safety checks all live in the Electron main process.
 
@@ -61,7 +69,7 @@ The system architecture is organized around these first-class components:
 | Orchestration Center | The application brain that coordinates multi-step workflows across agents, tasks, meetings, messages, context, permissions, audit, and runtime adapters. |
 | Task Engine / DAG | The workflow execution model for task states, dependencies, review loops, stop conditions, and escalation rules. |
 | Message Router | The routing layer for direct user-agent messages, broadcast messages, addressed meeting messages, and agent-agent feedback. |
-| Context / Memory | The context builder for profile snapshots, assigned skills, workspace context, memory preferences, task context, and meeting context. |
+| Context / Memory | The context builder and memory asset layer for profile snapshots, assigned skills, workspace context, business memory, memory preferences, task context, and meeting context. |
 | Permission Policy Engine | The policy layer for command risk, permission presets, allow rules, deny decisions, and safe command gates. |
 | Audit Engine | The product-level explainability layer for domain events, timeline records, transition reasons, and permission decisions. |
 | Event Logs | Durable storage for raw runtime events, domain events, timeline events, and replay inputs. |

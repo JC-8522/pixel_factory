@@ -71,3 +71,27 @@ Risky actions are detected, blocked until approval, redacted where necessary, an
 ## Continuation
 
 After this task passes validation, continue with `18_qa_polish_packaging.md`. Final QA must include safety events and permission-denial flows.
+
+## Completion Notes
+
+- Implemented:
+  - `src/main/security/riskRules.ts`
+  - `src/main/security/permissionPolicy.ts`
+  - `src/main/security/secretsRedaction.ts`
+  - `src/main/runtime/safeCommandGate.ts`
+  - permission rule repository, IPC APIs, preload bridge, renderer approval dialog, and permission settings UI
+- Verified with:
+  - `tsc --noEmit`
+  - `eslint .`
+  - `vitest run`
+  - Electron human-style validation script `scripts/verify-task17-ui.mjs`
+- Visual evidence:
+  - `out/task17-permission-dialog.png`
+  - `out/task17-permission-denied-event.png`
+  - `out/task17-permission-rules.png`
+- Result:
+  - safe commands proceed without approval,
+  - install / network / credential / delete paths trigger review,
+  - allow-once and allow-in-project decisions work,
+  - denied actions do not execute,
+  - redacted commands and permission events appear in the timeline / audit surfaces.

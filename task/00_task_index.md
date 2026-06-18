@@ -8,7 +8,13 @@ Build a local Agent Operating System for one-person companies. Local Codex Offic
 
 The pixel office is the Human Console / Mission Control layer of the system. It visualizes local Codex agents as pixel-art workers so the user can understand organization, status, work ownership, cost, meetings, and risk at a glance. The product is not primarily an AI group chat tool; chat and meetings are surfaces inside a broader operating system.
 
-Core moat: the product must help the manager train agents into reusable digital employees. Skills, profiles, task history, review feedback, workflow templates, cost tracking, and event logs should compound into reusable company operating knowledge. Calling multiple agents is a feature; cultivating agents and reusable skills is the durable product advantage.
+Core moat: the product must help the manager train agents into reusable digital employees. Skills, profiles, task history, review feedback, workflow templates, business memory, cost tracking, and event logs should compound into reusable company operating knowledge. Calling multiple agents is a feature; cultivating agents and reusable assets is the durable product advantage.
+
+Reusable assets should be tracked as:
+
+- Skill Assets: reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how.
+- Workflow Assets: reusable task flows, review loops, routing rules, handoff patterns, stop conditions, and manager-escalation rules.
+- Business Memory Assets: durable company, customer, project, decision, preference, constraint, metric, competitor, brand, and historical context.
 
 ## Task Sequence
 
@@ -28,14 +34,14 @@ Core moat: the product must help the manager train agents into reusable digital 
 | 12 | Completed | `12_create_agent_flow.md` | Build the full create-agent workflow with Agent Profile selection and main-process application service coordination. |
 | 13 | Completed | `13_task_board_and_activity_timeline.md` | Add project task board, domain-event timeline, run history, agent health, and manager cost dashboard. |
 | 14 | Completed | `14_meeting_room_group_chat.md` | Add meeting-room multi-agent conversation backed by a reusable conversation workflow engine. |
-| 15 | Next | `15_agent_pack_manifest_and_install.md` | Add source-readable Agent Pack manifest, inspection, reviewed install, and future workflow-template packaging. |
-| 16 | Planned | `16_attach_mode_mcp_and_v2_integrations.md` | Add existing-session attach mode, MCP extension points, domain-event normalization, and V2 integration hooks. |
-| 17 | Planned | `17_local_safety_permission_layer.md` | Harden the existing runtime safety hook into command risk detection, permission prompts, and audit logging. |
-| 18 | Planned | `18_qa_polish_packaging.md` | Complete tests, visual polish, accessibility, packaging, and release readiness. |
+| 15 | Completed | `15_agent_pack_manifest_and_install.md` | Add source-readable Agent Pack manifest, inspection, reviewed install, and future workflow-template packaging. |
+| 16 | Completed | `16_attach_mode_mcp_and_v2_integrations.md` | Add existing-session attach mode, MCP extension points, domain-event normalization, and V2 integration hooks. |
+| 17 | Completed | `17_local_safety_permission_layer.md` | Harden the existing runtime safety hook into command risk detection, permission prompts, and audit logging. |
+| 18 | Completed | `18_qa_polish_packaging.md` | Complete tests, visual polish, accessibility, packaging, and release readiness. |
 
 ## Current Work
 
-Start from `15_agent_pack_manifest_and_install.md`.
+All tasks through `18_qa_polish_packaging.md` are now implemented and verified.
 
 Architecture direction for upcoming tasks:
 
@@ -101,6 +107,30 @@ Tasks 13 and 14 are complete because the current branch includes:
 - reusable conversation workflow types and main-process workflow evaluator for developer -> reviewer -> developer loops,
 - Electron CDP acceptance script and screenshots for Task Board and Meeting Room.
 
+Task 15 is complete because the current branch includes:
+
+- source-readable Agent Pack manifest documentation and example fixtures,
+- manifest parsing, local folder inspection, validation status, checksum, signature status, permission manifest review, and script non-execution guarantees,
+- reviewed install into `agent_packs`, normal `agent_profiles`, bundled `skills`, and profile skill assignments,
+- uninstall that removes pack-owned profiles/skills without deleting user-created profiles,
+- Agent Pack IPC, preload API, renderer Zustand store, and Agent Pack Review Human Console surface,
+- Audit Engine records for inspection, permission manifest review, install rejection, install, and uninstall,
+- tests for valid inspection, malformed validation errors, install, uninstall, and user profile preservation,
+- human-style Electron UI verification with screenshots for valid inspection, reviewed install, installed profile visibility, and malformed pack validation.
+
+Task 16 is complete because the current branch includes:
+
+- `AttachedCodexRuntime` read-only/disabled fallback boundary,
+- typed `McpRuntimeBridge` and disabled MCP bridge with provider-event normalization,
+- Project Workspace create/select/list/get-active IPC and Integrations UI,
+- Office Theme get/set IPC and renderer theme support,
+- Timeline Replay API backed by Event Logs,
+- GitHub integration and Plugin Registry disabled boundary interfaces,
+- Audit Engine records for integration status checks, workspace selection, and theme changes,
+- `docs/v2_integrations.md` documenting completed and deferred V2 work,
+- tests for attach fallback, MCP normalization, workspace settings, theme persistence, and timeline replay,
+- human-style Electron UI verification with screenshots for workspace selection, attach/MCP status, and theme change.
+
 ## Completion Rule
 
 The final product is complete only when all tasks pass their validation goals and the app can be run locally as a packaged desktop app with:
@@ -119,6 +149,29 @@ The final product is complete only when all tasks pass their validation goals an
 - attach/MCP extension points,
 - safety permission layer,
 - and verified tests.
+
+Tasks 17 and 18 are complete because the current branch includes:
+
+- command risk classification, permission request storage, scoped allow rules, redaction, deny logging, and permission settings UI,
+- structured runtime permission-request responses so expected approval prompts no longer pollute main-process error logs,
+- read-only protection for detected external agents in the skill-assignment surface,
+- Task 17 Electron UI verification artifacts at:
+  - `out/task17-permission-dialog.png`
+  - `out/task17-permission-denied-event.png`
+  - `out/task17-permission-rules.png`
+- Task 18 UI verification artifacts at:
+  - `out/task18-office-surface.png`
+  - `out/task18-create-agent-dialog.png`
+  - `out/task18-profiles.png`
+  - `out/task18-agent-packs.png`
+  - `out/task18-task-board.png`
+  - `out/task18-meeting-room.png`
+  - `out/task18-integrations.png`
+  - `out/task18-permissions.png`
+  - `out/task18-small-window-layout.png`
+- packaged Windows unpacked build output at `release/win-unpacked/Local Codex Office.exe`,
+- packaged-app verification screenshot at `out/task18-packaged-office.png`,
+- release-readiness docs in `docs/release_checklist.md` and `docs/known_limitations.md`.
 
 ## Verification Standard For Future Development
 

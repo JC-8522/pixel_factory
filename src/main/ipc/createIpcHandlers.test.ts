@@ -121,8 +121,12 @@ describe("createIpcHandlers", () => {
     const stoppedSession = await handlers.runtimeStopAgent(session.id);
 
     expect(messages.map((message) => message.role)).toEqual(["user", "agent"]);
-    expect(response.content).toContain("please stream this response");
-    expect(response.stream_state).toBe("complete");
+    expect(response.status).toBe("sent");
+    if (response.status !== "sent") {
+      throw new Error("Expected sent response");
+    }
+    expect(response.message.content).toContain("please stream this response");
+    expect(response.message.stream_state).toBe("complete");
     expect(usage.total_tokens).toBeGreaterThan(0);
     expect(usage.estimated_cost).toBeGreaterThan(0);
     expect(handlers.agentsGet("agent-runtime")?.status).toBe("stopped");

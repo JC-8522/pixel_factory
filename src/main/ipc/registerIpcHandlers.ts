@@ -38,6 +38,12 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
   ipcMain.handle(IPC_CHANNELS.profilesExport, (_event, profileId) => handlers.profilesExport(profileId));
   ipcMain.handle(IPC_CHANNELS.profilesImport, (_event, input) => handlers.profilesImport(input));
 
+  ipcMain.handle(IPC_CHANNELS.agentPacksInspect, (_event, folderPath) => handlers.agentPacksInspect(folderPath));
+  ipcMain.handle(IPC_CHANNELS.agentPacksInstall, (_event, folderPath) => handlers.agentPacksInstall(folderPath));
+  ipcMain.handle(IPC_CHANNELS.agentPacksUninstall, (_event, packId) => handlers.agentPacksUninstall(packId));
+  ipcMain.handle(IPC_CHANNELS.agentPacksListInstalled, () => handlers.agentPacksListInstalled());
+  ipcMain.handle(IPC_CHANNELS.agentPacksValidate, (_event, folderPath) => handlers.agentPacksValidate(folderPath));
+
   ipcMain.handle(IPC_CHANNELS.sessionsListByAgent, (_event, agentId) => handlers.sessionsListByAgent(agentId));
 
   ipcMain.handle(IPC_CHANNELS.messagesListBySession, (_event, sessionId) =>
@@ -76,8 +82,21 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
     handlers.tokenUsageSummaryByAgent(agentId)
   );
 
+  ipcMain.handle(IPC_CHANNELS.integrationsStatus, () => handlers.integrationsStatus());
+  ipcMain.handle(IPC_CHANNELS.workspacesList, () => handlers.workspacesList());
+  ipcMain.handle(IPC_CHANNELS.workspacesCreate, (_event, input) => handlers.workspacesCreate(input));
+  ipcMain.handle(IPC_CHANNELS.workspacesSelect, (_event, workspaceId) => handlers.workspacesSelect(workspaceId));
+  ipcMain.handle(IPC_CHANNELS.workspacesGetActive, () => handlers.workspacesGetActive());
+  ipcMain.handle(IPC_CHANNELS.officeThemeGet, () => handlers.officeThemeGet());
+  ipcMain.handle(IPC_CHANNELS.officeThemeSet, (_event, theme) => handlers.officeThemeSet(theme));
+  ipcMain.handle(IPC_CHANNELS.timelineReplay, (_event, input) => handlers.timelineReplay(input));
+
   ipcMain.handle(IPC_CHANNELS.settingsGet, () => handlers.settingsGet());
   ipcMain.handle(IPC_CHANNELS.settingsUpdate, (_event, patch) => handlers.settingsUpdate(patch));
+  ipcMain.handle(IPC_CHANNELS.permissionsGetRequest, (_event, requestId) => handlers.permissionsGetRequest(requestId));
+  ipcMain.handle(IPC_CHANNELS.permissionsDecide, (_event, input) => handlers.permissionsDecide(input));
+  ipcMain.handle(IPC_CHANNELS.permissionsListRules, (_event, projectPath) => handlers.permissionsListRules(projectPath));
+  ipcMain.handle(IPC_CHANNELS.permissionsRevokeRule, (_event, ruleId) => handlers.permissionsRevokeRule(ruleId));
 
   ipcMain.handle(IPC_CHANNELS.runtimeDiscoverAgents, () => handlers.runtimeDiscoverAgents());
   ipcMain.handle(IPC_CHANNELS.runtimeSpawnAgent, (_event, input) => handlers.runtimeSpawnAgent(input));

@@ -51,7 +51,7 @@ export function AgentDetailDrawer({ agent, onClose, onRuntimeEvent }: AgentDetai
       </dl>
       <section>
         <h4>Skills</h4>
-        <AgentSkillBadges agentId={agent.id} />
+        <AgentSkillBadges agent={agent} />
       </section>
       <section>
         <h4>Chat</h4>

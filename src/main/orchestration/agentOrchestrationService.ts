@@ -12,6 +12,7 @@ import {
 } from "../agentRegistry/agentRegistryService";
 import { generateProfileSnapshot, type AgentProfileSnapshot } from "../profiles/profileService";
 import { routeSessionMessage } from "../messageRouter/messageRouter";
+import type { PermissionPolicyEngine } from "../security/permissionPolicy";
 
 const isRuntimeKind = (value: string): value is RuntimeKind => value === "mock" || value === "codex_cli";
 
@@ -63,6 +64,7 @@ export const createAgentThroughOrchestration = (client: DatabaseClient, input: C
 export const spawnAgentThroughOrchestration = async (
   client: DatabaseClient,
   runtimeRegistry: RuntimeRegistry,
+  permissionPolicy: PermissionPolicyEngine,
   input: CreateAgentRequest,
   nextId: (prefix: string) => string
 ): Promise<SessionRecord> => {
@@ -96,7 +98,13 @@ export const spawnAgentThroughOrchestration = async (
   });
 
   if (prepared.currentTask?.trim()) {
-    await routeSessionMessage(client, runtimeRegistry, { sessionId: session.id, message: prepared.currentTask }, nextId);
+    await routeSessionMessage(
+      client,
+      runtimeRegistry,
+      permissionPolicy,
+      { sessionId: session.id, message: prepared.currentTask },
+      nextId
+    );
   }
 
   return getSession(client, session.id) ?? session;
