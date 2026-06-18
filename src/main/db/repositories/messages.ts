@@ -82,3 +82,10 @@ export const appendMessageContent = (client: DatabaseClient, messageId: string, 
 
   return message;
 };
+
+export const completeMessageStream = (client: DatabaseClient, sessionId: string): void => {
+  client.run("UPDATE messages SET stream_state = 'complete', updated_at = ? WHERE session_id = ? AND stream_state = 'streaming'", [
+    nowIso(),
+    sessionId
+  ]);
+};

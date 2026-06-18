@@ -1,0 +1,4 @@
+interface:
+  display_name: "Electron Desktop Debug"
+  short_description: "Debug and verify Electron desktop app runs"
+  default_prompt: "Use $electron-desktop-debug to debug and fully verify this Electron desktop app."

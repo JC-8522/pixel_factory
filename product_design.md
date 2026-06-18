@@ -2,13 +2,41 @@
 
 ## 1. Product Summary
 
-Build a local desktop application using TypeScript/JavaScript that visualizes local Codex agents as pixel-art workers inside an office view.
+Build a local Agent Operating System for one-person companies using TypeScript/JavaScript. The product helps a solo founder, builder, or independent operator create, configure, coordinate, audit, and safely run specialized local Codex agents as a visible digital team.
+
+The visual office is the Human Console / Mission Control layer of the operating system. It uses pixel-art workers to make agent identity, status, tasks, meetings, cost, and audit state understandable at a glance. The product is not primarily an AI group chat tool; chat and meetings are interaction surfaces inside a broader agent operating system.
 
 The app depends on the user's local Codex environment. It does not run as a cloud service. It should monitor, display, and control local Codex agent sessions through local process integration, log streaming, config files, and optional MCP/Codex CLI integration.
 
 Core concept:
 
-> A visual office where each local Codex agent becomes a clickable pixel character. Users can chat with agents, assign skills, group agents into meetings, and observe what each agent is doing.
+> A local Agent Operating System for one-person companies. The human manager runs a visible digital team of specialized agents through a Human Console: creating roles, assigning work, routing messages, reviewing output, tracking cost, enforcing permissions, and auditing every important action.
+
+Moat principle:
+
+> The defensible value is not calling many agents at once. The defensible value is training agents into reusable digital employees: each agent accumulates role-specific behavior, reusable skills, review feedback, workflow memory, business memory, and operating knowledge that can be applied again without the manager re-explaining the same process.
+
+The product should optimize for an agent cultivation loop:
+
+1. The manager assigns work to an agent.
+2. The agent executes with its profile, skills, context, and workflow rules.
+3. The manager or reviewer agent evaluates the output.
+4. Corrections, successful patterns, operating rules, and business facts are captured as reusable skills, profile updates, workflow templates, review policies, or business memory records.
+5. Future tasks reuse that accumulated company knowledge.
+
+This means Skills, Agent Profiles, Task Engine, Message Router, Context / Memory, Audit Engine, and Event Logs are not secondary features. They are the core system that turns repeated work into growing one-person-company operating assets.
+
+The product should explicitly manage three reusable asset classes:
+
+1. Skill Assets: reusable capabilities, SOPs, checklists, scripts, references, and specialist know-how that make an agent better at a category of work.
+2. Workflow Assets: reusable task flows, review loops, stop conditions, routing rules, handoff patterns, and manager-escalation rules.
+3. Business Memory Assets: durable knowledge about the company, customers, projects, decisions, preferences, constraints, metrics, competitors, brand voice, and historical context that agents should reuse across future work.
+
+Business Memory is not generic chat history. It is curated operating knowledge for the one-person company. Agents should be able to retrieve relevant business memory when planning, executing, reviewing, or escalating work.
+
+The visual metaphor remains important:
+
+> Each local Codex agent becomes a clickable pixel worker inside an office-like console. The office is not decorative; it is a visual model of organization, state, workflow, and accountability.
 
 Codex Skills are reusable folders containing `SKILL.md` plus optional scripts/references/assets, and Codex can discover skills from the local skills directory.
 
@@ -371,11 +399,13 @@ Example:
 
 ### Goal
 
-Allow multiple agents to discuss one problem.
+Allow the human manager to talk with multiple agents in one room and allow agents to communicate with each other through configurable conversation logic.
 
 ### User Story
 
-As a user, I want to drag several agents into a meeting room and let them discuss a task together.
+As a user, I want to drag several agents into a meeting room, talk with them together, and define when one agent should review, challenge, or respond to another agent.
+
+The meeting room is not only a group chat. It is the first multi-agent coordination surface. It should support user-to-many-agent conversation first, then extend naturally into agent-to-agent workflows such as developer agent -> reviewer/TL/auditor agent -> developer feedback loops.
 
 ### Meeting Creation
 
@@ -386,6 +416,10 @@ User can create a meeting with:
 * Participants
 * Moderator agent
 * Output format
+* Conversation mode
+* Agent review/handoff rules
+* Stop conditions
+* Manager escalation conditions
 
 ### Example
 
@@ -412,11 +446,37 @@ Discuss the best architecture for the local Codex Office app. Produce a decision
 6. Moderator produces final decision.
 7. Result saved as meeting note.
 
+### Agent-To-Agent Conversation Logic
+
+The meeting room should support configurable logic such as:
+
+* user asks one question and multiple agents respond,
+* round-robin agent discussion,
+* moderator-led discussion,
+* developer agent produces output and reviewer/TL/auditor agent reviews it,
+* reviewer feedback is routed back to the developer agent,
+* developer agent revises and resubmits,
+* manager is asked when agents disagree, confidence is low, risk is high, stop conditions are reached, or human approval is required.
+
+The user should be able to edit:
+
+* which agent speaks first,
+* which agent reviews whose output,
+* how many review/revision rounds are allowed,
+* what counts as acceptance,
+* what counts as blocking feedback,
+* when the loop should stop,
+* when to ask the human manager,
+* what final artifact should be produced.
+
+Each agent-to-agent message should remain inspectable in the meeting timeline. The app should preserve who spoke, who the message was addressed to, why the handoff happened, and which rule triggered the next step.
+
 ### MVP Acceptance Criteria
 
 * User can select 2+ agents.
 * User can start group discussion.
 * App shows messages in shared room.
+* App can preserve message routing metadata for future agent-to-agent flows.
 * Final summary is saved locally.
 
 ---
@@ -593,7 +653,7 @@ Security matters especially because malicious Codex-related packages have recent
 
 ## Additional Planned Product Features
 
-These features should be included in the roadmap because they make the product feel like a real local agent office instead of only a process viewer.
+These features should be included in the roadmap because they make the product feel like a real local Agent Operating System for a one-person company instead of only a process viewer or chat surface.
 
 ### Agent Profile Library
 

@@ -1,132 +1,205 @@
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import type { AppInfo, OfficeAgentPreview } from "../shared/types/app";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import type { AgentRuntimeEvent } from "../shared/types/agent";
+import type { AppInfo } from "../shared/types/app";
+import type { AgentRecord } from "../shared/types/records";
+import { AgentDetailDrawer } from "./components/AgentDetailDrawer";
+import { CreateAgentDialog } from "./components/CreateAgentDialog";
+import { PermissionSettings } from "./components/PermissionSettings";
+import { OfficeCanvas } from "./office/OfficeCanvas";
+import { useAgentStore } from "./stores/agentStore";
+import { useEventStore } from "./stores/eventStore";
+import { useIntegrationStore } from "./stores/integrationStore";
 
-const previewAgents: OfficeAgentPreview[] = [
-  {
-    id: "manager-agent",
-    name: "Manager Agent",
-    role: "Manager Agent",
-    status: "thinking",
-    zone: "meeting_room"
-  },
-  {
-    id: "frontend-agent",
-    name: "Frontend",
-    role: "Frontend Engineer",
-    status: "idle",
-    zone: "desks"
-  },
-  {
-    id: "qa-agent",
-    name: "QA",
-    role: "QA Tester",
-    status: "waiting_user_input",
-    zone: "whiteboard"
+type WorkspaceView = "office" | "permissions";
+
+const isDetectedExternalAgent = (agentId: string, agents: AgentRecord[]): boolean => {
+  const agent = agents.find((item) => item.id === agentId) ?? null;
+  if (!agent) {
+    return false;
   }
-];
 
-const statusLabel: Record<OfficeAgentPreview["status"], string> = {
-  idle: "Idle",
-  thinking: "Thinking",
-  running_command: "Running",
-  reading_files: "Reading",
-  editing_files: "Editing",
-  waiting_user_input: "Needs input",
-  error: "Error",
-  completed: "Completed",
-  stopped: "Stopped"
+  try {
+    const metadata = JSON.parse(agent.metadata_json) as { detected?: boolean };
+    return metadata.detected === true || agent.runtime_kind === "codex_cli_attached" || agent.permission_mode === "external" || agent.auto_run_mode === "external";
+  } catch {
+    return agent.runtime_kind === "codex_cli_attached" || agent.permission_mode === "external" || agent.auto_run_mode === "external";
+  }
 };
 
 export function App(): ReactElement {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
-  const [selectedAgentId, setSelectedAgentId] = useState(previewAgents[0]?.id ?? "");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [view, setView] = useState<WorkspaceView>("office");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const previousAgentCountRef = useRef(0);
+  const { agents, hydrate, updatePosition } = useAgentStore();
+  const { hydrate: hydrateEvents } = useEventStore();
+  const { theme, hydrate: hydrateIntegrations } = useIntegrationStore();
 
   useEffect(() => {
     void window.codexOffice.app.getInfo().then(setAppInfo);
-  }, []);
+    void hydrate();
+    void hydrateIntegrations();
+  }, [hydrate, hydrateIntegrations]);
+
+  useEffect(() => {
+    if (agents.length > previousAgentCountRef.current && agents.at(-1)) {
+      setSelectedAgentId(agents.at(-1)?.id ?? null);
+    } else if (!selectedAgentId && agents[0]) {
+      setSelectedAgentId(agents[0].id);
+    }
+    previousAgentCountRef.current = agents.length;
+  }, [agents, selectedAgentId]);
+
+  useEffect(() => {
+    const unsubscribe = window.codexOffice.runtime.onEvent(() => {
+      void hydrate();
+      if (selectedAgentId) {
+        void hydrateEvents({ agentId: selectedAgentId });
+      }
+    });
+
+    return unsubscribe;
+  }, [hydrate, hydrateEvents, selectedAgentId]);
 
   const selectedAgent = useMemo(
-    () => previewAgents.find((agent) => agent.id === selectedAgentId) ?? previewAgents[0],
-    [selectedAgentId]
+    () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
+    [agents, selectedAgentId]
+  );
+  const afterAgentCreated = async (agentId: string): Promise<void> => {
+    await hydrate();
+    setSelectedAgentId(agentId);
+    setView("office");
+  };
+
+  const onMoveAgent = useCallback(
+    (agentId: string, x: number, y: number) => {
+      if (isDetectedExternalAgent(agentId, agents)) {
+        return;
+      }
+      void updatePosition({ agentId, x, y });
+    },
+    [agents, updatePosition]
   );
 
+  const onRuntimeEvent = useCallback((event: AgentRuntimeEvent) => {
+    if (event.agentId === selectedAgentId) {
+      void hydrateEvents({ agentId: event.agentId });
+    }
+  }, [hydrateEvents, selectedAgentId]);
+
+  const deleteSelectedAgent = useCallback(async (agentId: string) => {
+    const agent = agents.find((item) => item.id === agentId);
+    if (!agent || !window.confirm(`Delete ${agent.name} from the office?`)) {
+      return;
+    }
+
+    await window.codexOffice.agents.delete(agentId);
+    await hydrate();
+    setSelectedAgentId((current) => (current === agentId ? null : current));
+  }, [agents, hydrate]);
+
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
         <div className="brand-block">
           <span className="brand-mark" aria-hidden="true" />
           <div>
             <h1>Local Codex Office</h1>
             <p>{appInfo ? `${appInfo.mode} v${appInfo.version}` : "Starting local workspace"}</p>
+            {appInfo ? (
+              <p className={`runtime-badge runtime-badge-${appInfo.localCodex.status}`}>
+                {appInfo.localCodex.status === "ready" ? "Local Codex ready" : "Local Codex setup required"}
+              </p>
+            ) : null}
           </div>
         </div>
 
         <nav className="nav-list" aria-label="Workspace sections">
-          <button className="nav-item active" type="button">Office</button>
-          <button className="nav-item" type="button">Agents</button>
-          <button className="nav-item" type="button">Skills</button>
-          <button className="nav-item" type="button">Tasks</button>
-          <button className="nav-item" type="button">Timeline</button>
+          <button className={view === "office" ? "nav-item active" : "nav-item"} onClick={() => setView("office")} type="button">Office</button>
+          <button className={view === "permissions" ? "nav-item active" : "nav-item"} onClick={() => setView("permissions")} type="button">Permissions</button>
         </nav>
       </aside>
 
       <section className="workspace">
-        <header className="toolbar">
-          <div>
-            <p className="eyebrow">Human manager workspace</p>
-            <h2>Pixel Office</h2>
-          </div>
-          <button className="primary-action" type="button">Create Agent</button>
-        </header>
-
-        <div className="content-grid">
-          <section className="office-surface" aria-label="Pixel office preview">
-            <div className="office-zone meeting-room">Meeting room</div>
-            <div className="office-zone whiteboard">Whiteboard</div>
-            <div className="office-zone desks">Desks</div>
-            <div className="office-zone shelf">Skill shelf</div>
-
-            {previewAgents.map((agent, index) => (
-              <button
-                className={`agent-sprite ${agent.id === selectedAgentId ? "selected" : ""}`}
-                data-status={agent.status}
-                key={agent.id}
-                onClick={() => setSelectedAgentId(agent.id)}
-                style={{
-                  left: `${22 + index * 23}%`,
-                  top: `${38 + (index % 2) * 24}%`
-                }}
-                type="button"
-              >
-                <span className="agent-head" aria-hidden="true" />
-                <span className="agent-body" aria-hidden="true" />
-                <span className="agent-label">{agent.name}</span>
-              </button>
-            ))}
-          </section>
-
-          <aside className="detail-panel" aria-label="Selected agent details">
-            <p className="eyebrow">Selected agent</p>
-            <h3>{selectedAgent.name}</h3>
-            <dl>
+        {view === "permissions" ? (
+          <PermissionSettings />
+        ) : (
+          <>
+            <header className="toolbar">
               <div>
-                <dt>Role</dt>
-                <dd>{selectedAgent.role}</dd>
+                <p className="eyebrow">Human manager workspace</p>
+                <h2>Pixel Office</h2>
               </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{statusLabel[selectedAgent.status]}</dd>
-              </div>
-              <div>
-                <dt>Zone</dt>
-                <dd>{selectedAgent.zone.replaceAll("_", " ")}</dd>
-              </div>
-            </dl>
-            <div className="chat-preview">
-              <p>Chat and runtime events will appear here after the runtime task is implemented.</p>
+              <button className="primary-action" onClick={() => setCreateDialogOpen(true)} type="button">Create Agent</button>
+            </header>
+
+            {appInfo && appInfo.localCodex.status !== "ready" ? (
+              <section className="readiness-panel" aria-label="Local Codex setup">
+                <div>
+                  <p className="eyebrow">Machine Setup</p>
+                  <h3>{appInfo.localCodex.message}</h3>
+                  <p className="empty-note">
+                    Agent creation is disabled until this machine can launch a local Codex executable.
+                  </p>
+                </div>
+                <div className="readiness-facts">
+                  <div>
+                    <span>Detected source</span>
+                    <strong>{appInfo.localCodex.sourcePath ?? "Not found"}</strong>
+                  </div>
+                  <div>
+                    <span>Launch path</span>
+                    <strong>{appInfo.localCodex.launchPath ?? "Not prepared"}</strong>
+                  </div>
+                  <div>
+                    <span>Version</span>
+                    <strong>{appInfo.localCodex.version ?? "Unknown"}</strong>
+                  </div>
+                </div>
+                {appInfo.localCodex.guidance.length > 0 ? (
+                  <ul className="readiness-list">
+                    {appInfo.localCodex.guidance.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ) : null}
+
+            <div className="content-grid">
+              <section className="office-surface" aria-label="Pixel office">
+                {agents.length === 0 ? (
+                  <div className="office-empty">
+                    <p>No agents yet.</p>
+                    <button className="primary-action" onClick={() => setCreateDialogOpen(true)} type="button">Create Agent</button>
+                  </div>
+                ) : (
+                  <OfficeCanvas
+                    agents={agents}
+                    onMoveAgent={onMoveAgent}
+                    onSelectAgent={setSelectedAgentId}
+                    selectedAgentId={selectedAgentId}
+                  />
+                )}
+              </section>
+
+              <AgentDetailDrawer
+                agent={selectedAgent}
+                onClose={() => setSelectedAgentId(null)}
+                onDelete={deleteSelectedAgent}
+                onRuntimeEvent={onRuntimeEvent}
+              />
             </div>
-          </aside>
-        </div>
+            {createDialogOpen ? (
+              <CreateAgentDialog
+                agentCount={agents.length}
+                onClose={() => setCreateDialogOpen(false)}
+                onCreated={afterAgentCreated}
+              />
+            ) : null}
+          </>
+        )}
       </section>
     </main>
   );

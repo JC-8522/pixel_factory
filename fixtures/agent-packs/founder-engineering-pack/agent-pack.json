@@ -1,0 +1,96 @@
+{
+  "format": "local-codex-office.agent-pack",
+  "version": 1,
+  "id": "founder-engineering-pack",
+  "name": "Founder Engineering Pack",
+  "description": "Reusable engineering employee profile and review workflow for a one-person company.",
+  "author": {
+    "name": "Local Codex Office"
+  },
+  "license": "MIT",
+  "metadata": {
+    "version": "0.1.0"
+  },
+  "profiles": [
+    {
+      "id": "pack-founder-engineer",
+      "name": "Founder Engineer",
+      "role": "Developer Agent",
+      "description": "Builds features from task prompts and prepares reviewable output.",
+      "persona": "Careful senior product engineer",
+      "instructions": "Follow the task acceptance criteria, keep implementation scoped, and leave clear verification evidence.",
+      "defaultPermissionMode": "ask",
+      "defaultAutoRunMode": "manual",
+      "validationPolicy": {
+        "requiresTests": true,
+        "requiresUiVerification": true
+      },
+      "collaborationBehavior": {
+        "reviewerRequired": true,
+        "escalateToManagerOnRisk": true
+      },
+      "visualIdentity": {
+        "color": "#60d394"
+      }
+    }
+  ],
+  "skillDependencies": [
+    {
+      "id": "electron-desktop-debug",
+      "name": "Electron Desktop Debug",
+      "required": true
+    }
+  ],
+  "bundledSkills": [
+    {
+      "id": "pack-review-loop",
+      "name": "Review Loop",
+      "description": "Capture reviewer feedback and turn it into reusable work rules.",
+      "category": "workflow",
+      "path": "skills/review-loop",
+      "required": true
+    }
+  ],
+  "scripts": [
+    {
+      "name": "optional-validation",
+      "path": "scripts/validate.js",
+      "description": "Listed for review only; inspection must not execute it."
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/avatar.txt",
+      "type": "visual-identity"
+    }
+  ],
+  "permissionManifest": {
+    "filesystem": {
+      "read": ["."],
+      "write": ["./workspace"]
+    },
+    "commands": {
+      "allow": ["pnpm test"],
+      "reviewRequired": ["git push"]
+    }
+  },
+  "workflowTemplates": [
+    {
+      "id": "developer-reviewer-loop",
+      "name": "Developer Reviewer Loop",
+      "description": "Developer creates output, reviewer checks it, developer revises until accepted or manager escalation.",
+      "template": {
+        "maxRounds": 2,
+        "stopOn": "review_accepted",
+        "escalateOn": "blocked"
+      }
+    }
+  ],
+  "validationTests": [
+    {
+      "id": "manifest-readable",
+      "name": "Manifest is source-readable",
+      "path": "tests/manifest-readable.md"
+    }
+  ]
+}

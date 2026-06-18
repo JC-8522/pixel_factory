@@ -120,7 +120,34 @@ export class DatabaseClient {
       });
     }
 
+    this.ensureSchemaCompatibility();
     this.exec("PRAGMA foreign_keys = ON;");
+  }
+
+  private ensureColumn(tableName: string, columnName: string, columnSql: string): void {
+    const columns = this.all<{ name: string }>(`PRAGMA table_info(${tableName})`);
+    if (columns.some((column) => column.name === columnName)) {
+      return;
+    }
+
+    this.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnSql}`);
+  }
+
+  private ensureSchemaCompatibility(): void {
+    this.ensureColumn("sessions", "input_tokens", "input_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("sessions", "output_tokens", "output_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("sessions", "total_tokens", "total_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("sessions", "cached_tokens", "cached_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("sessions", "reasoning_tokens", "reasoning_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("sessions", "estimated_cost", "estimated_cost REAL");
+    this.ensureColumn("sessions", "cost_currency", "cost_currency TEXT");
+    this.ensureColumn("sessions", "usage_source", "usage_source TEXT");
+    this.ensureColumn("sessions", "metadata_json", "metadata_json TEXT NOT NULL DEFAULT '{}'");
+
+    this.ensureColumn("messages", "input_tokens", "input_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("messages", "output_tokens", "output_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("messages", "total_tokens", "total_tokens INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("messages", "usage_source", "usage_source TEXT");
   }
 
   exportBytes(): Uint8Array {

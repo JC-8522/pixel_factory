@@ -1,13 +1,15 @@
 import { create } from "zustand";
 import type { CreateMeetingRequest, FinishMeetingRequest, SendMeetingMessageRequest } from "../../shared/ipc";
-import type { MeetingMessageRecord, MeetingRecord } from "../../shared/types/records";
+import type { MeetingMessageRecord, MeetingParticipantRecord, MeetingRecord } from "../../shared/types/records";
 
 type MeetingState = {
   meetings: MeetingRecord[];
   messagesByMeeting: Record<string, MeetingMessageRecord[]>;
+  participantsByMeeting: Record<string, MeetingParticipantRecord[]>;
   loading: boolean;
   hydrate(): Promise<void>;
   hydrateMessages(meetingId: string): Promise<void>;
+  hydrateParticipants(meetingId: string): Promise<void>;
   createMeeting(input: CreateMeetingRequest): Promise<MeetingRecord>;
   sendMessage(input: SendMeetingMessageRequest): Promise<MeetingMessageRecord>;
   finishMeeting(input: FinishMeetingRequest): Promise<MeetingRecord>;
@@ -22,6 +24,7 @@ const upsertMeeting = (meetings: MeetingRecord[], meeting: MeetingRecord): Meeti
 export const useMeetingStore = create<MeetingState>((set) => ({
   meetings: [],
   messagesByMeeting: {},
+  participantsByMeeting: {},
   loading: false,
   hydrate: async () => {
     set({ loading: true });
@@ -31,6 +34,10 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   hydrateMessages: async (meetingId) => {
     const messages = await window.codexOffice.meetings.listMessages(meetingId);
     set((state) => ({ messagesByMeeting: { ...state.messagesByMeeting, [meetingId]: messages } }));
+  },
+  hydrateParticipants: async (meetingId) => {
+    const participants = await window.codexOffice.meetings.listParticipants(meetingId);
+    set((state) => ({ participantsByMeeting: { ...state.participantsByMeeting, [meetingId]: participants } }));
   },
   createMeeting: async (input) => {
     const meeting = await window.codexOffice.meetings.create(input);
@@ -55,6 +62,5 @@ export const useMeetingStore = create<MeetingState>((set) => ({
     set((state) => ({ meetings: upsertMeeting(state.meetings, meeting) }));
     return meeting;
   },
-  reset: () => set({ meetings: [], messagesByMeeting: {}, loading: false })
+  reset: () => set({ meetings: [], messagesByMeeting: {}, participantsByMeeting: {}, loading: false })
 }));
-

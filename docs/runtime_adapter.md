@@ -62,12 +62,16 @@ Agent Packs are not runtime adapters. They are package sources that can install 
 
 ## Event Flow
 
-1. Runtime adapter emits raw runtime events.
-2. Main process normalizes events into `AgentEvent`.
-3. Status machine maps events into agent statuses.
-4. Main process persists messages, sessions, token usage, and timeline events.
-5. Main process broadcasts sanitized updates to renderer.
-6. Renderer stores update UI and PixiJS sprites.
+1. Runtime adapter emits raw provider runtime events.
+2. Main process normalizes provider events into stable `RuntimeEvent` records.
+3. Event normalizer converts runtime events into product-level `DomainEvent` records where needed.
+4. Status machine maps runtime/domain events into visible agent statuses.
+5. Usage service records raw token usage and updates summaries/cost estimates.
+6. Main process persists messages, sessions, token usage, and timeline events.
+7. Main process broadcasts sanitized updates to renderer.
+8. Renderer stores update UI and PixiJS sprites.
+
+Runtime adapters should not update tasks, meetings, dashboards, or profile state directly. They report provider signals; application services and domain services decide product behavior.
 
 ## Mock Runtime
 
@@ -103,6 +107,8 @@ Responsibilities:
 - report process exit status.
 
 All command execution must pass through security hooks before it is allowed to run.
+
+Before the full Safety Permission Layer is implemented, the runtime path should still call a safety hook with a default-allow policy. Task 17 should replace that default behavior with risk rules, approval prompts, scoped allow rules, redaction, and audit events without changing the runtime adapter interface.
 
 ## Attached Runtime
 

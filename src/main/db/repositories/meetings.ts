@@ -93,6 +93,12 @@ export const addMeetingParticipant = (
   ) as MeetingParticipantRecord;
 };
 
+export const listMeetingParticipants = (client: DatabaseClient, meetingId: string): MeetingParticipantRecord[] =>
+  client.all<MeetingParticipantRecord>(
+    "SELECT * FROM meeting_participants WHERE meeting_id = ? ORDER BY joined_at ASC",
+    [meetingId]
+  );
+
 export const addMeetingMessage = (
   client: DatabaseClient,
   input: { id: string; meetingId: string; agentId?: string | null; role: string; content: string; metadata?: unknown }
