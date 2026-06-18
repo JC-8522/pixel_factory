@@ -100,6 +100,28 @@ button {
   font-size: 13px;
 }
 
+.runtime-badge {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border: 1px solid #314148;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #c9d6cf;
+  background: #172024;
+}
+
+.runtime-badge-ready {
+  border-color: #2f7d55;
+  color: #8be0af;
+}
+
+.runtime-badge-missing,
+.runtime-badge-blocked {
+  border-color: #8c5b3b;
+  color: #f2c14e;
+}
+
 .nav-list {
   display: grid;
   gap: 8px;
@@ -158,6 +180,55 @@ button {
   color: #11201a;
   background: #60d394;
   font-weight: 700;
+}
+
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.readiness-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid #4b5b42;
+  border-radius: 8px;
+  background: #182019;
+}
+
+.readiness-panel h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.readiness-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.readiness-facts div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.readiness-facts span {
+  color: #9fb0a8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.readiness-facts strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.readiness-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #dfe8e2;
 }
 
 .content-grid {
@@ -318,6 +389,12 @@ button {
   align-items: start;
 }
 
+.drawer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .icon-button {
   width: 32px;
   height: 32px;
@@ -326,6 +403,21 @@ button {
   color: #dfe8e2;
   background: #20302f;
   cursor: pointer;
+}
+
+.danger-button {
+  min-height: 32px;
+  border: 1px solid #7a473f;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #ffd5cc;
+  background: #3a1f1b;
+  cursor: pointer;
+}
+
+.danger-button:hover {
+  border-color: #b66056;
+  background: #4a2621;
 }
 
 .detail-panel h3 {

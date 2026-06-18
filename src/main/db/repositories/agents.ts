@@ -102,6 +102,30 @@ export const getAgent = (client: DatabaseClient, agentId: string): AgentRecord |
 export const listAgents = (client: DatabaseClient): AgentRecord[] =>
   client.all<AgentRecord>("SELECT * FROM agents ORDER BY created_at ASC");
 
+export const deleteAgent = (client: DatabaseClient, agentId: string): AgentRecord | null => {
+  const existing = getAgent(client, agentId);
+  if (!existing) {
+    return null;
+  }
+
+  client.transaction(() => {
+    client.run("DELETE FROM token_usage WHERE session_id IN (SELECT id FROM sessions WHERE agent_id = ?)", [agentId]);
+    client.run("DELETE FROM messages WHERE session_id IN (SELECT id FROM sessions WHERE agent_id = ?)", [agentId]);
+    client.run("DELETE FROM sessions WHERE agent_id = ?", [agentId]);
+    client.run("DELETE FROM agent_skills WHERE agent_id = ?", [agentId]);
+    client.run("DELETE FROM meeting_participants WHERE agent_id = ?", [agentId]);
+    client.run("UPDATE tasks SET assigned_agent_id = NULL WHERE assigned_agent_id = ?", [agentId]);
+    client.run("UPDATE meetings SET moderator_agent_id = NULL WHERE moderator_agent_id = ?", [agentId]);
+    client.run("UPDATE meeting_messages SET agent_id = NULL WHERE agent_id = ?", [agentId]);
+    client.run("UPDATE messages SET agent_id = NULL WHERE agent_id = ?", [agentId]);
+    client.run("UPDATE token_usage SET agent_id = NULL WHERE agent_id = ?", [agentId]);
+    client.run("UPDATE events SET agent_id = NULL WHERE agent_id = ?", [agentId]);
+    client.run("DELETE FROM agents WHERE id = ?", [agentId]);
+  });
+
+  return existing;
+};
+
 export const updateAgentStatus = (client: DatabaseClient, agentId: string, status: string): AgentRecord => {
   client.run("UPDATE agents SET status = ?, updated_at = ? WHERE id = ?", [status, nowIso(), agentId]);
   const agent = getAgent(client, agentId);

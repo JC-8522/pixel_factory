@@ -27,7 +27,19 @@ const createHandlers = async (): Promise<{ client: DatabaseClient; handlers: Ret
   const client = await createMigratedDatabaseClient({ filePath: createTempDatabasePath() });
   const handlers = createIpcHandlers({
     client,
-    getAppInfo: () => ({ name: "Local Codex Office", version: "0.1.0", mode: "development" })
+    getAppInfo: () => ({
+      name: "Local Codex Office",
+      version: "0.1.0",
+      mode: "development",
+      localCodex: {
+        status: "ready",
+        sourcePath: "C:/Codex/codex.exe",
+        launchPath: "C:/Codex/codex.exe",
+        version: "codex-cli 0.1.0",
+        message: "Local Codex is ready for agent creation.",
+        guidance: []
+      }
+    })
   });
 
   return { client, handlers };
@@ -99,6 +111,38 @@ describe("createIpcHandlers", () => {
     expect(handlers.eventsList({ agentId: agent.id }).map((event) => event.type)).toContain("agent_created");
     expect(handlers.tokenUsageListByAgent(agent.id)).toHaveLength(1);
     expect(handlers.tokenUsageSummaryByAgent(agent.id).total_tokens).toBe(50);
+
+    client.close();
+  });
+
+  it("deletes agents and cascades their session data through IPC handlers", async () => {
+    const { client, handlers } = await createHandlers();
+
+    const agent = handlers.agentsCreate({
+      id: "agent-delete",
+      name: "Cleanup",
+      role: "QA Tester",
+      workingDirectory: "C:/repo",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual"
+    });
+    const session = createSession(client, {
+      id: "session-delete",
+      agentId: agent.id,
+      runtimeKind: "mock",
+      status: "completed",
+      workingDirectory: "C:/repo"
+    });
+
+    expect(handlers.sessionsListByAgent(agent.id)).toHaveLength(1);
+
+    const removed = await handlers.agentsDelete(agent.id);
+
+    expect(removed?.id).toBe(agent.id);
+    expect(handlers.agentsGet(agent.id)).toBeNull();
+    expect(handlers.sessionsListByAgent(agent.id)).toEqual([]);
+    expect(handlers.messagesListBySession(session.id)).toEqual([]);
 
     client.close();
   });

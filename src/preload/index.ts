@@ -13,6 +13,7 @@ const api: CodexOfficeApi = {
     list: () => invoke(IPC_CHANNELS.agentsList),
     get: (agentId) => invoke(IPC_CHANNELS.agentsGet, agentId),
     create: (input) => invoke(IPC_CHANNELS.agentsCreate, input),
+    delete: (agentId) => invoke(IPC_CHANNELS.agentsDelete, agentId),
     updatePosition: (input) => invoke(IPC_CHANNELS.agentsUpdatePosition, input),
     assignSkill: (input) => invoke(IPC_CHANNELS.agentsAssignSkill, input),
     removeSkill: (input) => invoke(IPC_CHANNELS.agentsRemoveSkill, input)

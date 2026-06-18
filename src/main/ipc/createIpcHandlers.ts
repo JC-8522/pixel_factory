@@ -28,7 +28,8 @@ import {
   getRegisteredAgent,
   listRegisteredAgentSkills,
   listRegisteredAgents,
-  moveRegisteredAgent
+  moveRegisteredAgent,
+  unregisterAgent
 } from "../agentRegistry/agentRegistryService";
 import { createAgentThroughOrchestration, spawnAgentThroughOrchestration } from "../orchestration/agentOrchestrationService";
 import { createDefaultRuntimeRegistry, type RuntimeRegistry } from "../runtime/RuntimeRegistry";
@@ -150,6 +151,23 @@ export const createIpcHandlers = ({
     saveAfter(client, () => {
       const payload = validateCreateAgent(input);
       return createAgentThroughOrchestration(client, payload);
+    }),
+  agentsDelete: (agentId: unknown) =>
+    saveAfterAsync(client, async () => {
+      const validAgentId = validateId(agentId, "agent id");
+      const sessions = listSessionsForAgent(client, validAgentId);
+
+      for (const session of sessions) {
+        if (!["completed", "stopped", "failed"].includes(session.status)) {
+          try {
+            await runtimeRegistry.stop(session.id);
+          } catch {
+            // Ignore missing runtime state and continue removing persisted agent data.
+          }
+        }
+      }
+
+      return unregisterAgent(client, validAgentId);
     }),
   agentsUpdatePosition: (input: unknown) =>
     saveAfter(client, () => {

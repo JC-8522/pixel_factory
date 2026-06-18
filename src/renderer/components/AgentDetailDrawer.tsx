@@ -8,10 +8,11 @@ import { AgentSkillBadges } from "./AgentSkillBadges";
 type AgentDetailDrawerProps = {
   agent: AgentRecord | null;
   onClose(): void;
+  onDelete?(agentId: string): Promise<void>;
   onRuntimeEvent?(event: AgentRuntimeEvent): void;
 };
 
-export function AgentDetailDrawer({ agent, onClose, onRuntimeEvent }: AgentDetailDrawerProps): ReactElement {
+export function AgentDetailDrawer({ agent, onClose, onDelete, onRuntimeEvent }: AgentDetailDrawerProps): ReactElement {
   if (!agent) {
     return (
       <aside className="detail-panel" aria-label="Selected agent details">
@@ -27,9 +28,20 @@ export function AgentDetailDrawer({ agent, onClose, onRuntimeEvent }: AgentDetai
           <p className="eyebrow">Selected agent</p>
           <h3>{agent.name}</h3>
         </div>
-        <button className="icon-button" onClick={onClose} type="button" title="Close details">
-          x
-        </button>
+        <div className="drawer-actions">
+          {onDelete ? (
+            <button
+              className="danger-button"
+              onClick={() => void onDelete(agent.id)}
+              type="button"
+            >
+              Delete Agent
+            </button>
+          ) : null}
+          <button className="icon-button" onClick={onClose} type="button" title="Close details">
+            x
+          </button>
+        </div>
       </div>
       <dl>
         <div>

@@ -2,7 +2,7 @@ import type { CreateAgentRequest } from "../../shared/ipc";
 import type { RuntimeKind } from "../../shared/types/agent";
 import type { JsonObject } from "../../shared/types/records";
 import type { DatabaseClient } from "../db/client";
-import { createSession, getSession, type AgentRecord, type SessionRecord } from "../db/repositories";
+import { createMessage, createSession, getSession, type AgentRecord, type SessionRecord } from "../db/repositories";
 import type { RuntimeRegistry } from "../runtime/RuntimeRegistry";
 import { buildAgentRuntimeContext } from "../context/contextBuilder";
 import {
@@ -10,6 +10,7 @@ import {
   ensureRegisteredAgent,
   registerAgent
 } from "../agentRegistry/agentRegistryService";
+import { recordAuditEvent } from "../audit/auditEngine";
 import { generateProfileSnapshot, type AgentProfileSnapshot } from "../profiles/profileService";
 import { routeSessionMessage } from "../messageRouter/messageRouter";
 import type { PermissionPolicyEngine } from "../security/permissionPolicy";
@@ -87,22 +88,59 @@ export const spawnAgentThroughOrchestration = async (
   });
 
   const runtimeContext = buildAgentRuntimeContext(client, agent.id);
+  const initialPrompt = prepared.currentTask?.trim() ? prepared.currentTask : null;
+  const spawnWithInitialExec = runtimeKind === "codex_cli" && Boolean(initialPrompt);
+  const initialUserMessage = spawnWithInitialExec
+    ? createMessage(client, {
+        id: nextId(`message-user-${session.id}`),
+        sessionId: session.id,
+        agentId: agent.id,
+        role: "user",
+        content: initialPrompt!
+      })
+    : null;
+  const initialResponseMessage = spawnWithInitialExec
+    ? createMessage(client, {
+        id: nextId(`message-agent-${session.id}`),
+        sessionId: session.id,
+        agentId: agent.id,
+        role: "agent",
+        content: "",
+        streamState: "streaming",
+        parentMessageId: initialUserMessage?.id ?? null
+      })
+    : null;
+
+  if (initialUserMessage) {
+    recordAuditEvent(client, {
+      id: nextId(`event-message-${initialUserMessage.id}`),
+      type: "message_sent",
+      actorType: "user",
+      actorId: "local-user",
+      agentId: agent.id,
+      sessionId: session.id,
+      payload: { messageId: initialUserMessage.id, role: "user", route: "human_to_agent" }
+    });
+  }
+
   await runtimeRegistry.spawn(runtimeKind, {
     agentId: agent.id,
     sessionId: session.id,
     workingDirectory: agent.working_directory,
-    initialPrompt: null,
+    initialPrompt: spawnWithInitialExec ? initialPrompt : null,
+    inputMessageId: initialUserMessage?.id ?? null,
+    responseMessageId: initialResponseMessage?.id ?? null,
     modelProfile: session.model_profile,
     permissionMode: prepared.permissionMode,
     skillPromptContext: runtimeContext.skillPromptContext
   });
 
-  if (prepared.currentTask?.trim()) {
+  if (!spawnWithInitialExec && initialPrompt) {
     await routeSessionMessage(
       client,
       runtimeRegistry,
       permissionPolicy,
-      { sessionId: session.id, message: prepared.currentTask },
+      { sessionId: session.id, message: initialPrompt },
       nextId
     );
   }

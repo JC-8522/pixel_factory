@@ -3,7 +3,6 @@ import type { AgentRuntimeEvent } from "../shared/types/agent";
 import type { AppInfo } from "../shared/types/app";
 import type { AgentRecord } from "../shared/types/records";
 import { AgentDetailDrawer } from "./components/AgentDetailDrawer";
-import { AgentProfileLibrary } from "./components/AgentProfileLibrary";
 import { CreateAgentDialog } from "./components/CreateAgentDialog";
 import { PermissionSettings } from "./components/PermissionSettings";
 import { OfficeCanvas } from "./office/OfficeCanvas";
@@ -11,7 +10,7 @@ import { useAgentStore } from "./stores/agentStore";
 import { useEventStore } from "./stores/eventStore";
 import { useIntegrationStore } from "./stores/integrationStore";
 
-type WorkspaceView = "office" | "profiles" | "permissions";
+type WorkspaceView = "office" | "permissions";
 
 const isDetectedExternalAgent = (agentId: string, agents: AgentRecord[]): boolean => {
   const agent = agents.find((item) => item.id === agentId) ?? null;
@@ -67,7 +66,6 @@ export function App(): ReactElement {
     () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
     [agents, selectedAgentId]
   );
-
   const afterAgentCreated = async (agentId: string): Promise<void> => {
     await hydrate();
     setSelectedAgentId(agentId);
@@ -90,6 +88,17 @@ export function App(): ReactElement {
     }
   }, [hydrateEvents, selectedAgentId]);
 
+  const deleteSelectedAgent = useCallback(async (agentId: string) => {
+    const agent = agents.find((item) => item.id === agentId);
+    if (!agent || !window.confirm(`Delete ${agent.name} from the office?`)) {
+      return;
+    }
+
+    await window.codexOffice.agents.delete(agentId);
+    await hydrate();
+    setSelectedAgentId((current) => (current === agentId ? null : current));
+  }, [agents, hydrate]);
+
   return (
     <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
@@ -98,20 +107,22 @@ export function App(): ReactElement {
           <div>
             <h1>Local Codex Office</h1>
             <p>{appInfo ? `${appInfo.mode} v${appInfo.version}` : "Starting local workspace"}</p>
+            {appInfo ? (
+              <p className={`runtime-badge runtime-badge-${appInfo.localCodex.status}`}>
+                {appInfo.localCodex.status === "ready" ? "Local Codex ready" : "Local Codex setup required"}
+              </p>
+            ) : null}
           </div>
         </div>
 
         <nav className="nav-list" aria-label="Workspace sections">
           <button className={view === "office" ? "nav-item active" : "nav-item"} onClick={() => setView("office")} type="button">Office</button>
-          <button className={view === "profiles" ? "nav-item active" : "nav-item"} onClick={() => setView("profiles")} type="button">Profiles</button>
           <button className={view === "permissions" ? "nav-item active" : "nav-item"} onClick={() => setView("permissions")} type="button">Permissions</button>
         </nav>
       </aside>
 
       <section className="workspace">
-        {view === "profiles" ? (
-          <AgentProfileLibrary />
-        ) : view === "permissions" ? (
+        {view === "permissions" ? (
           <PermissionSettings />
         ) : (
           <>
@@ -122,6 +133,39 @@ export function App(): ReactElement {
               </div>
               <button className="primary-action" onClick={() => setCreateDialogOpen(true)} type="button">Create Agent</button>
             </header>
+
+            {appInfo && appInfo.localCodex.status !== "ready" ? (
+              <section className="readiness-panel" aria-label="Local Codex setup">
+                <div>
+                  <p className="eyebrow">Machine Setup</p>
+                  <h3>{appInfo.localCodex.message}</h3>
+                  <p className="empty-note">
+                    Agent creation is disabled until this machine can launch a local Codex executable.
+                  </p>
+                </div>
+                <div className="readiness-facts">
+                  <div>
+                    <span>Detected source</span>
+                    <strong>{appInfo.localCodex.sourcePath ?? "Not found"}</strong>
+                  </div>
+                  <div>
+                    <span>Launch path</span>
+                    <strong>{appInfo.localCodex.launchPath ?? "Not prepared"}</strong>
+                  </div>
+                  <div>
+                    <span>Version</span>
+                    <strong>{appInfo.localCodex.version ?? "Unknown"}</strong>
+                  </div>
+                </div>
+                {appInfo.localCodex.guidance.length > 0 ? (
+                  <ul className="readiness-list">
+                    {appInfo.localCodex.guidance.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ) : null}
 
             <div className="content-grid">
               <section className="office-surface" aria-label="Pixel office">
@@ -140,7 +184,12 @@ export function App(): ReactElement {
                 )}
               </section>
 
-              <AgentDetailDrawer agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onRuntimeEvent={onRuntimeEvent} />
+              <AgentDetailDrawer
+                agent={selectedAgent}
+                onClose={() => setSelectedAgentId(null)}
+                onDelete={deleteSelectedAgent}
+                onRuntimeEvent={onRuntimeEvent}
+              />
             </div>
             {createDialogOpen ? (
               <CreateAgentDialog

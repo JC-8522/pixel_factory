@@ -16,6 +16,7 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
   ipcMain.handle(IPC_CHANNELS.agentsList, () => handlers.agentsList());
   ipcMain.handle(IPC_CHANNELS.agentsGet, (_event, agentId) => handlers.agentsGet(agentId));
   ipcMain.handle(IPC_CHANNELS.agentsCreate, (_event, input) => handlers.agentsCreate(input));
+  ipcMain.handle(IPC_CHANNELS.agentsDelete, (_event, agentId) => handlers.agentsDelete(agentId));
   ipcMain.handle(IPC_CHANNELS.agentsUpdatePosition, (_event, input) => handlers.agentsUpdatePosition(input));
   ipcMain.handle(IPC_CHANNELS.agentsAssignSkill, (_event, input) => handlers.agentsAssignSkill(input));
   ipcMain.handle(IPC_CHANNELS.agentsRemoveSkill, (_event, input) => handlers.agentsRemoveSkill(input));

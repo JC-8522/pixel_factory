@@ -26,6 +26,7 @@ export const IPC_CHANNELS = {
   agentsList: "agents:list",
   agentsGet: "agents:get",
   agentsCreate: "agents:create",
+  agentsDelete: "agents:delete",
   agentsUpdatePosition: "agents:update-position",
   agentsAssignSkill: "agents:assign-skill",
   agentsRemoveSkill: "agents:remove-skill",
@@ -375,6 +376,7 @@ export type CodexOfficeApi = {
     list(): Promise<AgentRecord[]>;
     get(agentId: string): Promise<AgentRecord | null>;
     create(input: CreateAgentRequest): Promise<AgentRecord>;
+    delete(agentId: string): Promise<AgentRecord | null>;
     updatePosition(input: UpdateAgentPositionRequest): Promise<AgentRecord>;
     assignSkill(input: AssignSkillRequest): Promise<AgentSkillRecord>;
     removeSkill(input: Omit<AssignSkillRequest, "assignedBy">): Promise<AgentSkillRecord | null>;

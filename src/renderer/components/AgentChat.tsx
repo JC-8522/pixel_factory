@@ -30,14 +30,23 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
   const { messagesBySession, hydrateSession } = useChatStore();
 
   const readOnlyExternalAgent = isDetectedExternalAgent(agent);
+  const oneShotLocalRuntime = agent.runtime_kind === "codex_cli";
   const activeSession = useMemo(() => sessions.at(-1) ?? null, [sessions]);
-  const messages: MessageRecord[] = activeSession ? messagesBySession[activeSession.id] ?? [] : [];
+  const messages: MessageRecord[] = useMemo(() => {
+    if (oneShotLocalRuntime) {
+      return sessions
+        .flatMap((session) => messagesBySession[session.id] ?? [])
+        .sort((left, right) => left.created_at.localeCompare(right.created_at));
+    }
+
+    return activeSession ? messagesBySession[activeSession.id] ?? [] : [];
+  }, [activeSession, messagesBySession, oneShotLocalRuntime, sessions]);
 
   const refreshSessions = async (): Promise<SessionRecord[]> => {
     const nextSessions = await window.codexOffice.sessions.listByAgent(agent.id);
     setSessions(nextSessions);
-    if (nextSessions.at(-1)) {
-      await hydrateSession(nextSessions.at(-1)!.id);
+    if (nextSessions.length > 0) {
+      await Promise.all(nextSessions.map((session) => hydrateSession(session.id)));
     }
     return nextSessions;
   };
@@ -53,13 +62,13 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
       }
 
       onRuntimeEvent?.(event);
-      if (activeSession?.id === event.sessionId) {
+      if (oneShotLocalRuntime || activeSession?.id === event.sessionId) {
         void hydrateSession(event.sessionId);
       }
     });
 
     return unsubscribe;
-  }, [agent.id, activeSession?.id, hydrateSession, onRuntimeEvent]);
+  }, [agent.id, activeSession?.id, hydrateSession, onRuntimeEvent, oneShotLocalRuntime]);
 
   const ensureSession = async (): Promise<SessionRecord> => {
     if (readOnlyExternalAgent) {
@@ -82,6 +91,22 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     });
     await refreshSessions();
     return session;
+  };
+
+  const startNewSessionWithMessage = async (message: string): Promise<void> => {
+    await window.codexOffice.runtime.spawnAgent({
+      id: agent.id,
+      name: agent.name,
+      role: agent.role,
+      workingDirectory: agent.working_directory,
+      runtimeKind: agent.runtime_kind,
+      permissionMode: agent.permission_mode,
+      autoRunMode: agent.auto_run_mode,
+      currentTask: message
+    });
+    await refreshSessions();
+    setDraft("");
+    setSubmitError(null);
   };
 
   const tryLoadPermissionRequest = async (requestId: string, sessionId: string, message: string): Promise<void> => {
@@ -120,8 +145,18 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     setBusy(true);
     setSubmitError(null);
     try {
-      const session = await ensureSession();
-      await sendRuntimeMessage(session.id, message);
+      if (oneShotLocalRuntime) {
+        await startNewSessionWithMessage(message);
+        return;
+      }
+
+      const latest = (await refreshSessions()).at(-1);
+      if (!latest || ["completed", "stopped", "failed"].includes(latest.status)) {
+        await startNewSessionWithMessage(message);
+      } else {
+        const session = await ensureSession();
+        await sendRuntimeMessage(session.id, message);
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Unable to send message.");
     } finally {
@@ -142,7 +177,11 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
       });
 
       if (result.status === "approved" && pendingMessage) {
-        await sendRuntimeMessage(pendingMessage.sessionId, pendingMessage.message);
+        if (oneShotLocalRuntime) {
+          await startNewSessionWithMessage(pendingMessage.message);
+        } else {
+          await sendRuntimeMessage(pendingMessage.sessionId, pendingMessage.message);
+        }
       } else {
         setSubmitError("Command was denied before execution.");
       }
@@ -175,7 +214,13 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
         <input
           disabled={busy || readOnlyExternalAgent}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={readOnlyExternalAgent ? "Detected process is read-only" : "Send a message to this agent"}
+          placeholder={
+            readOnlyExternalAgent
+              ? "Detected process is read-only"
+              : oneShotLocalRuntime
+                ? "Send a message as a new local Codex run"
+                : "Send a message to this agent"
+          }
           value={draft}
         />
         <button disabled={busy || readOnlyExternalAgent || draft.trim().length === 0} type="submit">

@@ -41,6 +41,8 @@ export type SpawnRuntimeInput = {
   sessionId: string;
   workingDirectory: string;
   initialPrompt?: string | null;
+  inputMessageId?: string | null;
+  responseMessageId?: string | null;
   modelProfile?: string | null;
   permissionMode?: string | null;
   skillPromptContext?: string | null;

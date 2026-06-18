@@ -7,29 +7,23 @@ describe("validateCreateAgentForm", () => {
       name: "",
       role: "",
       workingDirectory: "",
-      runtimeKind: "unknown",
       permissionMode: "mystery",
-      autoRunMode: "ghost",
       initialTask: ""
     });
 
     expect(errors.name).toBeDefined();
     expect(errors.role).toBeDefined();
     expect(errors.workingDirectory).toBeDefined();
-    expect(errors.runtimeKind).toBeDefined();
     expect(errors.permissionMode).toBeDefined();
-    expect(errors.autoRunMode).toBeDefined();
     expect(errors.initialTask).toBeDefined();
   });
 
-  it("accepts a complete mock-agent creation form", () => {
+  it("accepts a complete local-agent creation form", () => {
     const errors = validateCreateAgentForm({
       name: "Builder",
       role: "Developer Agent",
       workingDirectory: "C:/repo",
-      runtimeKind: "mock",
       permissionMode: "ask",
-      autoRunMode: "manual",
       initialTask: "Build the next slice."
     });
 

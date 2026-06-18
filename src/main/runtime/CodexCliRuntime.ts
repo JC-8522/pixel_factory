@@ -1,4 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { spawn as nodeSpawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
 import type {
@@ -9,6 +13,7 @@ import type {
 } from "../../shared/types/agent";
 import { deriveStatusFromLogLine } from "./agentStatusMachine";
 import type { AgentRuntime, RuntimeEventHandler, UnsubscribeRuntimeEvent } from "./AgentRuntime";
+import { prepareCodexLaunchPath } from "./codexInstallation";
 import { estimateTokenUsage, parseTokenUsageFromLine } from "./tokenUsageParser";
 
 type RuntimeEventDraft = AgentRuntimeEvent extends infer Event
@@ -52,20 +57,69 @@ export type CodexCliRuntimeOptions = {
   spawner?: RuntimeProcessSpawner;
 };
 
+const createRuntimeEventId = (prefix: string, agentId: string, sessionId: string, sequence: number): string =>
+  `${prefix}-${agentId}-${sessionId}-${sequence}-${randomUUID()}`;
+
+const mapApprovalPolicy = (permissionMode: string | null | undefined): string | null => {
+  switch (permissionMode) {
+    case "ask":
+      return "on-request";
+    case "readonly":
+      return "untrusted";
+    case "full":
+      return "never";
+    default:
+      return permissionMode ?? null;
+  }
+};
+
+export const resolveCodexExecutablePath = (configuredPath: string): string => {
+  if (configuredPath === "codex") {
+    const windowsStoreInstall = process.env.LOCAL_CODEX_WINDOWS_STORE_PATH;
+    if (windowsStoreInstall) {
+      return prepareCodexLaunchPath(windowsStoreInstall);
+    }
+  }
+
+  return prepareCodexLaunchPath(configuredPath);
+};
+
+export const resolveCodexHome = (baseEnv: NodeJS.ProcessEnv = process.env): string => {
+  const configuredHome = baseEnv.CODEX_HOME;
+  const defaultHome = join(homedir(), ".codex");
+
+  if (configuredHome && existsSync(join(configuredHome, "auth.json"))) {
+    return configuredHome;
+  }
+
+  if (existsSync(join(defaultHome, "auth.json"))) {
+    return defaultHome;
+  }
+
+  return configuredHome ?? defaultHome;
+};
+
+export const buildCodexSpawnEnv = (baseEnv: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv => ({
+  ...baseEnv,
+  CODEX_HOME: resolveCodexHome(baseEnv)
+});
+
 export const buildCodexSpawnArgs = (input: SpawnRuntimeInput, profile?: string | null): string[] => {
   const args: string[] = [];
   const selectedProfile = input.modelProfile ?? profile;
+  const approvalPolicy = mapApprovalPolicy(input.permissionMode);
+  const initialPrompt = input.initialPrompt?.trim();
 
   if (selectedProfile) {
     args.push("--profile", selectedProfile);
   }
 
-  if (input.permissionMode) {
-    args.push("--ask-for-approval", input.permissionMode);
+  if (approvalPolicy) {
+    args.push("--ask-for-approval", approvalPolicy);
   }
 
-  if (input.initialPrompt || input.skillPromptContext) {
-    args.push("exec", [input.skillPromptContext, input.initialPrompt].filter(Boolean).join("\n\n"));
+  if (initialPrompt) {
+    args.push("exec", [input.skillPromptContext, initialPrompt].filter(Boolean).join("\n\n"));
   }
 
   return args;
@@ -82,7 +136,9 @@ export class CodexCliRuntime implements AgentRuntime {
   private sequence = 0;
 
   constructor(options: CodexCliRuntimeOptions = {}) {
-    this.executablePath = options.executablePath ?? process.env.CODEX_EXECUTABLE ?? "codex";
+    this.executablePath = resolveCodexExecutablePath(
+      options.executablePath ?? process.env.CODEX_EXECUTABLE ?? process.env.LOCAL_CODEX_WINDOWS_STORE_PATH ?? "codex"
+    );
     this.profile = options.profile ?? process.env.CODEX_PROFILE ?? null;
     this.spawner =
       options.spawner ??
@@ -107,7 +163,7 @@ export class CodexCliRuntime implements AgentRuntime {
     const args = buildCodexSpawnArgs(input, this.profile);
     const child = this.spawner(this.executablePath, args, {
       cwd: input.workingDirectory,
-      env: { ...process.env }
+      env: buildCodexSpawnEnv(process.env)
     });
     const session: CodexSession = {
       agentId: input.agentId,
@@ -115,7 +171,7 @@ export class CodexCliRuntime implements AgentRuntime {
       workingDirectory: input.workingDirectory,
       modelProfile: input.modelProfile ?? this.profile,
       process: child,
-      activeResponseMessageId: null,
+      activeResponseMessageId: input.responseMessageId ?? null,
       pendingInput: input.initialPrompt ?? "",
       outputBuffer: "",
       reportedUsage: false,
@@ -140,6 +196,10 @@ export class CodexCliRuntime implements AgentRuntime {
     child.on("exit", (code) => {
       void this.handleExit(session, code);
     });
+
+    if (input.initialPrompt?.trim()) {
+      session.process.stdin?.end();
+    }
 
     return {
       agentId: input.agentId,
@@ -267,9 +327,10 @@ export class CodexCliRuntime implements AgentRuntime {
   }
 
   private async emit(event: RuntimeEventDraft): Promise<void> {
+    const sequence = ++this.sequence;
     const runtimeEvent = {
       ...event,
-      id: `codex-event-${++this.sequence}`,
+      id: createRuntimeEventId("codex-event", event.agentId, event.sessionId, sequence),
       at: new Date().toISOString()
     } as AgentRuntimeEvent;
 
