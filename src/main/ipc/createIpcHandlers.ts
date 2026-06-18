@@ -2,9 +2,7 @@ import type { AppInfo } from "../../shared/types/app";
 import type { AgentRuntimeEvent } from "../../shared/types/agent";
 import type { DatabaseClient } from "../db/client";
 import {
-  completeMeeting,
   createEvent,
-  createMeeting,
   createMessage,
   createTask,
   getEvent,
@@ -14,6 +12,7 @@ import {
   listEvents,
   listMeetings,
   listMeetingMessages,
+  listMeetingParticipants,
   listMessagesBySession,
   listSessionsForAgent,
   listSettings,
@@ -22,7 +21,6 @@ import {
   listTokenUsageByAgent,
   setSetting,
   summarizeTokenUsageByAgent,
-  addMeetingMessage
 } from "../db/repositories";
 import {
   attachSkillToRegisteredAgent,
@@ -39,6 +37,11 @@ import { persistRuntimeEvent } from "../runtime/persistRuntimeEvent";
 import { routeSessionMessage } from "../messageRouter/messageRouter";
 import { assignTaskThroughEngine, updateTaskStatusThroughEngine } from "../taskEngine/taskEngine";
 import {
+  createMeetingThroughOrchestration,
+  finishMeetingThroughOrchestration,
+  sendMeetingMessageThroughRouter
+} from "../meetings/meetingOrchestrator";
+import {
   assignProfileSkill,
   duplicateProfile,
   generateProfileSnapshot,
@@ -54,6 +57,26 @@ import {
 import { exportProfile, importProfile } from "../profiles/profileImportExport";
 import { scanSkills } from "../skills/scanSkills";
 import {
+  inspectAgentPackForInstall,
+  installAgentPack,
+  listInstalledAgentPacks,
+  uninstallAgentPack
+} from "../agentPacks/agentPackInstaller";
+import {
+  createProjectWorkspace,
+  getActiveProjectWorkspaceId,
+  getOfficeTheme,
+  getV2IntegrationStatus,
+  listProjectWorkspaces,
+  replayTimelineEvents,
+  selectProjectWorkspace,
+  setOfficeTheme
+} from "../integrations/v2IntegrationService";
+import { PermissionPolicyEngine } from "../security/permissionPolicy";
+import { PermissionRequiredError } from "../security/permissionPolicy";
+import {
+  validatePermissionDecision,
+  validateOptionalProjectPath,
   validateAssignSkill,
   validateAssignProfileSkill,
   validateAssignTask,
@@ -73,7 +96,11 @@ import {
   validateRemoveProfileSkill,
   validateUpdateAgentProfile,
   validateUpdateAgentPosition,
-  validateUpdateTaskStatus
+  validateUpdateTaskStatus,
+  validateAgentPackPath,
+  validateCreateProjectWorkspace,
+  validateOfficeTheme,
+  validateTimelineReplay
 } from "./validators";
 
 export type IpcHandlerContext = {
@@ -106,6 +133,7 @@ export const createIpcHandlers = ({
 }: IpcHandlerContext) => {
   let localSequence = 0;
   const nextId = (prefix: string): string => `${prefix}-${Date.now()}-${++localSequence}`;
+  const permissionPolicy = new PermissionPolicyEngine(client);
 
   runtimeRegistry.onEvent((event) => {
     persistRuntimeEvent(client, event);
@@ -181,6 +209,16 @@ export const createIpcHandlers = ({
       return importProfile(client, payload);
     }),
 
+  agentPacksInspect: (folderPath: unknown) =>
+    saveAfter(client, () => inspectAgentPackForInstall(client, validateAgentPackPath(folderPath))),
+  agentPacksInstall: (folderPath: unknown) =>
+    saveAfter(client, () => installAgentPack(client, validateAgentPackPath(folderPath))),
+  agentPacksUninstall: (packId: unknown) =>
+    saveAfter(client, () => uninstallAgentPack(client, validateId(packId, "agent pack id"))),
+  agentPacksListInstalled: () => listInstalledAgentPacks(client),
+  agentPacksValidate: (folderPath: unknown) =>
+    saveAfter(client, () => inspectAgentPackForInstall(client, validateAgentPackPath(folderPath))),
+
   sessionsListByAgent: (agentId: unknown) => listSessionsForAgent(client, validateId(agentId, "agent id")),
 
   messagesListBySession: (sessionId: unknown) => listMessagesBySession(client, validateId(sessionId, "session id")),
@@ -214,7 +252,17 @@ export const createIpcHandlers = ({
   tasksCreate: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateCreateTask(input);
-      return createTask(client, payload);
+      const task = createTask(client, payload);
+      createEvent(client, {
+        id: `event-task-created-${task.id}`,
+        type: "task_created",
+        actorType: "user",
+        actorId: "local-user",
+        agentId: task.assigned_agent_id,
+        taskId: task.id,
+        payload: { title: task.title, createdFrom: task.created_from }
+      });
+      return task;
     }),
   tasksAssign: (input: unknown) =>
     saveAfter(client, () => {
@@ -231,19 +279,21 @@ export const createIpcHandlers = ({
   meetingsCreate: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateCreateMeeting(input);
-      return createMeeting(client, payload);
+      return createMeetingThroughOrchestration(client, payload);
     }),
+  meetingsListParticipants: (meetingId: unknown) =>
+    listMeetingParticipants(client, validateId(meetingId, "meeting id")),
   meetingsListMessages: (meetingId: unknown) =>
     listMeetingMessages(client, validateId(meetingId, "meeting id")),
   meetingsSendMessage: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateSendMeetingMessage(input);
-      return addMeetingMessage(client, payload);
+      return sendMeetingMessageThroughRouter(client, payload);
     }),
   meetingsFinish: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateFinishMeeting(input);
-      return completeMeeting(client, payload.meetingId, payload.summary);
+      return finishMeetingThroughOrchestration(client, payload);
     }),
 
   eventsList: (filter?: unknown) => listEvents(client, validateEventFilter(filter)),
@@ -252,6 +302,17 @@ export const createIpcHandlers = ({
   tokenUsageListByAgent: (agentId: unknown) => listTokenUsageByAgent(client, validateId(agentId, "agent id")),
   tokenUsageSummaryByAgent: (agentId: unknown) =>
     summarizeTokenUsageByAgent(client, validateId(agentId, "agent id")),
+
+  integrationsStatus: () => saveAfterAsync(client, () => getV2IntegrationStatus(client)),
+  workspacesList: () => listProjectWorkspaces(client),
+  workspacesCreate: (input: unknown) =>
+    saveAfter(client, () => createProjectWorkspace(client, validateCreateProjectWorkspace(input))),
+  workspacesSelect: (workspaceId: unknown) =>
+    saveAfter(client, () => selectProjectWorkspace(client, validateId(workspaceId, "workspace id"))),
+  workspacesGetActive: () => getActiveProjectWorkspaceId(client),
+  officeThemeGet: () => getOfficeTheme(client),
+  officeThemeSet: (theme: unknown) => saveAfter(client, () => setOfficeTheme(client, validateOfficeTheme(theme))),
+  timelineReplay: (input?: unknown) => replayTimelineEvents(client, validateTimelineReplay(input)),
 
   settingsGet: () => settingsRowsToMap(listSettings(client)),
   settingsUpdate: (patch: unknown) =>
@@ -262,6 +323,14 @@ export const createIpcHandlers = ({
       }
       return settingsRowsToMap(listSettings(client));
     }),
+  permissionsGetRequest: (requestId: unknown) =>
+    permissionPolicy.getRequest(validateId(requestId, "permission request id")),
+  permissionsDecide: (input: unknown) =>
+    saveAfter(client, () => permissionPolicy.decide(validatePermissionDecision(input))),
+  permissionsListRules: (projectPath?: unknown) =>
+    permissionPolicy.listRules(validateOptionalProjectPath(projectPath)),
+  permissionsRevokeRule: (ruleId: unknown) =>
+    saveAfter(client, () => permissionPolicy.revokeRule(validateId(ruleId, "permission rule id"))),
 
   runtimeDiscoverAgents: async () => {
     const [storedAgents, detectedAgents] = await Promise.all([Promise.resolve(listRegisteredAgents(client)), discoverLocalCodexProcesses()]);
@@ -271,13 +340,27 @@ export const createIpcHandlers = ({
   runtimeSpawnAgent: (input: unknown) =>
     saveAfterAsync(client, async () => {
       const payload = validateCreateAgent(input);
-      return spawnAgentThroughOrchestration(client, runtimeRegistry, payload, nextId);
+      return spawnAgentThroughOrchestration(client, runtimeRegistry, permissionPolicy, payload, nextId);
     }),
   runtimeSendMessage: (sessionId: unknown, message: unknown) =>
     saveAfterAsync(client, async () => {
       const validSessionId = validateId(sessionId, "session id");
       const validMessage = validateId(message, "runtime message");
-      return routeSessionMessage(client, runtimeRegistry, { sessionId: validSessionId, message: validMessage }, nextId);
+      try {
+        const response = await routeSessionMessage(
+          client,
+          runtimeRegistry,
+          permissionPolicy,
+          { sessionId: validSessionId, message: validMessage },
+          nextId
+        );
+        return { status: "sent" as const, message: response };
+      } catch (error) {
+        if (error instanceof PermissionRequiredError) {
+          return { status: "permission_required" as const, requestId: error.requestId };
+        }
+        throw error;
+      }
     }),
   runtimeStopAgent: (sessionId: unknown) =>
     saveAfterAsync(client, async () => {

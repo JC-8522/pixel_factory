@@ -56,6 +56,42 @@ Risky actions are detected, blocked until approval, redacted where necessary, an
 - Confirm runtime adapters call the safety hook instead of implementing permission logic themselves.
 - Confirm permission decisions create stable domain events for timeline/audit UI.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Trigger a safe command path and confirm it proceeds without an approval dialog.
+- Trigger risky delete, install, or network-like command paths through a controlled mock/runtime-safe flow.
+- Approve once, always allow in project, and deny through the visible permission dialog.
+- Confirm denied actions do not execute and appear in the activity/audit UI.
+- Open settings and inspect scoped allow rules.
+- Capture focused screenshots of the permission dialog, denied event, and settings rule state.
+- Inspect dev logs after safety workflows and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `18_qa_polish_packaging.md`. Final QA must include safety events and permission-denial flows.
+
+## Completion Notes
+
+- Implemented:
+  - `src/main/security/riskRules.ts`
+  - `src/main/security/permissionPolicy.ts`
+  - `src/main/security/secretsRedaction.ts`
+  - `src/main/runtime/safeCommandGate.ts`
+  - permission rule repository, IPC APIs, preload bridge, renderer approval dialog, and permission settings UI
+- Verified with:
+  - `tsc --noEmit`
+  - `eslint .`
+  - `vitest run`
+  - Electron human-style validation script `scripts/verify-task17-ui.mjs`
+- Visual evidence:
+  - `out/task17-permission-dialog.png`
+  - `out/task17-permission-denied-event.png`
+  - `out/task17-permission-rules.png`
+- Result:
+  - safe commands proceed without approval,
+  - install / network / credential / delete paths trigger review,
+  - allow-once and allow-in-project decisions work,
+  - denied actions do not execute,
+  - redacted commands and permission events appear in the timeline / audit surfaces.

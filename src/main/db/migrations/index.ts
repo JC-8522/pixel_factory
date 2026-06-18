@@ -1,4 +1,5 @@
 import { initialSchemaMigration } from "./001_initial_schema";
+import { schemaBackfillMigration } from "./002_schema_backfill";
 
 export type Migration = {
   version: number;
@@ -6,5 +7,4 @@ export type Migration = {
   sql: string;
 };
 
-export const migrations: Migration[] = [initialSchemaMigration];
-
+export const migrations: Migration[] = [initialSchemaMigration, schemaBackfillMigration];

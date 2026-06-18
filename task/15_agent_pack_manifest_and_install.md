@@ -4,7 +4,7 @@ You are the Agent Pack Agent for Local Codex Office.
 
 ## Product Context
 
-Local Codex Office should become an open-source ecosystem where users can share reusable Community Agent Packs. An Agent Pack is a source-readable package that can contain Agent Profiles, skill dependencies, optional bundled skills, visual identity assets, startup workflows, permission manifests, validation tests, author metadata, and version metadata.
+Local Codex Office should become an open-source ecosystem where users can share reusable Community Agent Packs. An Agent Pack is a source-readable package that can contain Agent Profiles, skill dependencies, optional bundled skills, visual identity assets, startup workflows, permission manifests, validation tests, author metadata, version metadata, and later reusable Business Memory Assets.
 
 ## Feature
 
@@ -14,7 +14,7 @@ Local Agent Pack manifest, inspection, and reviewed installation.
 
 Implement the first Agent Pack boundary as a local and GitHub-ready package format. The app must inspect an Agent Pack before install without executing scripts, show a review screen, then install reviewed profiles/skills/assets into local storage.
 
-Agent Packs should be able to package Agent Profiles and, later, reusable conversation workflow templates. Installed profiles must become normal local Agent Profiles and should still generate immutable snapshots when used to create agents.
+Agent Packs should be able to package Agent Profiles and, later, reusable conversation workflow templates and Business Memory Assets. Installed profiles must become normal local Agent Profiles and should still generate immutable snapshots when used to create agents.
 
 Installed Agent Pack content should register through Agent Registry and Context / Memory boundaries. Permission manifests should be inspected through Permission Policy Engine, and install decisions should be recorded by Audit Engine.
 
@@ -63,6 +63,34 @@ Agent Packs are transparent and source-readable. The app never executes package 
 - Show included Agent Profiles and optional workflow templates before install.
 - Uninstall an Agent Pack without corrupting user-created profiles.
 
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Navigate to the Agent Pack review surface.
+- Pick or enter a local Agent Pack folder path and inspect it without executing scripts.
+- Review included profiles, skills, assets, permissions, validation status, and author/version metadata in the UI.
+- Install a valid reviewed pack, then verify installed profiles appear in the Agent Profile Library.
+- Inspect a malformed pack and confirm validation errors are clear.
+- Capture focused screenshots of inspection, validation errors, reviewed install, and installed profile visibility.
+- Inspect dev logs after pack workflows and confirm no renderer, preload, IPC, or runtime errors occurred.
+
 ## Continuation
 
 After this task passes validation, continue with `16_attach_mode_mcp_and_v2_integrations.md`. External integration work can build on the Agent Pack boundary.
+
+## Completion Notes
+
+Completed on the current implementation branch.
+
+Implemented:
+
+- `docs/agent_pack_manifest.md`
+- Agent Pack manifest parser, inspector, installer, and repository
+- IPC/preload APIs for inspect, install, uninstall, list installed, and validate
+- Agent Pack Review UI in the Human Console
+- local valid and malformed Agent Pack fixtures
+- install into normal `agent_profiles` and bundled `skills`
+- uninstall that preserves user-created profiles
+- audit events for inspection, permission review, install rejection, install, and uninstall
+- Electron CDP acceptance script and screenshots for valid inspection, reviewed install, installed profile visibility, and malformed validation errors

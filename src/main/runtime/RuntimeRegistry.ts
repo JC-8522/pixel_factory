@@ -2,6 +2,7 @@ import type { RuntimeKind, SendRuntimeMessageInput, SpawnRuntimeInput } from "..
 import type { AgentRuntime, RuntimeEventHandler, UnsubscribeRuntimeEvent } from "./AgentRuntime";
 import { CodexCliRuntime } from "./CodexCliRuntime";
 import { MockAgentRuntime } from "./MockAgentRuntime";
+import { AttachedCodexRuntime } from "./AttachedCodexRuntime";
 
 export class RuntimeRegistry {
   private readonly runtimes = new Map<RuntimeKind, AgentRuntime>();
@@ -74,4 +75,4 @@ export class RuntimeRegistry {
 }
 
 export const createDefaultRuntimeRegistry = (): RuntimeRegistry =>
-  new RuntimeRegistry([new MockAgentRuntime(), new CodexCliRuntime()]);
+  new RuntimeRegistry([new MockAgentRuntime(), new CodexCliRuntime(), new AttachedCodexRuntime()]);

@@ -6,7 +6,8 @@ const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRender
 
 const api: CodexOfficeApi = {
   app: {
-    getInfo: () => invoke(IPC_CHANNELS.appInfo)
+    getInfo: () => invoke(IPC_CHANNELS.appInfo),
+    pickWorkingDirectory: () => invoke(IPC_CHANNELS.appPickWorkingDirectory)
   },
   agents: {
     list: () => invoke(IPC_CHANNELS.agentsList),
@@ -31,6 +32,13 @@ const api: CodexOfficeApi = {
     export: (profileId) => invoke(IPC_CHANNELS.profilesExport, profileId),
     importProfile: (input) => invoke(IPC_CHANNELS.profilesImport, input)
   },
+  agentPacks: {
+    inspect: (folderPath) => invoke(IPC_CHANNELS.agentPacksInspect, folderPath),
+    install: (folderPath) => invoke(IPC_CHANNELS.agentPacksInstall, folderPath),
+    uninstall: (packId) => invoke(IPC_CHANNELS.agentPacksUninstall, packId),
+    listInstalled: () => invoke(IPC_CHANNELS.agentPacksListInstalled),
+    validate: (folderPath) => invoke(IPC_CHANNELS.agentPacksValidate, folderPath)
+  },
   sessions: {
     listByAgent: (agentId) => invoke(IPC_CHANNELS.sessionsListByAgent, agentId)
   },
@@ -53,6 +61,7 @@ const api: CodexOfficeApi = {
   meetings: {
     list: () => invoke(IPC_CHANNELS.meetingsList),
     create: (input) => invoke(IPC_CHANNELS.meetingsCreate, input),
+    listParticipants: (meetingId) => invoke(IPC_CHANNELS.meetingsListParticipants, meetingId),
     listMessages: (meetingId) => invoke(IPC_CHANNELS.meetingsListMessages, meetingId),
     sendMessage: (input) => invoke(IPC_CHANNELS.meetingsSendMessage, input),
     finish: (input) => invoke(IPC_CHANNELS.meetingsFinish, input)
@@ -65,9 +74,31 @@ const api: CodexOfficeApi = {
     listByAgent: (agentId) => invoke(IPC_CHANNELS.tokenUsageListByAgent, agentId),
     summaryByAgent: (agentId) => invoke(IPC_CHANNELS.tokenUsageSummaryByAgent, agentId)
   },
+  integrations: {
+    status: () => invoke(IPC_CHANNELS.integrationsStatus)
+  },
+  workspaces: {
+    list: () => invoke(IPC_CHANNELS.workspacesList),
+    create: (input) => invoke(IPC_CHANNELS.workspacesCreate, input),
+    select: (workspaceId) => invoke(IPC_CHANNELS.workspacesSelect, workspaceId),
+    getActive: () => invoke(IPC_CHANNELS.workspacesGetActive)
+  },
+  officeTheme: {
+    get: () => invoke(IPC_CHANNELS.officeThemeGet),
+    set: (theme) => invoke(IPC_CHANNELS.officeThemeSet, theme)
+  },
+  timeline: {
+    replay: (input) => invoke(IPC_CHANNELS.timelineReplay, input)
+  },
   settings: {
     get: () => invoke(IPC_CHANNELS.settingsGet),
     update: (patch) => invoke(IPC_CHANNELS.settingsUpdate, patch)
+  },
+  permissions: {
+    getRequest: (requestId) => invoke(IPC_CHANNELS.permissionsGetRequest, requestId),
+    decide: (input) => invoke(IPC_CHANNELS.permissionsDecide, input),
+    listRules: (projectPath) => invoke(IPC_CHANNELS.permissionsListRules, projectPath),
+    revokeRule: (ruleId) => invoke(IPC_CHANNELS.permissionsRevokeRule, ruleId)
   },
   runtime: {
     discoverAgents: () => invoke(IPC_CHANNELS.runtimeDiscoverAgents),

@@ -18,6 +18,8 @@ This task should introduce or use application services and domain events for tas
 
 Task state behavior belongs in Task Engine / DAG. Timeline and run history explanations belong in Audit Engine and Event Logs.
 
+Task Board and Timeline should preserve the evidence needed to later promote repeated work into Workflow Assets and Business Memory Assets.
+
 ## Expected Output
 
 - `src/renderer/components/TaskBoard.tsx`
@@ -62,7 +64,35 @@ Tasks and events form a coherent project management loop: create work, assign wo
 - View whether usage is `reported` or `estimated`.
 - Configure or load a model price config and confirm estimated cost uses that config.
 - Confirm task board and timeline consume domain events instead of provider-specific runtime log formats.
+- Confirm timeline evidence is sufficient to support later workflow extraction or business-memory capture.
+
+## Human App Acceptance
+
+- Use `skills/electron-desktop-debug/SKILL.md` for the runbook.
+- Launch the Electron app from a clean dev run.
+- Navigate to Tasks, Timeline, Run History, Agent Health, and Manager Cost Dashboard from the Human Console.
+- Create, assign, move, complete, and fail tasks using visible UI controls.
+- Select an agent and inspect its health, run history, and cost summary like a manager reviewing spend.
+- Capture focused screenshots for the task board state, filtered timeline, and cost dashboard.
+- Inspect dev logs after the workflow and confirm no renderer, preload, IPC, or runtime errors occurred.
 
 ## Continuation
 
 After this task passes validation, continue with `14_meeting_room_group_chat.md`. Meeting outputs should be convertible into tasks.
+
+## Completion Notes
+
+Completed on the current implementation branch.
+
+- Added Task Board navigation to the Human Console.
+- Added task creation, assignment, status movement, result summaries, and event-backed timeline filtering.
+- Added Agent Health, Run History / Session Archive, and Manager Cost Dashboard panels.
+- Task creation, assignment, and status changes now write stable domain events for timeline and audit consumers.
+- Manager cost visibility uses persisted token usage summaries and usage-source detail.
+- Added `scripts/verify-task13-14-ui.mjs` to drive Electron CDP acceptance for Tasks and Meeting Room.
+
+Human app acceptance evidence:
+
+- Task board screenshot: `out/task13-accept-task-board.png`
+- Verified visible columns Backlog, Assigned, In Progress, Waiting Review, Done, and Failed.
+- Verified task creation, assignment, status transition to In Progress / Waiting Review / Done, event filtering, agent health, run history, and manager cost UI.

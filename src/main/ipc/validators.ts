@@ -13,10 +13,15 @@ import type {
   SendMeetingMessageRequest,
   ScanSkillsRequest,
   SettingsMap,
+  CreateProjectWorkspaceRequest,
+  OfficeTheme,
+  PermissionDecisionInput,
+  TimelineReplayRequest,
   UpdateAgentProfileRequest,
   UpdateAgentPositionRequest,
   UpdateTaskStatusRequest
 } from "../../shared/ipc";
+import type { ConversationFlowRule } from "../../shared/types/conversation";
 import {
   assertNonEmptyString,
   assertRecord,
@@ -74,8 +79,10 @@ export const validateCreateAgent = (value: unknown): CreateAgentRequest => {
     runtimeKind: assertNonEmptyString(input.runtimeKind, "runtime kind"),
     permissionMode: assertNonEmptyString(input.permissionMode, "permission mode"),
     autoRunMode: assertNonEmptyString(input.autoRunMode, "auto-run mode"),
+    modelProfile: optionalString(input.modelProfile, "model profile"),
     profileId: optionalString(input.profileId, "profile id"),
     profileSnapshot: optionalJsonObject(input.profileSnapshot, "profile snapshot"),
+    skillIds: optionalStringArray(input.skillIds, "selected skills"),
     currentTask: optionalString(input.currentTask, "current task"),
     metadata: optionalJsonObject(input.metadata, "metadata")
   };
@@ -248,12 +255,16 @@ export const validateUpdateTaskStatus = (value: unknown): UpdateTaskStatusReques
 
 export const validateCreateMeeting = (value: unknown): CreateMeetingRequest => {
   const input = assertRecord(value, "create meeting input");
+  const flowRules = optionalJsonArray(input.flowRules, "flow rules") as ConversationFlowRule[] | undefined;
   return {
     id: assertNonEmptyString(input.id, "meeting id"),
     title: assertNonEmptyString(input.title, "meeting title"),
     goal: assertNonEmptyString(input.goal, "meeting goal"),
     moderatorAgentId: optionalString(input.moderatorAgentId, "moderator agent id"),
-    outputFormat: optionalString(input.outputFormat, "output format")
+    outputFormat: optionalString(input.outputFormat, "output format"),
+    participantAgentIds: optionalStringArray(input.participantAgentIds, "participant agent ids"),
+    conversationMode: optionalString(input.conversationMode, "conversation mode"),
+    flowRules
   };
 };
 
@@ -303,6 +314,32 @@ export const validateScanSkills = (value: unknown): ScanSkillsRequest => {
   };
 };
 
+export const validateAgentPackPath = (value: unknown): string => assertNonEmptyString(value, "agent pack path");
+
+export const validateCreateProjectWorkspace = (value: unknown): CreateProjectWorkspaceRequest => {
+  const input = assertRecord(value, "create project workspace input");
+  return {
+    id: assertNonEmptyString(input.id, "workspace id"),
+    name: assertNonEmptyString(input.name, "workspace name"),
+    rootPath: assertNonEmptyString(input.rootPath, "workspace root path")
+  };
+};
+
+const officeThemes = ["default", "forest", "focus"] as const;
+
+export const validateOfficeTheme = (value: unknown): OfficeTheme =>
+  assertStringEnum(value, "office theme", officeThemes);
+
+export const validateTimelineReplay = (value: unknown): TimelineReplayRequest => {
+  if (value === undefined) return {};
+  const input = assertRecord(value, "timeline replay input");
+  return {
+    limit: optionalNumber(input.limit, "timeline replay limit"),
+    type: optionalString(input.type, "timeline replay type") ?? undefined,
+    after: optionalString(input.after, "timeline replay after") ?? undefined
+  };
+};
+
 export const validateSettingsPatch = (value: unknown): SettingsMap => {
   const input = assertRecord(value, "settings patch");
   optionalJsonValue(input);
@@ -310,3 +347,19 @@ export const validateSettingsPatch = (value: unknown): SettingsMap => {
 };
 
 export const validateAgentStatus = (value: unknown): string => assertStringEnum(value, "agent status", agentStatuses);
+
+export const validatePermissionDecision = (value: unknown): PermissionDecisionInput => {
+  const input = assertRecord(value, "permission decision input");
+  return {
+    requestId: assertNonEmptyString(input.requestId, "permission request id"),
+    decision: assertStringEnum(input.decision, "permission decision", ["allow_once", "allow_project", "deny"] as const)
+  };
+};
+
+export const validateOptionalProjectPath = (value: unknown): string | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return assertNonEmptyString(value, "project path");
+};

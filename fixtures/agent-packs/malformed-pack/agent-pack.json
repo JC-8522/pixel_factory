@@ -1,0 +1,18 @@
+{
+  "format": "local-codex-office.agent-pack",
+  "version": 1,
+  "name": "Malformed Pack",
+  "profiles": [
+    {
+      "id": "missing-role-profile",
+      "name": "Missing Role"
+    }
+  ],
+  "bundledSkills": [
+    {
+      "id": "missing-skill-md",
+      "name": "Missing Skill",
+      "path": "skills/missing"
+    }
+  ]
+}

@@ -3,6 +3,8 @@ import { createMessage, getMessage, getSession, type MessageRecord } from "../db
 import type { RuntimeRegistry } from "../runtime/RuntimeRegistry";
 import { recordAuditEvent } from "../audit/auditEngine";
 import { buildAgentRuntimeContext } from "../context/contextBuilder";
+import type { PermissionPolicyEngine } from "../security/permissionPolicy";
+import { gateCommandOrThrow } from "../runtime/safeCommandGate";
 
 export type RouteSessionMessageInput = {
   sessionId: string;
@@ -12,6 +14,7 @@ export type RouteSessionMessageInput = {
 export const routeSessionMessage = async (
   client: DatabaseClient,
   runtimeRegistry: RuntimeRegistry,
+  permissionPolicy: PermissionPolicyEngine,
   input: RouteSessionMessageInput,
   nextId: (prefix: string) => string
 ): Promise<MessageRecord> => {
@@ -20,6 +23,14 @@ export const routeSessionMessage = async (
   if (!session) {
     throw new Error(`Session not found: ${input.sessionId}`);
   }
+
+  gateCommandOrThrow(permissionPolicy, {
+    requestId: nextId(`permission-${input.sessionId}`),
+    agentId: session.agent_id,
+    sessionId: input.sessionId,
+    projectPath: session.working_directory,
+    commandSource: input.message
+  });
 
   const userMessage = createMessage(client, {
     id: nextId(`message-user-${input.sessionId}`),

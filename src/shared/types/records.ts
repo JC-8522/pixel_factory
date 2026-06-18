@@ -60,6 +60,24 @@ export type AgentProfileSkillRecord = {
   created_at: string;
 };
 
+export type AgentPackRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  author: string | null;
+  version: string | null;
+  source_type: string | null;
+  source_uri: string | null;
+  installed_path: string | null;
+  checksum: string | null;
+  signature_status: string | null;
+  permission_manifest_json: string;
+  validation_status: string | null;
+  metadata_json: string;
+  installed_at: string;
+  updated_at: string;
+};
+
 export type SessionRecord = {
   id: string;
   agent_id: string;
@@ -164,6 +182,13 @@ export type MeetingRecord = {
   updated_at: string;
 };
 
+export type MeetingParticipantRecord = {
+  meeting_id: string;
+  agent_id: string;
+  role: string;
+  joined_at: string;
+};
+
 export type MeetingMessageRecord = {
   id: string;
   meeting_id: string;
@@ -192,4 +217,15 @@ export type SettingRecord = {
   key: string;
   value_json: string;
   updated_at: string;
+};
+
+export type PermissionRuleRecord = {
+  id: string;
+  project_path: string;
+  rule_kind: string;
+  command_pattern: string;
+  decision: string;
+  created_at: string;
+  expires_at: string | null;
+  metadata_json: string;
 };

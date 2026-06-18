@@ -48,8 +48,15 @@ describe("database client and migrations", () => {
     const migrations = reopened.all<{ version: number; name: string }>(
       "SELECT version, name FROM schema_migrations ORDER BY version"
     );
+    const sessionColumns = reopened.all<{ name: string }>("PRAGMA table_info(sessions)").map((column) => column.name);
+    const messageColumns = reopened.all<{ name: string }>("PRAGMA table_info(messages)").map((column) => column.name);
 
-    expect(migrations).toEqual([{ version: 1, name: "initial_schema" }]);
+    expect(migrations).toEqual([
+      { version: 1, name: "initial_schema" },
+      { version: 2, name: "schema_backfill" }
+    ]);
+    expect(sessionColumns).toEqual(expect.arrayContaining(["input_tokens", "output_tokens", "total_tokens"]));
+    expect(messageColumns).toEqual(expect.arrayContaining(["input_tokens", "output_tokens", "total_tokens"]));
     reopened.close();
   });
 

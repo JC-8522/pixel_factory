@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import type { AgentRuntimeEvent } from "../shared/types/agent";
 import type { AppInfo } from "../shared/types/app";
 import type { AgentRecord } from "../shared/types/records";
 import { AgentDetailDrawer } from "./components/AgentDetailDrawer";
 import { AgentProfileLibrary } from "./components/AgentProfileLibrary";
+import { CreateAgentDialog } from "./components/CreateAgentDialog";
+import { PermissionSettings } from "./components/PermissionSettings";
 import { OfficeCanvas } from "./office/OfficeCanvas";
 import { useAgentStore } from "./stores/agentStore";
 import { useEventStore } from "./stores/eventStore";
-import { useSkillStore } from "./stores/skillStore";
+import { useIntegrationStore } from "./stores/integrationStore";
 
-const createId = (prefix: string): string => `${prefix}-${Date.now()}`;
-type WorkspaceView = "office" | "profiles";
+type WorkspaceView = "office" | "profiles" | "permissions";
 
 const isDetectedExternalAgent = (agentId: string, agents: AgentRecord[]): boolean => {
   const agent = agents.find((item) => item.id === agentId) ?? null;
@@ -20,9 +21,9 @@ const isDetectedExternalAgent = (agentId: string, agents: AgentRecord[]): boolea
 
   try {
     const metadata = JSON.parse(agent.metadata_json) as { detected?: boolean };
-    return metadata.detected === true || agent.permission_mode === "external" || agent.auto_run_mode === "external";
+    return metadata.detected === true || agent.runtime_kind === "codex_cli_attached" || agent.permission_mode === "external" || agent.auto_run_mode === "external";
   } catch {
-    return agent.permission_mode === "external" || agent.auto_run_mode === "external";
+    return agent.runtime_kind === "codex_cli_attached" || agent.permission_mode === "external" || agent.auto_run_mode === "external";
   }
 };
 
@@ -30,14 +31,26 @@ export function App(): ReactElement {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [view, setView] = useState<WorkspaceView>("office");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const previousAgentCountRef = useRef(0);
   const { agents, hydrate, updatePosition } = useAgentStore();
-  const { scan } = useSkillStore();
   const { hydrate: hydrateEvents } = useEventStore();
+  const { theme, hydrate: hydrateIntegrations } = useIntegrationStore();
 
   useEffect(() => {
     void window.codexOffice.app.getInfo().then(setAppInfo);
     void hydrate();
-  }, [hydrate]);
+    void hydrateIntegrations();
+  }, [hydrate, hydrateIntegrations]);
+
+  useEffect(() => {
+    if (agents.length > previousAgentCountRef.current && agents.at(-1)) {
+      setSelectedAgentId(agents.at(-1)?.id ?? null);
+    } else if (!selectedAgentId && agents[0]) {
+      setSelectedAgentId(agents[0].id);
+    }
+    previousAgentCountRef.current = agents.length;
+  }, [agents, selectedAgentId]);
 
   useEffect(() => {
     const unsubscribe = window.codexOffice.runtime.onEvent(() => {
@@ -55,28 +68,10 @@ export function App(): ReactElement {
     [agents, selectedAgentId]
   );
 
-  const createMockAgent = async (): Promise<void> => {
-    const id = createId("mock-agent");
-    await window.codexOffice.runtime.spawnAgent({
-      id,
-      name: `Mock ${agents.length + 1}`,
-      role: "Developer Agent",
-      workingDirectory: ".",
-      runtimeKind: "mock",
-      permissionMode: "ask",
-      autoRunMode: "manual",
-      currentTask: "Help the manager inspect the local office."
-    });
+  const afterAgentCreated = async (agentId: string): Promise<void> => {
     await hydrate();
-    setSelectedAgentId(id);
-  };
-
-  const discoverAgents = async (): Promise<void> => {
-    const discovered = await window.codexOffice.runtime.discoverAgents();
-    await hydrate();
-    if (!selectedAgentId && discovered[0]) {
-      setSelectedAgentId(discovered[0].id);
-    }
+    setSelectedAgentId(agentId);
+    setView("office");
   };
 
   const onMoveAgent = useCallback(
@@ -96,7 +91,7 @@ export function App(): ReactElement {
   }, [hydrateEvents, selectedAgentId]);
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-theme={theme}>
       <aside className="sidebar">
         <div className="brand-block">
           <span className="brand-mark" aria-hidden="true" />
@@ -109,16 +104,15 @@ export function App(): ReactElement {
         <nav className="nav-list" aria-label="Workspace sections">
           <button className={view === "office" ? "nav-item active" : "nav-item"} onClick={() => setView("office")} type="button">Office</button>
           <button className={view === "profiles" ? "nav-item active" : "nav-item"} onClick={() => setView("profiles")} type="button">Profiles</button>
-          <button className="nav-item" onClick={() => void discoverAgents()} type="button">Discover</button>
-          <button className="nav-item" onClick={() => void scan()} type="button">Scan Skills</button>
-          <button className="nav-item" type="button">Tasks</button>
-          <button className="nav-item" type="button">Timeline</button>
+          <button className={view === "permissions" ? "nav-item active" : "nav-item"} onClick={() => setView("permissions")} type="button">Permissions</button>
         </nav>
       </aside>
 
       <section className="workspace">
         {view === "profiles" ? (
           <AgentProfileLibrary />
+        ) : view === "permissions" ? (
+          <PermissionSettings />
         ) : (
           <>
             <header className="toolbar">
@@ -126,7 +120,7 @@ export function App(): ReactElement {
                 <p className="eyebrow">Human manager workspace</p>
                 <h2>Pixel Office</h2>
               </div>
-              <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
+              <button className="primary-action" onClick={() => setCreateDialogOpen(true)} type="button">Create Agent</button>
             </header>
 
             <div className="content-grid">
@@ -134,7 +128,7 @@ export function App(): ReactElement {
                 {agents.length === 0 ? (
                   <div className="office-empty">
                     <p>No agents yet.</p>
-                    <button className="primary-action" onClick={() => void createMockAgent()} type="button">Create Mock Agent</button>
+                    <button className="primary-action" onClick={() => setCreateDialogOpen(true)} type="button">Create Agent</button>
                   </div>
                 ) : (
                   <OfficeCanvas
@@ -148,6 +142,13 @@ export function App(): ReactElement {
 
               <AgentDetailDrawer agent={selectedAgent} onClose={() => setSelectedAgentId(null)} onRuntimeEvent={onRuntimeEvent} />
             </div>
+            {createDialogOpen ? (
+              <CreateAgentDialog
+                agentCount={agents.length}
+                onClose={() => setCreateDialogOpen(false)}
+                onCreated={afterAgentCreated}
+              />
+            ) : null}
           </>
         )}
       </section>

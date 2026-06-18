@@ -1,6 +1,8 @@
 # Domain Model And Target Layering
 
-This document defines the target product architecture that Tasks 11-18 should follow. It separates UI, IPC, application services, domain services, runtime adapters, and persistence so future features can grow without turning IPC handlers or React components into business-logic containers.
+This document defines the target product architecture that Tasks 11-18 should follow. The product is a local Agent Operating System for one-person companies, so the architecture must separate visual control surfaces from the durable systems that coordinate agent work.
+
+It separates UI, IPC, application services, domain services, runtime adapters, and persistence so future features can grow without turning IPC handlers or React components into business-logic containers.
 
 For the full first-class system component list, see `docs/system_architecture.md`. For product views and feature ownership, see `docs/product_view.md`.
 
@@ -154,7 +156,7 @@ Message Router does not decide task policy. It receives routing intent from Orch
 
 ### Context / Memory
 
-Context / Memory builds the context that agents receive:
+Context / Memory builds the context that agents receive and owns durable Business Memory Assets:
 
 - profile snapshot,
 - assigned skills,
@@ -162,7 +164,21 @@ Context / Memory builds the context that agents receive:
 - task context,
 - meeting context,
 - user preferences,
-- durable memory records when implemented.
+- durable business memory records.
+
+Business Memory Assets should capture reusable company knowledge:
+
+- customers,
+- projects,
+- decisions,
+- preferences,
+- constraints,
+- metrics,
+- competitors,
+- brand voice,
+- historical context.
+
+Business memory must be inspectable and curated. It should not be only raw chat history.
 
 Renderer-provided context is never trusted as authoritative. Main-process services build context from persisted product data.
 
