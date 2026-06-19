@@ -24,6 +24,7 @@ export type DatabaseClientOptions = {
 
 export class DatabaseClient {
   readonly filePath: string | undefined;
+  private pendingSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     private readonly database: Database,
@@ -154,7 +155,45 @@ export class DatabaseClient {
     return this.database.export();
   }
 
+  scheduleSave(delayMs = 120): void {
+    if (!this.filePath) {
+      return;
+    }
+
+    if (this.pendingSaveTimeout) {
+      clearTimeout(this.pendingSaveTimeout);
+    }
+
+    this.pendingSaveTimeout = setTimeout(() => {
+      this.pendingSaveTimeout = null;
+      this.writeToDisk();
+    }, delayMs);
+  }
+
+  flushPendingSave(): void {
+    if (!this.pendingSaveTimeout) {
+      return;
+    }
+
+    clearTimeout(this.pendingSaveTimeout);
+    this.pendingSaveTimeout = null;
+    this.writeToDisk();
+  }
+
   save(): void {
+    if (!this.filePath) {
+      return;
+    }
+
+    if (this.pendingSaveTimeout) {
+      clearTimeout(this.pendingSaveTimeout);
+      this.pendingSaveTimeout = null;
+    }
+
+    this.writeToDisk();
+  }
+
+  private writeToDisk(): void {
     if (!this.filePath) {
       return;
     }
@@ -164,6 +203,7 @@ export class DatabaseClient {
   }
 
   close(): void {
+    this.flushPendingSave();
     this.database.close();
   }
 }

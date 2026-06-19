@@ -45,7 +45,7 @@ const roleFromMessage = (role: string | null | undefined): "agent" | "user" | "s
 };
 
 const shouldRefreshConversationPreview = (event: AgentRuntimeEvent): boolean =>
-  ["message_chunk", "waiting_user_input", "error", "session_completed", "session_stopped"].includes(event.type);
+  ["waiting_user_input", "error", "session_completed", "session_stopped"].includes(event.type);
 
 const shouldRefreshActivityFeed = (event: AgentRuntimeEvent): boolean =>
   ["status_changed", "file_touched", "waiting_user_input", "error"].includes(event.type);
