@@ -8,6 +8,7 @@ import type {
   AgentPackRecord,
   AgentSkillRecord,
   EventRecord,
+  FloorRecord,
   JsonObject,
   MeetingMessageRecord,
   MeetingParticipantRecord,
@@ -17,12 +18,15 @@ import type {
   SessionRecord,
   SkillRecord,
   TaskRecord,
-  TokenUsageRecord
+  TokenUsageRecord,
+  WorkstationRecord
 } from "./types/records";
 
 export const IPC_CHANNELS = {
   appInfo: "app:info",
   appPickWorkingDirectory: "app:pick-working-directory",
+  officeGetSnapshot: "office:get-snapshot",
+  officeCreateWorkstation: "office:create-workstation",
   agentsList: "agents:list",
   agentsGet: "agents:get",
   agentsCreate: "agents:create",
@@ -105,7 +109,21 @@ export type CreateAgentRequest = {
   profileSnapshot?: JsonObject;
   skillIds?: string[];
   currentTask?: string | null;
+  workstationId?: string | null;
   metadata?: JsonObject;
+};
+
+export type CreateWorkstationRequest = {
+  id: string;
+  floorId: string;
+  slotKey: string;
+  name?: string | null;
+  metadata?: JsonObject;
+};
+
+export type OfficeSnapshot = {
+  floors: FloorRecord[];
+  workstations: WorkstationRecord[];
 };
 
 export type UpdateAgentPositionRequest = {
@@ -371,6 +389,10 @@ export type CodexOfficeApi = {
   app: {
     getInfo(): Promise<AppInfo>;
     pickWorkingDirectory(): Promise<string | null>;
+  };
+  office: {
+    getSnapshot(): Promise<OfficeSnapshot>;
+    createWorkstation(input: CreateWorkstationRequest): Promise<WorkstationRecord>;
   };
   agents: {
     list(): Promise<AgentRecord[]>;

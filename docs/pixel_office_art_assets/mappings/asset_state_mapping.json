@@ -1,0 +1,146 @@
+{
+  "floor": {
+    "floor_empty": {
+      "meaning": "Floor has zero workstations",
+      "assets": [
+        "floor_room_shell_day",
+        "floor_wall_backdrop",
+        "floor_tile_bluegray_a",
+        "floor_tile_bluegray_b",
+        "floor_prop_pantry_left",
+        "floor_prop_door_top",
+        "floor_prop_sofa_top",
+        "floor_prop_bookshelf_top",
+        "floor_prop_printer_right",
+        "floor_prop_plant_strip_bottom"
+      ]
+    },
+    "floor_active": {
+      "meaning": "Floor has one or more workstations",
+      "assets": [
+        "floor_room_shell_day",
+        "floor_wall_backdrop",
+        "floor_tile_bluegray_a",
+        "floor_tile_bluegray_b"
+      ]
+    }
+  },
+  "workstation": {
+    "workstation_empty": {
+      "meaning": "Empty workstation not hovered",
+      "assets": [
+        "workstation_empty_base",
+        "workstation_empty_shadow",
+        "workstation_label_plaque"
+      ]
+    },
+    "workstation_hover": {
+      "meaning": "Empty workstation hovered",
+      "assets": [
+        "workstation_empty_base",
+        "workstation_hover_overlay",
+        "workstation_label_plaque"
+      ]
+    },
+    "workstation_selected": {
+      "meaning": "Empty workstation selected",
+      "assets": [
+        "workstation_empty_base",
+        "workstation_selected_overlay",
+        "workstation_label_plaque"
+      ]
+    },
+    "workstation_occupied": {
+      "meaning": "Agent assigned to workstation",
+      "assets": [
+        "workstation_occupied_base",
+        "workstation_label_plaque"
+      ]
+    }
+  },
+  "agent": {
+    "agent_idle": {
+      "meaning": "Agent seated but idle",
+      "assets": [
+        "agent_pixel_idle"
+      ]
+    },
+    "agent_working": {
+      "meaning": "Agent actively working",
+      "assets": [
+        "agent_pixel_working",
+        "workstation_status_badge_green"
+      ]
+    },
+    "agent_thinking": {
+      "meaning": "Agent reasoning or waiting on internal task",
+      "assets": [
+        "agent_pixel_thinking",
+        "workstation_status_badge_blue"
+      ]
+    },
+    "agent_blocked": {
+      "meaning": "Agent blocked or errored",
+      "assets": [
+        "agent_pixel_blocked",
+        "workstation_status_badge_red"
+      ]
+    }
+  },
+  "modal": {
+    "modal_create_agent_confirm_open": {
+      "meaning": "Confirm create-agent prompt visible",
+      "assets": [
+        "modal_create_agent_confirm_frame",
+        "button_primary_green",
+        "button_secondary_orange",
+        "button_close_pixel"
+      ]
+    },
+    "modal_create_agent_form_open": {
+      "meaning": "Agent creation form visible",
+      "assets": [
+        "modal_create_agent_form_frame",
+        "input_frame_pixel",
+        "dropdown_frame_pixel",
+        "button_primary_green",
+        "button_close_pixel"
+      ]
+    }
+  },
+  "chat": {
+    "chat_panel_open": {
+      "meaning": "Agent chat drawer visible",
+      "assets": [
+        "chat_panel_frame",
+        "chat_header_frame",
+        "chat_input_frame",
+        "chat_send_button"
+      ]
+    },
+    "chat_agent_message": {
+      "meaning": "Agent-authored message bubble",
+      "assets": [
+        "chat_bubble_agent"
+      ]
+    },
+    "chat_user_message": {
+      "meaning": "User-authored message bubble",
+      "assets": [
+        "chat_bubble_user"
+      ]
+    },
+    "chat_status_working": {
+      "meaning": "Agent shown as working in chat header",
+      "assets": [
+        "chat_status_chip_working"
+      ]
+    },
+    "chat_status_waiting": {
+      "meaning": "Agent shown as waiting in chat header",
+      "assets": [
+        "chat_status_chip_waiting"
+      ]
+    }
+  }
+}

@@ -1,11 +1,15 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const outDir = "C:/Users/Administrator/Desktop/repo/pixel_factory/out";
+const outDir = "C:/Users/Administrator/Desktop/repo/pixel_factory/verification";
 const debugPort = process.env.DEBUG_PORT ?? "9666";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const workspacePath = "C:/Users/Administrator/Desktop/repo/pixel_factory";
 const agentNames = [`Dual Pixel A ${Date.now()}`, `Dual Pixel B ${Date.now() + 1}`];
+const prompts = [
+  "Say: round one complete.",
+  "Say: round two complete."
+];
 
 const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
 const target =
@@ -60,9 +64,13 @@ const evalExpr = async (expression) => {
 const waitFor = async (predicateExpression, timeoutMs = 20000) => {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const ready = await evalExpr(predicateExpression);
-    if (ready) {
-      return ready;
+    try {
+      const ready = await evalExpr(predicateExpression);
+      if (ready) {
+        return ready;
+      }
+    } catch {
+      // Renderer reloads briefly invalidate the execution context.
     }
     await delay(250);
   }
@@ -76,6 +84,24 @@ const screenshot = async (name) => {
   const filePath = path.join(outDir, name);
   await writeFile(filePath, Buffer.from(result.data, "base64"));
   return filePath;
+};
+
+const installPageHooks = async () => {
+  await evalExpr(`(() => {
+    window.confirm = () => true;
+    window.__codexUiErrors = window.__codexUiErrors ?? [];
+    if (!window.__codexUiHooked) {
+      window.addEventListener('error', (event) => {
+        window.__codexUiErrors.push(String(event.message ?? 'unknown error'));
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
+        window.__codexUiErrors.push(reason);
+      });
+      window.__codexUiHooked = true;
+    }
+    return true;
+  })()`);
 };
 
 const clickButtonByText = async (text) => {
@@ -101,7 +127,12 @@ const setFieldByLabel = async (labelText, value, tagName = "input") => {
     if (!field) {
       throw new Error('Field not found for label: ' + ${JSON.stringify(labelText)});
     }
-    const prototype = field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : field.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    const prototype =
+      field.tagName === 'TEXTAREA'
+        ? HTMLTextAreaElement.prototype
+        : field.tagName === 'SELECT'
+          ? HTMLSelectElement.prototype
+          : HTMLInputElement.prototype;
     const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
     field.focus();
     descriptor?.set?.call(field, ${JSON.stringify(value)});
@@ -111,8 +142,41 @@ const setFieldByLabel = async (labelText, value, tagName = "input") => {
   })()`);
 };
 
-const createAgentThroughUi = async (agentName) => {
-  await clickButtonByText("Create Agent");
+const clickSlot = async (slotKey) => {
+  await evalExpr(`(() => {
+    const target = document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]');
+    if (!target) {
+      throw new Error('Slot not found: ' + ${JSON.stringify(slotKey)});
+    }
+    target.click();
+    return true;
+  })()`);
+};
+
+const getOfficeSnapshot = () => evalExpr(`window.codexOffice.office.getSnapshot()`);
+
+const buildWorkstationOnSlot = async (slotKey) => {
+  await clickSlot(slotKey);
+  await clickButtonByText("Create Workstation").catch(() => clickButtonByText("Add Workstation"));
+  await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]')?.getAttribute('data-workstation-state') === 'empty'`, 20000);
+};
+
+const ensureEmptyWorkstations = async (count) => {
+  let snapshot = await getOfficeSnapshot();
+  const empty = () => snapshot.workstations.filter((workstation) => !workstation.assigned_agent_id);
+
+  while (empty().length < count) {
+    const unbuiltSlotKey = await waitFor(`(() => document.querySelector('.office-slot[data-workstation-state="unbuilt"]')?.getAttribute('data-slot-key') || false)()`, 15000);
+    await buildWorkstationOnSlot(unbuiltSlotKey);
+    snapshot = await getOfficeSnapshot();
+  }
+
+  return empty().slice(0, count);
+};
+
+const createAgentOnWorkstation = async (workstation, agentName) => {
+  await clickSlot(workstation.slot_key);
+  await clickButtonByText("Create Agent").catch(() => clickButtonByText("Create Agent On Workstation"));
   await waitFor(`Boolean(document.querySelector('[aria-label="Create agent"]'))`);
   await setFieldByLabel("Agent name", agentName);
   await setFieldByLabel("Role", "Codex Agent");
@@ -121,6 +185,7 @@ const createAgentThroughUi = async (agentName) => {
   await setFieldByLabel("Initial task", "Introduce yourself in one short sentence.", "textarea");
   await clickButtonByText("Create agent");
   await waitFor(`!document.querySelector('[aria-label="Create agent"]')`);
+  await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(workstation.slot_key)}]')?.getAttribute('data-workstation-state') === 'occupied'`, 20000);
   return waitFor(`(async () => {
     const agents = await window.codexOffice.agents.list();
     return agents.find((agent) => agent.name === ${JSON.stringify(agentName)}) ?? false;
@@ -128,34 +193,14 @@ const createAgentThroughUi = async (agentName) => {
 };
 
 const selectAgent = async (agent) => {
-  const point = await evalExpr(`(() => {
-    const canvas = document.querySelector('.office-canvas-element');
-    if (!canvas) {
-      throw new Error('Office canvas not found.');
+  await evalExpr(`(() => {
+    const target = document.querySelector('.office-roster [data-agent-id=${JSON.stringify(agent.id)}]');
+    if (!target) {
+      throw new Error('Roster button not found for agent: ' + ${JSON.stringify(agent.id)});
     }
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = rect.width / 780;
-    const scaleY = rect.height / 500;
-    return {
-      x: rect.left + window.scrollX + (${agent.position_x} * scaleX),
-      y: rect.top + window.scrollY + (${agent.position_y} * scaleY)
-    };
+    target.click();
+    return true;
   })()`);
-
-  await send("Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x: point.x,
-    y: point.y,
-    button: "left",
-    clickCount: 1
-  });
-  await send("Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    x: point.x,
-    y: point.y,
-    button: "left",
-    clickCount: 1
-  });
 };
 
 const sendMessage = async (message) => {
@@ -193,41 +238,37 @@ await send("Page.enable");
 await send("Runtime.enable");
 await delay(1000);
 
-await evalExpr(`(() => {
-  window.confirm = () => true;
-  window.__codexUiErrors = [];
-  window.addEventListener('error', (event) => {
-    window.__codexUiErrors.push(String(event.message ?? 'unknown error'));
-  });
-  window.addEventListener('unhandledrejection', (event) => {
-    const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
-    window.__codexUiErrors.push(reason);
-  });
-  return true;
-})()`);
+await installPageHooks();
 
 await waitFor(`document.body.innerText.includes("Pixel Office")`);
-const beforeAgents = await evalExpr(`window.codexOffice.agents.list()`);
+await evalExpr(`(async () => {
+  const agents = await window.codexOffice.agents.list();
+  await Promise.all(agents.map((agent) => window.codexOffice.agents.delete(agent.id)));
+  window.location.reload();
+  return true;
+})()`);
+await waitFor(`document.body.innerText.includes("Pixel Office")`, 20000);
+await waitFor(`(async () => typeof window.codexOffice !== "undefined" && (await window.codexOffice.agents.list()).length === 0)()`, 20000);
+await installPageHooks();
 
+const beforeSnapshot = await getOfficeSnapshot();
+const readyWorkstations = await ensureEmptyWorkstations(2);
 const created = [];
-for (const name of agentNames) {
-  created.push(await createAgentThroughUi(name));
+for (const [index, workstation] of readyWorkstations.entries()) {
+  created.push(await createAgentOnWorkstation(workstation, agentNames[index]));
 }
 
-const afterCreate = await evalExpr(`window.codexOffice.agents.list()`);
+const afterCreateSnapshot = await getOfficeSnapshot();
 const screenshots = {
   afterCreate: await screenshot("dual-agents-created.png")
 };
 
 const conversationResults = [];
-for (const agent of created) {
+for (const agent of [...created].reverse()) {
   await selectAgent(agent);
-  await waitFor(`document.querySelector('.detail-panel h3')?.textContent === ${JSON.stringify(agent.name)}`);
+  await waitFor(`document.querySelector('.detail-panel')?.getAttribute('data-agent-id') === ${JSON.stringify(agent.id)}`);
 
-  for (const prompt of [
-    "Say: round one complete.",
-    "Say: round two complete."
-  ]) {
+  for (const prompt of prompts) {
     await sendMessage(prompt);
     conversationResults.push(await waitForCompletedSession(agent.id));
   }
@@ -248,25 +289,37 @@ const perAgentTranscriptCount = await evalExpr(`(async () => {
 
 for (const agent of [...created].reverse()) {
   await selectAgent(agent);
-  await waitFor(`document.querySelector('.detail-panel h3')?.textContent === ${JSON.stringify(agent.name)}`);
+  await waitFor(`document.querySelector('.detail-panel')?.getAttribute('data-agent-id') === ${JSON.stringify(agent.id)}`);
+  const workstationBeforeDelete = await waitFor(`(async () => {
+    const snapshot = await window.codexOffice.office.getSnapshot();
+    return snapshot.workstations.find((item) => item.assigned_agent_id === ${JSON.stringify(agent.id)}) ?? false;
+  })()`, 15000);
   await clickButtonByText("Delete Agent");
   await waitFor(`(async () => {
     const agents = await window.codexOffice.agents.list();
     return !agents.some((item) => item.id === ${JSON.stringify(agent.id)});
   })()`, 15000);
+  await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(workstationBeforeDelete.slot_key)}]')?.getAttribute('data-workstation-state') === 'empty'`, 15000);
 }
 
 const uiErrors = await evalExpr(`window.__codexUiErrors ?? []`);
-
-console.log(JSON.stringify({
-  beforeAgentCount: beforeAgents.length,
-  afterAgentCount: afterCreate.length,
+const remainingAgentCount = await evalExpr(`window.codexOffice.agents.list().then((agents) => agents.length)`);
+const finalSnapshot = await getOfficeSnapshot();
+const reportPath = path.join(outDir, "dual-agents-verification.json");
+const report = {
+  beforeWorkstationCount: beforeSnapshot.workstations.length,
+  afterWorkstationCount: afterCreateSnapshot.workstations.length,
   created,
   conversationResults,
   perAgentTranscriptCount,
-  remainingAgentCount: (await evalExpr(`window.codexOffice.agents.list()`)).length,
+  remainingAgentCount,
+  finalSnapshot,
   uiErrors,
   screenshots
-}, null, 2));
+};
+
+await writeFile(reportPath, JSON.stringify(report, null, 2));
+
+console.log(JSON.stringify({ ...report, reportPath }, null, 2));
 
 ws.close();

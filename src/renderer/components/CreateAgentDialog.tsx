@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactElement } from "react";
 import type { CreateAgentRequest } from "../../shared/ipc";
-import type { SkillRecord } from "../../shared/types/records";
+import type { SkillRecord, WorkstationRecord } from "../../shared/types/records";
 import {
   hasCreateAgentFormErrors,
   validateCreateAgentForm,
@@ -13,7 +13,8 @@ const createId = (prefix: string): string => `${prefix}-${Date.now()}`;
 type CreateAgentDialogProps = {
   agentCount: number;
   onClose(): void;
-  onCreated(agentId: string): Promise<void>;
+  onCreated(agentId: string, workstationId: string | null): Promise<void>;
+  workstation: WorkstationRecord;
 };
 
 const initialForm = (agentCount: number): CreateAgentFormState => ({
@@ -27,7 +28,8 @@ const initialForm = (agentCount: number): CreateAgentFormState => ({
 export function CreateAgentDialog({
   agentCount,
   onClose,
-  onCreated
+  onCreated,
+  workstation
 }: CreateAgentDialogProps): ReactElement {
   const [form, setForm] = useState<CreateAgentFormState>(() => initialForm(agentCount));
   const [skills, setSkills] = useState<SkillRecord[]>([]);
@@ -80,8 +82,8 @@ export function CreateAgentDialog({
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     const nextErrors = validateCreateAgentForm(form);
-        setErrors(nextErrors);
-        setSubmitError(null);
+    setErrors(nextErrors);
+    setSubmitError(null);
 
     if (hasCreateAgentFormErrors(nextErrors)) {
       return;
@@ -101,14 +103,16 @@ export function CreateAgentDialog({
         modelProfile: modelProfile.trim() || null,
         skillIds: selectedSkillIds,
         currentTask: form.initialTask.trim(),
+        workstationId: workstation.id,
         metadata: {
           createdFromUi: true,
-          managerControlled: true
+          managerControlled: true,
+          workstationSlotKey: workstation.slot_key
         }
       };
 
       await window.codexOffice.agents.create(payload);
-      await onCreated(agentId);
+      await onCreated(agentId, workstation.id);
       onClose();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Unable to create agent.");
@@ -122,8 +126,9 @@ export function CreateAgentDialog({
       <section aria-label="Create agent" className="dialog-panel">
         <header className="dialog-header">
           <div>
-            <p className="eyebrow">Agent Registry</p>
+            <p className="eyebrow">Workstation Assignment</p>
             <h3>Create Agent</h3>
+            <p className="dialog-subtitle">Seat: {workstation.name ?? workstation.slot_key}</p>
           </div>
           <button aria-label="Close create agent dialog" className="icon-button" onClick={onClose} type="button">
             x

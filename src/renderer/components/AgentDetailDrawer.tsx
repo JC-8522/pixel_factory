@@ -15,14 +15,14 @@ type AgentDetailDrawerProps = {
 export function AgentDetailDrawer({ agent, onClose, onDelete, onRuntimeEvent }: AgentDetailDrawerProps): ReactElement {
   if (!agent) {
     return (
-      <aside className="detail-panel" aria-label="Selected agent details">
+      <aside aria-label="Selected agent details" className="detail-panel" data-agent-id="">
         <p className="empty-note">Select an agent to inspect details.</p>
       </aside>
     );
   }
 
   return (
-    <aside className="detail-panel" aria-label="Selected agent details">
+    <aside aria-label="Selected agent details" className="detail-panel" data-agent-id={agent.id}>
       <div className="drawer-heading">
         <div>
           <p className="eyebrow">Selected agent</p>

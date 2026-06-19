@@ -23,6 +23,10 @@ import {
   summarizeTokenUsageByAgent,
 } from "../db/repositories";
 import {
+  createOfficeWorkstation,
+  getOfficeSnapshot
+} from "../office/officeService";
+import {
   attachSkillToRegisteredAgent,
   detachSkillFromRegisteredAgent,
   getRegisteredAgent,
@@ -85,6 +89,7 @@ import {
   validateCreateAgentProfile,
   validateCreateMeeting,
   validateCreateMessage,
+  validateCreateWorkstation,
   validateCreateTask,
   validateDuplicateAgentProfile,
   validateEventFilter,
@@ -144,6 +149,11 @@ export const createIpcHandlers = ({
 
   return {
   appInfo: (): AppInfo => getAppInfo(),
+
+  officeGetSnapshot: () =>
+    saveAfter(client, () => getOfficeSnapshot(client)),
+  officeCreateWorkstation: (input: unknown) =>
+    saveAfter(client, () => createOfficeWorkstation(client, validateCreateWorkstation(input))),
 
   agentsList: () => listRegisteredAgents(client),
   agentsGet: (agentId: unknown) => getRegisteredAgent(client, validateId(agentId, "agent id")),

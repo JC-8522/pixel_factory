@@ -6,6 +6,7 @@ import type {
   CreateAgentProfileRequest,
   CreateMeetingRequest,
   CreateMessageRequest,
+  CreateWorkstationRequest,
   CreateTaskRequest,
   DuplicateAgentProfileRequest,
   EventFilterRequest,
@@ -84,6 +85,18 @@ export const validateCreateAgent = (value: unknown): CreateAgentRequest => {
     profileSnapshot: optionalJsonObject(input.profileSnapshot, "profile snapshot"),
     skillIds: optionalStringArray(input.skillIds, "selected skills"),
     currentTask: optionalString(input.currentTask, "current task"),
+    workstationId: optionalString(input.workstationId, "workstation id"),
+    metadata: optionalJsonObject(input.metadata, "metadata")
+  };
+};
+
+export const validateCreateWorkstation = (value: unknown): CreateWorkstationRequest => {
+  const input = assertRecord(value, "create workstation input");
+  return {
+    id: assertNonEmptyString(input.id, "workstation id"),
+    floorId: assertNonEmptyString(input.floorId, "floor id"),
+    slotKey: assertNonEmptyString(input.slotKey, "slot key"),
+    name: optionalString(input.name, "workstation name"),
     metadata: optionalJsonObject(input.metadata, "metadata")
   };
 };

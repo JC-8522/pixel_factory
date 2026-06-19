@@ -29,4 +29,20 @@ Detailed MVP 1 tasks live in:
 
 ## Result
 
-This file is now the MVP 1 overview. Each child task has its own file so we can implement and validate them one by one.
+This file is now the MVP 1 overview.
+
+Each child task remains a delivery slice for implementation sequencing.
+
+MVP 1 is not considered done because one slice passes in isolation.
+
+Final sign-off for this MVP must use:
+
+- `task/2026-06-17_mvp_pixel_office/mvp1_first_workstation_and_agent/09_mvp1_acceptance.md`
+
+That acceptance file is the single end-to-end delivery gate for the whole loop:
+
+1. open the office,
+2. create the first workstation,
+3. create the first agent on that workstation,
+4. see the occupied desk clearly,
+5. use chat and delete flows without breaking the office state.

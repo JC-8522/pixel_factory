@@ -1,0 +1,3 @@
+# floor_room_shell_day
+
+Create a single empty office floor room shell for a Stardew Valley-inspired office management game. View from a straight-on top-down management sim angle. Include a dark wooden outer frame, warm cream walls, blue-gray tiled carpet floor, pantry and coffee shelf in the top-left, double door on the top wall, blue sofa and small table near the top-right, bookshelf, printer on the right wall, and a decorative plant strip at the bottom. Leave the center area clean and open for a 4 by 3 grid of workstations. Crisp pixel art, cozy warm atmosphere, no UI text, no characters, no modern dashboard style.

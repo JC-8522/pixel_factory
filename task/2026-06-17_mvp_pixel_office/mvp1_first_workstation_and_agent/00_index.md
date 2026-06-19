@@ -20,9 +20,25 @@ Deliver the first playable Stardew-inspired office loop:
 7. `07_render_occupied_workstation_with_pixel_agent.md`
 8. `08_desk_label_and_first_pass_polish.md`
 9. `09_mvp1_acceptance.md`
+10. `10_mvp1_asset_usage_matrix.md`
 
 ## Notes
 
 - Tasks are ordered to minimize rework.
-- Each file contains its own goal, deliverable, acceptance, and validation.
-- `09_mvp1_acceptance.md` is the end-to-end gate for the whole MVP.
+- Each file contains its own implementation slice, local acceptance, and local validation.
+- Child task validation proves that one slice works; it does not by itself close MVP 1.
+- `09_mvp1_acceptance.md` is the single end-to-end gate for the whole MVP.
+- `10_mvp1_asset_usage_matrix.md` links MVP 1 tasks to the art assets and explains how frontend should use them.
+
+## Delivery Rule
+
+Treat Tasks `1.1` through `1.8` as build slices, not independent release gates.
+
+MVP 1 is only done when the whole workstation-first product loop works end to end:
+
+1. the office opens in a believable empty state,
+2. the user creates the first workstation,
+3. the user creates an agent from that workstation,
+4. the workstation becomes occupied and readable,
+5. the user can chat with and delete the created agent,
+6. the office stays consistent after cleanup and restart.

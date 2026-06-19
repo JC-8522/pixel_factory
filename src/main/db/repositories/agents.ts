@@ -114,6 +114,10 @@ export const deleteAgent = (client: DatabaseClient, agentId: string): AgentRecor
     client.run("DELETE FROM sessions WHERE agent_id = ?", [agentId]);
     client.run("DELETE FROM agent_skills WHERE agent_id = ?", [agentId]);
     client.run("DELETE FROM meeting_participants WHERE agent_id = ?", [agentId]);
+    client.run("UPDATE workstations SET assigned_agent_id = NULL, updated_at = ? WHERE assigned_agent_id = ?", [
+      nowIso(),
+      agentId
+    ]);
     client.run("UPDATE tasks SET assigned_agent_id = NULL WHERE assigned_agent_id = ?", [agentId]);
     client.run("UPDATE meetings SET moderator_agent_id = NULL WHERE moderator_agent_id = ?", [agentId]);
     client.run("UPDATE meeting_messages SET agent_id = NULL WHERE agent_id = ?", [agentId]);

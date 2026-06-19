@@ -21,6 +21,12 @@ Add the UI state needed for build mode and workstation selection.
 
 Stable UI state model for workstation-first interactions.
 
+## MVP 1 Delivery Rule
+
+This task prepares UI state for the full loop.
+
+MVP 1 is not done until the same store state supports end-to-end workstation creation, workstation selection, workstation-bound agent creation, and occupied workstation detail access in `09_mvp1_acceptance.md`.
+
 ## Acceptance
 
 - Selecting a workstation updates store state.

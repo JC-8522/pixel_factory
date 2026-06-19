@@ -1,39 +1,49 @@
-import type { AgentStatus } from "../../shared/types/app";
+import { MVP1_WORKSTATION_SLOTS, type OfficeSlotDefinition } from "../../shared/office";
 
-export type OfficeZone = {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color: number;
+export const floorRoomShellUrl = new URL("../../../assets/pixel_office/mvp1/floor/floor_room_shell_day.png", import.meta.url)
+  .href;
+export const workstationSheetUrl = new URL(
+  "../../../assets/pixel_office/mvp1/workstation/workstation_state_sheet.png",
+  import.meta.url
+).href;
+export const agentSheetUrl = new URL("../../../assets/pixel_office/mvp1/agent/agent_state_sheet.png", import.meta.url).href;
+
+export const officeSlots: OfficeSlotDefinition[] = MVP1_WORKSTATION_SLOTS;
+
+export const spriteSheetStyle = (sheetUrl: string, frameIndex: number): Record<string, string> => ({
+  backgroundImage: `url("${sheetUrl}")`,
+  backgroundPosition: `${(frameIndex / 3) * 100}% 0%`,
+  backgroundRepeat: "no-repeat",
+  backgroundSize: "400% 100%"
+});
+
+export const workstationFrameIndex = (isHovered: boolean, isSelected: boolean): number => {
+  if (isSelected) {
+    return 2;
+  }
+
+  if (isHovered) {
+    return 1;
+  }
+
+  return 0;
 };
 
-export const officeZones: OfficeZone[] = [
-  { id: "desks", label: "Agent desks", x: 24, y: 24, width: 726, height: 434, color: 0x28313f }
-];
-
-export const statusColor = (status: AgentStatus | string): number => {
+export const agentFrameIndex = (status: string): number => {
   switch (status) {
     case "thinking":
-      return 0xf2c94c;
-    case "running_command":
-      return 0xf2994a;
     case "reading_files":
-      return 0x56ccf2;
+      return 2;
+    case "running_command":
     case "editing_files":
-      return 0x6fcf97;
-    case "waiting_user_input":
-      return 0xbb6bd9;
-    case "error":
-      return 0xeb5757;
     case "completed":
-      return 0x27ae60;
+      return 1;
+    case "waiting_user_input":
+    case "error":
     case "stopped":
-      return 0x828282;
+      return 3;
     case "idle":
     default:
-      return 0xbfd7ea;
+      return 0;
   }
 };
