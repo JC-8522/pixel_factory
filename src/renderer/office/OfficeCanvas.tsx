@@ -10,8 +10,18 @@ import {
   workstationSheetUrl
 } from "./officeLayout";
 
+const summarizeAgentPreview = (value: string | null | undefined, max = 72): string => {
+  if (!value) {
+    return "Conversation ready.";
+  }
+
+  const compact = value.replace(/\s+/g, " ").trim();
+  return compact.length > max ? `${compact.slice(0, max - 1)}...` : compact;
+};
+
 type OfficeCanvasProps = {
   agents: AgentRecord[];
+  conversationPreviews?: Record<string, string>;
   selectedSlotKey: string | null;
   workstations: WorkstationRecord[];
   onSelectSlot(slotKey: string): void;
@@ -19,6 +29,7 @@ type OfficeCanvasProps = {
 
 export function OfficeCanvas({
   agents,
+  conversationPreviews = {},
   selectedSlotKey,
   workstations,
   onSelectSlot
@@ -43,18 +54,22 @@ export function OfficeCanvas({
                 ? "occupied"
                 : "empty"
               : "unbuilt";
-            const spriteStyle = workstation
-              ? assignedAgent
-                ? spriteSheetStyle(agentSheetUrl, agentFrameIndex(assignedAgent.status))
-                : spriteSheetStyle(workstationSheetUrl, workstationFrameIndex(isHovered, isSelected))
-              : undefined;
+            const spriteStyle = assignedAgent
+              ? spriteSheetStyle(agentSheetUrl, agentFrameIndex(assignedAgent.status))
+              : spriteSheetStyle(workstationSheetUrl, workstationFrameIndex(isHovered, isSelected));
+            const helperText = assignedAgent
+              ? `${assignedAgent.name}\n${conversationPreviews[assignedAgent.id] ?? assignedAgent.current_task ?? "Open conversation"}`
+              : "Empty Workstation\nClick to create";
 
             return (
               <button
                 key={slot.slotKey}
-                aria-label={`${slot.label} workstation slot`}
+                aria-label={
+                  assignedAgent ? `${assignedAgent.name} at ${slot.label}` : `${slot.label} workstation`
+                }
                 className={`office-slot office-slot-${workstationState}${isSelected ? " is-selected" : ""}`}
                 data-agent-id={assignedAgent?.id ?? ""}
+                data-seat-state={assignedAgent ? "occupied" : "available"}
                 data-slot-key={slot.slotKey}
                 data-workstation-id={workstation?.id ?? ""}
                 data-workstation-state={workstationState}
@@ -70,15 +85,15 @@ export function OfficeCanvas({
                 }}
                 type="button"
               >
-                {workstation ? (
-                  <span className="office-slot-sprite" style={spriteStyle} />
-                ) : (
-                  <span className="office-slot-placeholder">
-                    <span className="office-slot-plus">+</span>
-                  </span>
-                )}
-                <span className="office-slot-label">{workstation?.name ?? slot.label}</span>
+                <span className="office-slot-sprite" style={spriteStyle} />
+                <span className="office-slot-label">{assignedAgent?.name ?? workstation?.name ?? slot.label}</span>
                 {assignedAgent ? <span className={`office-slot-status is-${assignedAgent.status}`} /> : null}
+                {assignedAgent && (isSelected || isHovered) ? (
+                  <span className="office-slot-preview">
+                    {conversationPreviews[assignedAgent.id] ?? summarizeAgentPreview(assignedAgent.current_task)}
+                  </span>
+                ) : null}
+                {isHovered ? <span className="office-slot-helper">{helperText}</span> : null}
               </button>
             );
           })}

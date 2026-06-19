@@ -2,6 +2,15 @@ import { create } from "zustand";
 import type { CreateMessageRequest } from "../../shared/ipc";
 import type { MessageRecord } from "../../shared/types/records";
 
+const sameMessages = (left: MessageRecord[], right: MessageRecord[]): boolean =>
+  left.length === right.length &&
+  left.every(
+    (message, index) =>
+      message.id === right[index]?.id &&
+      message.updated_at === right[index]?.updated_at &&
+      message.content === right[index]?.content
+  );
+
 type ChatState = {
   messagesBySession: Record<string, MessageRecord[]>;
   loading: boolean;
@@ -14,11 +23,11 @@ export const useChatStore = create<ChatState>((set) => ({
   messagesBySession: {},
   loading: false,
   hydrateSession: async (sessionId) => {
-    set({ loading: true });
     const messages = await window.codexOffice.messages.listBySession(sessionId);
     set((state) => ({
-      messagesBySession: { ...state.messagesBySession, [sessionId]: messages },
-      loading: false
+      messagesBySession: sameMessages(state.messagesBySession[sessionId] ?? [], messages)
+        ? state.messagesBySession
+        : { ...state.messagesBySession, [sessionId]: messages }
     }));
   },
   createMessage: async (input) => {
@@ -38,4 +47,3 @@ export const useChatStore = create<ChatState>((set) => ({
   },
   reset: () => set({ messagesBySession: {}, loading: false })
 }));
-

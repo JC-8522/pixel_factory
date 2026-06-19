@@ -4,12 +4,17 @@ import path from "node:path";
 const outDir = "C:/Users/Administrator/Desktop/repo/pixel_factory/verification";
 const debugPort = process.env.DEBUG_PORT ?? "9333";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const agentName = `UI Pixel ${Date.now()}`;
+const agentName = `Office UI ${Date.now()}`;
 const workspacePath = "C:/Users/Administrator/Desktop/repo/pixel_factory";
 const prompts = [
-  "Reply with the exact phrase: UI handshake complete.",
-  "Reply with the exact phrase: UI followup complete."
+  "Reply with the exact phrase: office loop one complete.",
+  "Reply with the exact phrase: office loop two complete."
 ];
+const confirmationButtonLabels = ["Open AI Employee", "Create Agent"];
+const submitButtonLabels = ["Create AI Employee", "Create agent"];
+const deleteButtonLabels = ["Remove AI Employee", "Delete Agent"];
+const agentNameLabels = ["AI employee name", "Agent name"];
+const initialBriefLabels = ["Initial brief", "Initial task"];
 
 const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
 const target =
@@ -120,6 +125,20 @@ const clickButtonByText = async (text) => {
   })()`);
 };
 
+const clickButtonByAnyText = async (texts) => {
+  const attempts = [];
+  for (const text of texts) {
+    try {
+      await clickButtonByText(text);
+      return text;
+    } catch (error) {
+      attempts.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`Buttons not found: ${texts.join(", ")} :: ${attempts.join(" | ")}`);
+};
+
 const setFieldByLabel = async (labelText, value, tagName = "input") => {
   await evalExpr(`(() => {
     const normalize = (value) => value.replace(/\\s+/g, ' ').trim().toLowerCase();
@@ -149,7 +168,19 @@ const setFieldByLabel = async (labelText, value, tagName = "input") => {
   })()`);
 };
 
-const getOfficeSnapshot = () => evalExpr(`window.codexOffice.office.getSnapshot()`);
+const setFieldByAnyLabel = async (labels, value, tagName = "input") => {
+  const attempts = [];
+  for (const label of labels) {
+    try {
+      await setFieldByLabel(label, value, tagName);
+      return label;
+    } catch (error) {
+      attempts.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`Labels not found: ${labels.join(", ")} :: ${attempts.join(" | ")}`);
+};
 
 const clickSlot = async (slotKey) => {
   await evalExpr(`(() => {
@@ -162,148 +193,197 @@ const clickSlot = async (slotKey) => {
   })()`);
 };
 
-const getSlotState = (slotKey) =>
-  waitFor(`(() => document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]')?.getAttribute('data-workstation-state') || false)()`);
-
-const findFirstSlotByState = async (state) =>
-  waitFor(`(() => document.querySelector('.office-slot[data-workstation-state=${JSON.stringify(state)}]')?.getAttribute('data-slot-key') || false)()`);
-
-const buildWorkstationOnSlot = async (slotKey) => {
-  await clickSlot(slotKey);
-  await waitFor(`document.querySelector('.workstation-panel[data-slot-key=${JSON.stringify(slotKey)}]') || document.querySelector('.detail-panel[data-slot-key=${JSON.stringify(slotKey)}]') || true`);
-  await clickButtonByText("Create Workstation").catch(() => clickButtonByText("Add Workstation"));
-  await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]')?.getAttribute('data-workstation-state') === 'empty'`, 20000);
-  const snapshot = await getOfficeSnapshot();
-  return snapshot.workstations.find((workstation) => workstation.slot_key === slotKey) ?? null;
+const hoverSlot = async (slotKey) => {
+  await evalExpr(`(() => {
+    const target = document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]');
+    if (!target) {
+      throw new Error('Slot not found: ' + ${JSON.stringify(slotKey)});
+    }
+    target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    target.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    target.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+    return true;
+  })()`);
 };
 
-const ensureEmptyWorkstation = async () => {
-  const snapshot = await getOfficeSnapshot();
-  const emptyWorkstation = snapshot.workstations.find((workstation) => !workstation.assigned_agent_id) ?? null;
-  if (emptyWorkstation) {
-    return emptyWorkstation;
-  }
+const getOfficeSnapshot = () => evalExpr(`window.codexOffice.office.getSnapshot()`);
+const getBoundingBox = (selector) =>
+  evalExpr(`(() => {
+    const target = document.querySelector(${JSON.stringify(selector)});
+    if (!target) {
+      throw new Error('Element not found for selector: ' + ${JSON.stringify(selector)});
+    }
+    const rect = target.getBoundingClientRect();
+    return {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      left: Math.round(rect.left),
+      top: Math.round(rect.top)
+    };
+  })()`);
 
-  const slotKey = await findFirstSlotByState("unbuilt");
-  const created = await buildWorkstationOnSlot(slotKey);
-  if (!created) {
-    throw new Error("Failed to create workstation.");
-  }
-  return created;
+const clearAgents = async () => {
+  await evalExpr(`(async () => {
+    const agents = await window.codexOffice.agents.list();
+    await Promise.all(agents.map((agent) => window.codexOffice.agents.delete(agent.id)));
+    window.location.reload();
+    return true;
+  })()`);
 };
+
+const sendMessage = async (message) => {
+  await evalExpr(`(() => {
+    const field = document.querySelector('.chat-form textarea, .chat-form input');
+    if (!field) {
+      throw new Error('Chat input not found.');
+    }
+    const prototype = field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+    field.focus();
+    descriptor?.set?.call(field, ${JSON.stringify(message)});
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await clickButtonByText("Send");
+};
+
+const waitForAgentTranscript = async (agentId) =>
+  waitFor(`(async () => {
+    const sessions = await window.codexOffice.sessions.listByAgent(${JSON.stringify(agentId)});
+    const messagesBySession = await Promise.all(sessions.map((session) => window.codexOffice.messages.listBySession(session.id)));
+    const allMessages = messagesBySession.flat();
+    const userMessages = allMessages.filter((message) => message.role === 'user');
+    const agentMessages = allMessages.filter((message) => message.role === 'agent' && String(message.content ?? '').trim().length > 0);
+    return userMessages.length >= 2 && agentMessages.length >= 2
+      ? {
+          sessionCount: sessions.length,
+          totalMessages: allMessages.length,
+          messages: allMessages.map((message) => ({ role: message.role, content: message.content }))
+        }
+      : false;
+  })()`, 120000);
+
+const waitForCompletedRounds = async (agentId, rounds) =>
+  waitFor(`(async () => {
+    const sessions = await window.codexOffice.sessions.listByAgent(${JSON.stringify(agentId)});
+    const messagesBySession = await Promise.all(sessions.map((session) => window.codexOffice.messages.listBySession(session.id)));
+    const allMessages = messagesBySession.flat();
+    const userMessages = allMessages.filter((message) => message.role === 'user').length;
+    const agentMessages = allMessages.filter((message) => message.role === 'agent' && String(message.content ?? '').trim().length > 0).length;
+    return sessions.length >= ${JSON.stringify(rounds)} &&
+      userMessages >= ${JSON.stringify(rounds)} &&
+      agentMessages >= ${JSON.stringify(rounds)};
+  })()`, 120000);
 
 await send("Page.enable");
 await send("Runtime.enable");
 await delay(1200);
 
 await installPageHooks();
-
-await waitFor(`document.body.innerText.includes("Pixel Office")`);
+await waitFor(`Boolean(document.querySelector('.office-stage-frame'))`, 20000);
 
 const appInfo = await evalExpr(`window.codexOffice.app.getInfo()`);
 if (appInfo.localCodex.status !== "ready") {
   throw new Error(`Local Codex is not ready: ${appInfo.localCodex.status}`);
 }
 
-await evalExpr(`(async () => {
-  const agents = await window.codexOffice.agents.list();
-  await Promise.all(agents.map((agent) => window.codexOffice.agents.delete(agent.id)));
-  window.location.reload();
-  return true;
-})()`);
-await waitFor(`document.body.innerText.includes("Pixel Office")`, 20000);
+await clearAgents();
+await waitFor(`Boolean(document.querySelector('.office-stage-frame'))`, 20000);
 await waitFor(`(async () => typeof window.codexOffice !== "undefined" && (await window.codexOffice.agents.list()).length === 0)()`, 20000);
 await installPageHooks();
 
+const shellCheck = await evalExpr(`(() => ({
+  officeMenu: Boolean(document.querySelector('.office-menu-button')),
+  sidebarRemoved: !document.querySelector('.sidebar'),
+  rosterRemoved: !document.querySelector('.office-roster'),
+  defaultAgentPanelHidden: !document.querySelector('.office-agent-panel'),
+  oldWorkspaceTitleMissing: !document.body.innerText.includes('Human manager workspace'),
+  oldOfficeTitleMissing: !document.body.innerText.includes('Pixel Office')
+}))()`);
+
 const initialSnapshot = await getOfficeSnapshot();
-const startedFromEmptyOffice = initialSnapshot.workstations.length === 0;
 const screenshots = {
-  initial: await screenshot("current-app-initial.png")
+  officeView: await screenshot("current-app-single-office-view.png")
 };
 
-let targetWorkstation = null;
-if (startedFromEmptyOffice) {
-  await waitFor(`document.body.innerText.includes("Build First Workstation")`, 15000);
-  await clickButtonByText("Build First Workstation");
-  await waitFor(`(async () => (await window.codexOffice.office.getSnapshot()).workstations.length > 0)()`, 20000);
-  const snapshotAfterBuild = await getOfficeSnapshot();
-  targetWorkstation = snapshotAfterBuild.workstations.find((workstation) => !workstation.assigned_agent_id) ?? null;
-} else {
-  targetWorkstation = await ensureEmptyWorkstation();
-}
+const targetSlotKey = await waitFor(`(() => document.querySelector('.office-slot[data-seat-state="available"]')?.getAttribute('data-slot-key') || false)()`, 15000);
 
-if (!targetWorkstation) {
-  throw new Error("No empty workstation available for agent creation.");
-}
+await hoverSlot(targetSlotKey);
+await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetSlotKey)}] .office-slot-helper')?.textContent?.includes('Click to create')`, 15000);
+screenshots.hover = await screenshot("current-app-empty-workstation-hover.png");
 
-await clickSlot(targetWorkstation.slot_key);
-await clickButtonByText("Create Agent").catch(() => clickButtonByText("Create Agent On Workstation"));
-await waitFor(`Boolean(document.querySelector('[aria-label="Create agent"]'))`);
-await setFieldByLabel("Agent name", agentName);
+await clickSlot(targetSlotKey);
+await waitFor(`Boolean(document.querySelector('[aria-label="Create agent confirmation"]'))`, 15000);
+screenshots.confirm = await screenshot("current-app-create-agent-confirm.png");
+
+await clickButtonByAnyText(confirmationButtonLabels);
+await waitFor(`Boolean(document.querySelector('[aria-label="Create agent"]'))`, 20000);
+const createDialogMetrics = await getBoundingBox('[aria-label="Create agent"]');
+await setFieldByAnyLabel(agentNameLabels, agentName);
 await setFieldByLabel("Role", "Codex Agent");
 await setFieldByLabel("Working directory", workspacePath);
 await setFieldByLabel("Permission mode", "readonly", "select");
-await setFieldByLabel("Initial task", "Introduce yourself in one short sentence.", "textarea");
-screenshots.createDialog = await screenshot("current-app-create-dialog.png");
-await clickButtonByText("Create agent");
+await setFieldByAnyLabel(initialBriefLabels, "Introduce yourself in one short sentence.", "textarea");
+screenshots.form = await screenshot("current-app-create-agent-form.png");
+await clickButtonByAnyText(submitButtonLabels);
 
-await waitFor(`!document.querySelector('[aria-label="Create agent"]')`);
-await waitFor(`document.querySelector('.detail-panel[data-agent-id] h3')?.textContent === ${JSON.stringify(agentName)}`, 15000);
-await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetWorkstation.slot_key)}]')?.getAttribute('data-workstation-state') === 'occupied'`, 20000);
-screenshots.created = await screenshot("current-app-agent-created.png");
-
+await waitFor(`!document.querySelector('[aria-label="Create agent"]')`, 20000);
 const createdAgent = await waitFor(`(async () => {
   const agents = await window.codexOffice.agents.list();
   return agents.find((agent) => agent.name === ${JSON.stringify(agentName)}) ?? false;
-})()`);
+})()`, 20000);
 
-for (const prompt of prompts) {
-  await evalExpr(`(() => {
-    const field = document.querySelector('.chat-form input');
-    if (!field) {
-      throw new Error('Chat input not found.');
-    }
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-    field.focus();
-    descriptor?.set?.call(field, ${JSON.stringify(prompt)});
-    field.dispatchEvent(new Event('input', { bubbles: true }));
-    field.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
-  })()`);
-  await clickButtonByText("Send");
-  await waitFor(`(async () => {
-    const sessions = await window.codexOffice.sessions.listByAgent(${JSON.stringify(createdAgent.id)});
-    const latest = sessions.at(-1);
-    if (!latest || latest.status !== 'completed') {
-      return false;
-    }
-    const messages = await window.codexOffice.messages.listBySession(latest.id);
-    return messages.some((message) => message.role === 'agent' && message.content.trim().length > 0) ? true : false;
-  })()`, 120000);
+await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetSlotKey)}]')?.getAttribute('data-seat-state') === 'occupied'`, 20000);
+await waitFor(`document.querySelector('.office-agent-panel')?.getAttribute('data-agent-id') === ${JSON.stringify(createdAgent.id)}`, 15000);
+const workstationLabel = await waitFor(
+  `(() => {
+    const label = document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetSlotKey)}] .office-slot-label');
+    return label?.textContent?.trim() || false;
+  })()`,
+  15000
+);
+screenshots.seated = await screenshot("current-app-agent-seated.png");
+
+await clickButtonByText("x");
+await waitFor(`!document.querySelector('.office-agent-panel')`, 15000);
+await clickSlot(targetSlotKey);
+await waitFor(`document.querySelector('.office-agent-panel')?.getAttribute('data-agent-id') === ${JSON.stringify(createdAgent.id)}`, 15000);
+const conversationPanelMetrics = await getBoundingBox('.office-agent-panel');
+const conversationChromeCheck = await evalExpr(`(() => {
+  const panel = document.querySelector('.office-agent-panel');
+  const text = (panel?.innerText ?? '').toUpperCase();
+  return {
+    roleRemoved: !text.includes('ROLE'),
+    seatRemoved: !text.includes('SEAT'),
+    runtimeRemoved: !text.includes('RUNTIME'),
+    latestConversationRemoved: !text.includes('LATEST CONVERSATION CONTEXT'),
+    recentActivityRemoved: !text.includes('RECENT ACTIVITY')
+  };
+})()`);
+screenshots.chat = await screenshot("current-app-chat-open.png");
+
+for (const [index, prompt] of prompts.entries()) {
+  await sendMessage(prompt);
+  await waitForCompletedRounds(createdAgent.id, index + 1);
 }
 
-const conversation = await waitFor(`(async () => {
-  const sessions = await window.codexOffice.sessions.listByAgent(${JSON.stringify(createdAgent.id)});
-  const messagesBySession = await Promise.all(sessions.map((session) => window.codexOffice.messages.listBySession(session.id)));
-  const allMessages = messagesBySession.flat();
-  if (sessions.length < 2 || allMessages.length < 4) {
-    return false;
-  }
-  return {
-    sessionCount: sessions.length,
-    totalMessages: allMessages.length,
-    messages: allMessages.map((message) => ({ role: message.role, content: message.content }))
-  };
-})()`, 120000);
+const conversation = await waitForAgentTranscript(createdAgent.id);
+const latestSeatPreview = await waitFor(
+  `(() => {
+    const preview = document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetSlotKey)}] .office-slot-preview');
+    return preview?.textContent?.trim() || false;
+  })()`,
+  15000
+);
+screenshots.chatHistory = await screenshot("current-app-chat-history.png");
 
-screenshots.chat = await screenshot("current-app-chat-complete.png");
-
-await clickButtonByText("Delete Agent");
+await clickButtonByAnyText(deleteButtonLabels);
 await waitFor(`(async () => {
   const agents = await window.codexOffice.agents.list();
   return !agents.some((agent) => agent.id === ${JSON.stringify(createdAgent.id)});
 })()`, 15000);
-await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetWorkstation.slot_key)}]')?.getAttribute('data-workstation-state') === 'empty'`, 15000);
+await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(targetSlotKey)}]')?.getAttribute('data-seat-state') === 'available'`, 15000);
 screenshots.deleted = await screenshot("current-app-agent-deleted.png");
 
 const finalSnapshot = await getOfficeSnapshot();
@@ -311,10 +391,16 @@ const uiErrors = await evalExpr(`window.__codexUiErrors ?? []`);
 const reportPath = path.join(outDir, "current-app-verification.json");
 const report = {
   appInfo,
-  startedFromEmptyOffice,
+  shellCheck,
+  initialSnapshot,
+  targetSlotKey,
   agentName,
-  targetWorkstation,
   createdAgentId: createdAgent.id,
+  createDialogMetrics,
+  conversationPanelMetrics,
+  conversationChromeCheck,
+  workstationLabel,
+  latestSeatPreview,
   conversation,
   finalSnapshot,
   uiErrors,

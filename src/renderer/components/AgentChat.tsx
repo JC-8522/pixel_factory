@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactElement } from "react";
 import type { PermissionRequestRecord, RuntimeSendMessageResult } from "../../shared/ipc";
 import type { AgentRuntimeEvent } from "../../shared/types/agent";
-import type { AgentRecord, MessageRecord, SessionRecord } from "../../shared/types/records";
+import type { AgentRecord, EventRecord, MessageRecord, SessionRecord } from "../../shared/types/records";
+import { agentFrameIndex, agentSheetUrl, spriteSheetStyle } from "../office/officeLayout";
 import { useChatStore } from "../stores/chatStore";
+import { useEventStore } from "../stores/eventStore";
 import { PermissionDecisionDialog } from "./PermissionDecisionDialog";
 
 type AgentChatProps = {
@@ -19,6 +21,11 @@ const isDetectedExternalAgent = (agent: AgentRecord): boolean => {
   }
 };
 
+const shouldRefreshMessages = (event: AgentRuntimeEvent): boolean =>
+  ["message_chunk", "session_completed", "session_stopped", "error"].includes(event.type);
+
+type TimeoutHandle = ReturnType<typeof setTimeout>;
+
 export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactElement {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [draft, setDraft] = useState("");
@@ -27,7 +34,9 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequestRecord | null>(null);
   const [pendingMessage, setPendingMessage] = useState<{ sessionId: string; message: string } | null>(null);
   const [decisionBusy, setDecisionBusy] = useState(false);
+  const sessionRefreshTimeoutsRef = useRef(new Map<string, TimeoutHandle>());
   const { messagesBySession, hydrateSession } = useChatStore();
+  const { events, hydrate: hydrateEvents } = useEventStore();
 
   const readOnlyExternalAgent = isDetectedExternalAgent(agent);
   const oneShotLocalRuntime = agent.runtime_kind === "codex_cli";
@@ -41,6 +50,36 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
 
     return activeSession ? messagesBySession[activeSession.id] ?? [] : [];
   }, [activeSession, messagesBySession, oneShotLocalRuntime, sessions]);
+  const avatarStyle = useMemo(() => spriteSheetStyle(agentSheetUrl, agentFrameIndex(agent.status)), [agent.status]);
+  const activityEvents = useMemo(
+    () =>
+      events
+        .filter((event) => {
+          if (!["status_changed", "file_touched", "waiting_user_input"].includes(event.type)) {
+            return false;
+          }
+
+          if (event.type !== "status_changed") {
+            return true;
+          }
+
+          const payload = JSON.parse(event.payload_json) as { status?: string };
+          return ["thinking", "reading_files", "running_command", "editing_files", "waiting_user_input"].includes(
+            payload.status ?? ""
+          );
+        })
+        .sort((left, right) => left.created_at.localeCompare(right.created_at))
+        .slice(-5),
+    [events]
+  );
+  const timelineItems = useMemo(
+    () =>
+      [
+        ...activityEvents.map((event) => ({ kind: "event" as const, at: event.created_at, event })),
+        ...messages.map((message) => ({ kind: "message" as const, at: message.created_at, message }))
+      ].sort((left, right) => left.at.localeCompare(right.at)),
+    [activityEvents, messages]
+  );
 
   const refreshSessions = async (): Promise<SessionRecord[]> => {
     const nextSessions = await window.codexOffice.sessions.listByAgent(agent.id);
@@ -56,19 +95,51 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
   }, [agent.id]);
 
   useEffect(() => {
+    void hydrateEvents({ agentId: agent.id });
+  }, [agent.id, hydrateEvents]);
+
+  const scheduleSessionRefresh = useCallback(
+    (sessionId: string): void => {
+      const current = sessionRefreshTimeoutsRef.current.get(sessionId);
+      if (current) {
+        clearTimeout(current);
+      }
+
+      const timeoutId = setTimeout(() => {
+        sessionRefreshTimeoutsRef.current.delete(sessionId);
+        void hydrateSession(sessionId);
+      }, 120);
+
+      sessionRefreshTimeoutsRef.current.set(sessionId, timeoutId);
+    },
+    [hydrateSession]
+  );
+
+  useEffect(() => {
     const unsubscribe = window.codexOffice.runtime.onEvent((event) => {
       if (event.agentId !== agent.id) {
         return;
       }
 
       onRuntimeEvent?.(event);
-      if (oneShotLocalRuntime || activeSession?.id === event.sessionId) {
-        void hydrateSession(event.sessionId);
+      if (shouldRefreshMessages(event) && (oneShotLocalRuntime || activeSession?.id === event.sessionId)) {
+        scheduleSessionRefresh(event.sessionId);
       }
     });
 
     return unsubscribe;
-  }, [agent.id, activeSession?.id, hydrateSession, onRuntimeEvent, oneShotLocalRuntime]);
+  }, [agent.id, activeSession?.id, onRuntimeEvent, oneShotLocalRuntime, scheduleSessionRefresh]);
+
+  useEffect(
+    () => () => {
+      for (const timeoutId of sessionRefreshTimeoutsRef.current.values()) {
+        clearTimeout(timeoutId);
+      }
+
+      sessionRefreshTimeoutsRef.current.clear();
+    },
+    []
+  );
 
   const ensureSession = async (): Promise<SessionRecord> => {
     if (readOnlyExternalAgent) {
@@ -195,36 +266,97 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     }
   };
 
+  const formatMessageTime = (value: string): string =>
+    new Date(value).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit"
+    });
+
+  const formatActivity = (event: EventRecord): string => {
+    const payload = JSON.parse(event.payload_json) as {
+      action?: string;
+      command?: string;
+      path?: string;
+      prompt?: string;
+      status?: string;
+    };
+
+    switch (event.type) {
+      case "status_changed":
+        switch (payload.status) {
+          case "thinking":
+            return "Thinking through the next reply";
+          case "reading_files":
+            return "Reviewing the current project context";
+          case "running_command":
+            return "Working through the next step";
+          case "editing_files":
+            return "Updating the project";
+          case "waiting_user_input":
+            return "Waiting for your next instruction";
+          default:
+            return "Thinking through the next reply";
+        }
+      case "file_touched":
+        return `${payload.action ?? "Updated"} ${payload.path ?? "project files"}`;
+      case "waiting_user_input":
+        return payload.prompt?.trim() || "Waiting for manager input";
+      default:
+        return event.type;
+    }
+  };
+
   return (
     <section className="agent-chat">
-      <p className="chat-hint">Use regular chat, or try command review with `cmd: pwd` or `cmd: npm install package-name`.</p>
       <div className="message-list">
-        {messages.length === 0 ? (
-          <p className="empty-note">Start a conversation with this agent.</p>
+        {timelineItems.length === 0 ? (
+          <p className="empty-note">Start a conversation with this AI employee.</p>
         ) : (
-          messages.map((message) => (
-            <article className="chat-message" data-role={message.role} key={message.id}>
-              <span>{message.role}</span>
-              <p>{message.content}</p>
-            </article>
-          ))
+          timelineItems.map((item) =>
+            item.kind === "event" ? (
+              <article className="chat-thread-note" key={item.event.id}>
+                <span>{formatActivity(item.event)}</span>
+                <small>{formatMessageTime(item.event.created_at)}</small>
+              </article>
+            ) : (
+              <article className="chat-message" data-role={item.message.role} key={item.message.id}>
+                {item.message.role !== "user" ? (
+                  <span aria-hidden="true" className="chat-message-avatar">
+                    {item.message.role === "agent" ? (
+                      <span className="chat-message-avatar-sprite" style={avatarStyle} />
+                    ) : (
+                      <span className="chat-message-avatar-system">SYS</span>
+                    )}
+                  </span>
+                ) : null}
+                <div className="chat-message-bubble">
+                  <div className="chat-message-meta">
+                    <strong>{item.message.role === "user" ? "You" : item.message.role === "agent" ? agent.name : "System"}</strong>
+                    <span>{formatMessageTime(item.message.created_at)}</span>
+                  </div>
+                  <p className="chat-message-text">{item.message.content}</p>
+                </div>
+              </article>
+            )
+          )
         )}
       </div>
       <form className="chat-form" onSubmit={(event) => void send(event)}>
-        <input
+        <textarea
           disabled={busy || readOnlyExternalAgent}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={
             readOnlyExternalAgent
               ? "Detected process is read-only"
               : oneShotLocalRuntime
-                ? "Send a message as a new local Codex run"
-                : "Send a message to this agent"
+                ? "Message this AI employee and start the next Codex run"
+                : "Message this AI employee"
           }
+          rows={3}
           value={draft}
         />
         <button disabled={busy || readOnlyExternalAgent || draft.trim().length === 0} type="submit">
-          Send
+          {busy ? "Sending..." : "Send"}
         </button>
       </form>
       {submitError ? <p className="form-error">{submitError}</p> : null}
