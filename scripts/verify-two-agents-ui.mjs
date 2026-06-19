@@ -1,11 +1,20 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const outDir = "C:/Users/Administrator/Desktop/repo/pixel_factory/out";
-const debugPort = process.env.DEBUG_PORT ?? "9666";
+const outDir = "C:/Users/Administrator/Desktop/repo/pixel_factory/verification";
+const debugPort = process.env.DEBUG_PORT ?? "9333";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const workspacePath = "C:/Users/Administrator/Desktop/repo/pixel_factory";
-const agentNames = [`Dual Pixel A ${Date.now()}`, `Dual Pixel B ${Date.now() + 1}`];
+const agentNames = [`Dual Office A ${Date.now()}`, `Dual Office B ${Date.now() + 1}`];
+const prompts = [
+  "Say exactly: dual loop one complete.",
+  "Say exactly: dual loop two complete."
+];
+const confirmationButtonLabels = ["Open AI Employee", "Create Agent"];
+const submitButtonLabels = ["Create AI Employee", "Create agent"];
+const deleteButtonLabels = ["Remove AI Employee", "Delete Agent"];
+const agentNameLabels = ["AI employee name", "Agent name"];
+const initialBriefLabels = ["Initial brief", "Initial task"];
 
 const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
 const target =
@@ -60,9 +69,13 @@ const evalExpr = async (expression) => {
 const waitFor = async (predicateExpression, timeoutMs = 20000) => {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const ready = await evalExpr(predicateExpression);
-    if (ready) {
-      return ready;
+    try {
+      const ready = await evalExpr(predicateExpression);
+      if (ready) {
+        return ready;
+      }
+    } catch {
+      // Renderer reloads briefly invalidate the execution context.
     }
     await delay(250);
   }
@@ -78,6 +91,24 @@ const screenshot = async (name) => {
   return filePath;
 };
 
+const installPageHooks = async () => {
+  await evalExpr(`(() => {
+    window.confirm = () => true;
+    window.__codexUiErrors = window.__codexUiErrors ?? [];
+    if (!window.__codexUiHooked) {
+      window.addEventListener('error', (event) => {
+        window.__codexUiErrors.push(String(event.message ?? 'unknown error'));
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
+        window.__codexUiErrors.push(reason);
+      });
+      window.__codexUiHooked = true;
+    }
+    return true;
+  })()`);
+};
+
 const clickButtonByText = async (text) => {
   await evalExpr(`(() => {
     const normalize = (value) => value.replace(/\\s+/g, ' ').trim();
@@ -88,6 +119,20 @@ const clickButtonByText = async (text) => {
     target.click();
     return true;
   })()`);
+};
+
+const clickButtonByAnyText = async (texts) => {
+  const attempts = [];
+  for (const text of texts) {
+    try {
+      await clickButtonByText(text);
+      return text;
+    } catch (error) {
+      attempts.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`Buttons not found: ${texts.join(", ")} :: ${attempts.join(" | ")}`);
 };
 
 const setFieldByLabel = async (labelText, value, tagName = "input") => {
@@ -101,7 +146,12 @@ const setFieldByLabel = async (labelText, value, tagName = "input") => {
     if (!field) {
       throw new Error('Field not found for label: ' + ${JSON.stringify(labelText)});
     }
-    const prototype = field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : field.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    const prototype =
+      field.tagName === 'TEXTAREA'
+        ? HTMLTextAreaElement.prototype
+        : field.tagName === 'SELECT'
+          ? HTMLSelectElement.prototype
+          : HTMLInputElement.prototype;
     const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
     field.focus();
     descriptor?.set?.call(field, ${JSON.stringify(value)});
@@ -111,60 +161,77 @@ const setFieldByLabel = async (labelText, value, tagName = "input") => {
   })()`);
 };
 
-const createAgentThroughUi = async (agentName) => {
-  await clickButtonByText("Create Agent");
-  await waitFor(`Boolean(document.querySelector('[aria-label="Create agent"]'))`);
-  await setFieldByLabel("Agent name", agentName);
-  await setFieldByLabel("Role", "Codex Agent");
-  await setFieldByLabel("Working directory", workspacePath);
-  await setFieldByLabel("Permission mode", "readonly", "select");
-  await setFieldByLabel("Initial task", "Introduce yourself in one short sentence.", "textarea");
-  await clickButtonByText("Create agent");
-  await waitFor(`!document.querySelector('[aria-label="Create agent"]')`);
-  return waitFor(`(async () => {
-    const agents = await window.codexOffice.agents.list();
-    return agents.find((agent) => agent.name === ${JSON.stringify(agentName)}) ?? false;
+const setFieldByAnyLabel = async (labels, value, tagName = "input") => {
+  const attempts = [];
+  for (const label of labels) {
+    try {
+      await setFieldByLabel(label, value, tagName);
+      return label;
+    } catch (error) {
+      attempts.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`Labels not found: ${labels.join(", ")} :: ${attempts.join(" | ")}`);
+};
+
+const clickSlot = async (slotKey) => {
+  await evalExpr(`(() => {
+    const target = document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]');
+    if (!target) {
+      throw new Error('Slot not found: ' + ${JSON.stringify(slotKey)});
+    }
+    target.click();
+    return true;
   })()`);
 };
 
-const selectAgent = async (agent) => {
-  const point = await evalExpr(`(() => {
-    const canvas = document.querySelector('.office-canvas-element');
-    if (!canvas) {
-      throw new Error('Office canvas not found.');
-    }
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = rect.width / 780;
-    const scaleY = rect.height / 500;
-    return {
-      x: rect.left + window.scrollX + (${agent.position_x} * scaleX),
-      y: rect.top + window.scrollY + (${agent.position_y} * scaleY)
-    };
+const clearAgents = async () => {
+  await evalExpr(`(async () => {
+    const agents = await window.codexOffice.agents.list();
+    await Promise.all(agents.map((agent) => window.codexOffice.agents.delete(agent.id)));
+    window.location.reload();
+    return true;
   })()`);
+};
 
-  await send("Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x: point.x,
-    y: point.y,
-    button: "left",
-    clickCount: 1
-  });
-  await send("Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    x: point.x,
-    y: point.y,
-    button: "left",
-    clickCount: 1
-  });
+const getOfficeSnapshot = () => evalExpr(`window.codexOffice.office.getSnapshot()`);
+
+const createAgentOnSlot = async (slotKey, agentName) => {
+  await clickSlot(slotKey);
+  await waitFor(`Boolean(document.querySelector('[aria-label="Create agent confirmation"]'))`, 15000);
+  await clickButtonByAnyText(confirmationButtonLabels);
+  await waitFor(`Boolean(document.querySelector('[aria-label="Create agent"]'))`, 20000);
+  await setFieldByAnyLabel(agentNameLabels, agentName);
+  await setFieldByLabel("Role", "Codex Agent");
+  await setFieldByLabel("Working directory", workspacePath);
+  await setFieldByLabel("Permission mode", "readonly", "select");
+  await setFieldByAnyLabel(initialBriefLabels, "Introduce yourself in one short sentence.", "textarea");
+  await clickButtonByAnyText(submitButtonLabels);
+  await waitFor(`!document.querySelector('[aria-label="Create agent"]')`, 20000);
+  const agent = await waitFor(`(async () => {
+    const agents = await window.codexOffice.agents.list();
+    return agents.find((item) => item.name === ${JSON.stringify(agentName)}) ?? false;
+  })()`, 20000);
+  await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}]')?.getAttribute('data-seat-state') === 'occupied'`, 20000);
+  const seatLabel = await waitFor(
+    `(() => {
+      const label = document.querySelector('.office-slot[data-slot-key=${JSON.stringify(slotKey)}] .office-slot-label');
+      return label?.textContent?.trim() || false;
+    })()`,
+    15000
+  );
+  return { agent, seatLabel };
 };
 
 const sendMessage = async (message) => {
   await evalExpr(`(() => {
-    const field = document.querySelector('.chat-form input');
+    const field = document.querySelector('.chat-form textarea, .chat-form input');
     if (!field) {
       throw new Error('Chat input not found.');
     }
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    const prototype = field.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
     field.focus();
     descriptor?.set?.call(field, ${JSON.stringify(message)});
     field.dispatchEvent(new Event('input', { bubbles: true }));
@@ -174,67 +241,85 @@ const sendMessage = async (message) => {
   await clickButtonByText("Send");
 };
 
-const waitForCompletedSession = async (agentId) =>
+const waitForTranscript = async (agentId) =>
   waitFor(`(async () => {
     const sessions = await window.codexOffice.sessions.listByAgent(${JSON.stringify(agentId)});
-    const latest = sessions.at(-1);
-    if (!latest || latest.status !== 'completed') {
-      return false;
-    }
-    const messages = await window.codexOffice.messages.listBySession(latest.id);
-    return {
-      sessionId: latest.id,
-      status: latest.status,
-      messages: messages.map((message) => ({ role: message.role, content: message.content }))
-    };
+    const messagesBySession = await Promise.all(sessions.map((session) => window.codexOffice.messages.listBySession(session.id)));
+    const allMessages = messagesBySession.flat();
+    const userMessages = allMessages.filter((message) => message.role === 'user');
+    const agentMessages = allMessages.filter((message) => message.role === 'agent' && String(message.content ?? '').trim().length > 0);
+    return userMessages.length >= 2 && agentMessages.length >= 2
+      ? {
+          agentId: ${JSON.stringify(agentId)},
+          sessionCount: sessions.length,
+          totalMessages: allMessages.length,
+          messages: allMessages.map((message) => ({ role: message.role, content: message.content }))
+        }
+      : false;
+  })()`, 120000);
+
+const waitForCompletedRounds = async (agentId, rounds) =>
+  waitFor(`(async () => {
+    const sessions = await window.codexOffice.sessions.listByAgent(${JSON.stringify(agentId)});
+    const messagesBySession = await Promise.all(sessions.map((session) => window.codexOffice.messages.listBySession(session.id)));
+    const allMessages = messagesBySession.flat();
+    const userMessages = allMessages.filter((message) => message.role === 'user').length;
+    const agentMessages = allMessages.filter((message) => message.role === 'agent' && String(message.content ?? '').trim().length > 0).length;
+    return sessions.length >= ${JSON.stringify(rounds)} &&
+      userMessages >= ${JSON.stringify(rounds)} &&
+      agentMessages >= ${JSON.stringify(rounds)};
   })()`, 120000);
 
 await send("Page.enable");
 await send("Runtime.enable");
 await delay(1000);
 
-await evalExpr(`(() => {
-  window.confirm = () => true;
-  window.__codexUiErrors = [];
-  window.addEventListener('error', (event) => {
-    window.__codexUiErrors.push(String(event.message ?? 'unknown error'));
-  });
-  window.addEventListener('unhandledrejection', (event) => {
-    const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
-    window.__codexUiErrors.push(reason);
-  });
-  return true;
-})()`);
+await installPageHooks();
+await waitFor(`Boolean(document.querySelector('.office-stage-frame'))`, 20000);
+await clearAgents();
+await waitFor(`Boolean(document.querySelector('.office-stage-frame'))`, 20000);
+await waitFor(`(async () => typeof window.codexOffice !== "undefined" && (await window.codexOffice.agents.list()).length === 0)()`, 20000);
+await installPageHooks();
 
-await waitFor(`document.body.innerText.includes("Pixel Office")`);
-const beforeAgents = await evalExpr(`window.codexOffice.agents.list()`);
+const initialSnapshot = await getOfficeSnapshot();
+const availableSlotKeys = await waitFor(`(() => {
+  const slots = [...document.querySelectorAll('.office-slot[data-seat-state="available"]')];
+  return slots.length >= 2 ? slots.slice(0, 2).map((slot) => slot.getAttribute('data-slot-key')) : false;
+})()`, 15000);
 
-const created = [];
-for (const name of agentNames) {
-  created.push(await createAgentThroughUi(name));
-}
-
-const afterCreate = await evalExpr(`window.codexOffice.agents.list()`);
 const screenshots = {
-  afterCreate: await screenshot("dual-agents-created.png")
+  officeView: await screenshot("dual-agents-single-office-view.png")
 };
 
-const conversationResults = [];
-for (const agent of created) {
-  await selectAgent(agent);
-  await waitFor(`document.querySelector('.detail-panel h3')?.textContent === ${JSON.stringify(agent.name)}`);
+const createdAgents = [];
+for (const [index, slotKey] of availableSlotKeys.entries()) {
+  createdAgents.push({
+    slotKey,
+    ...(await createAgentOnSlot(slotKey, agentNames[index]))
+  });
+}
 
-  for (const prompt of [
-    "Say: round one complete.",
-    "Say: round two complete."
-  ]) {
+screenshots.created = await screenshot("dual-agents-created.png");
+
+const conversationResults = [];
+for (const [index, created] of createdAgents.entries()) {
+  await clickButtonByText("x").catch(() => Promise.resolve());
+  await clickSlot(created.slotKey);
+  await waitFor(`document.querySelector('.office-agent-panel')?.getAttribute('data-agent-id') === ${JSON.stringify(created.agent.id)}`, 15000);
+  screenshots[index === 0 ? "chatA" : "chatB"] = await screenshot(
+    index === 0 ? "dual-agents-chat-a.png" : "dual-agents-chat-b.png"
+  );
+
+  for (const [promptIndex, prompt] of prompts.entries()) {
     await sendMessage(prompt);
-    conversationResults.push(await waitForCompletedSession(agent.id));
+    await waitForCompletedRounds(created.agent.id, promptIndex + 1);
   }
+
+  conversationResults.push(await waitForTranscript(created.agent.id));
 }
 
 const perAgentTranscriptCount = await evalExpr(`(async () => {
-  const targetIds = ${JSON.stringify(created.map((agent) => agent.id))};
+  const targetIds = ${JSON.stringify(createdAgents.map((created) => created.agent.id))};
   return Promise.all(targetIds.map(async (agentId) => {
     const sessions = await window.codexOffice.sessions.listByAgent(agentId);
     const messagesBySession = await Promise.all(sessions.map((session) => window.codexOffice.messages.listBySession(session.id)));
@@ -246,27 +331,36 @@ const perAgentTranscriptCount = await evalExpr(`(async () => {
   }));
 })()`);
 
-for (const agent of [...created].reverse()) {
-  await selectAgent(agent);
-  await waitFor(`document.querySelector('.detail-panel h3')?.textContent === ${JSON.stringify(agent.name)}`);
-  await clickButtonByText("Delete Agent");
+for (const created of [...createdAgents].reverse()) {
+  await clickSlot(created.slotKey);
+  await waitFor(`document.querySelector('.office-agent-panel')?.getAttribute('data-agent-id') === ${JSON.stringify(created.agent.id)}`, 15000);
+  await clickButtonByAnyText(deleteButtonLabels);
   await waitFor(`(async () => {
     const agents = await window.codexOffice.agents.list();
-    return !agents.some((item) => item.id === ${JSON.stringify(agent.id)});
+    return !agents.some((item) => item.id === ${JSON.stringify(created.agent.id)});
   })()`, 15000);
+  await waitFor(`document.querySelector('.office-slot[data-slot-key=${JSON.stringify(created.slotKey)}]')?.getAttribute('data-seat-state') === 'available'`, 15000);
 }
 
-const uiErrors = await evalExpr(`window.__codexUiErrors ?? []`);
+screenshots.deleted = await screenshot("dual-agents-deleted.png");
 
-console.log(JSON.stringify({
-  beforeAgentCount: beforeAgents.length,
-  afterAgentCount: afterCreate.length,
-  created,
+const uiErrors = await evalExpr(`window.__codexUiErrors ?? []`);
+const remainingAgentCount = await evalExpr(`window.codexOffice.agents.list().then((agents) => agents.length)`);
+const finalSnapshot = await getOfficeSnapshot();
+const reportPath = path.join(outDir, "dual-agents-verification.json");
+const report = {
+  initialSnapshot,
+  createdAgents,
   conversationResults,
   perAgentTranscriptCount,
-  remainingAgentCount: (await evalExpr(`window.codexOffice.agents.list()`)).length,
+  remainingAgentCount,
+  finalSnapshot,
   uiErrors,
   screenshots
-}, null, 2));
+};
+
+await writeFile(reportPath, JSON.stringify(report, null, 2));
+
+console.log(JSON.stringify({ ...report, reportPath }, null, 2));
 
 ws.close();

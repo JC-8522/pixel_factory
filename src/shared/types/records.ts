@@ -1,5 +1,27 @@
 export type JsonObject = Record<string, unknown>;
 
+export type FloorRecord = {
+  id: string;
+  name: string;
+  floor_index: number;
+  layout_preset: string;
+  is_visible: number;
+  metadata_json: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkstationRecord = {
+  id: string;
+  floor_id: string;
+  slot_key: string;
+  name: string | null;
+  assigned_agent_id: string | null;
+  metadata_json: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type AgentRecord = {
   id: string;
   name: string;

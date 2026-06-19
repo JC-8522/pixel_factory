@@ -14,6 +14,7 @@ import { recordAuditEvent } from "../audit/auditEngine";
 import { generateProfileSnapshot, type AgentProfileSnapshot } from "../profiles/profileService";
 import { routeSessionMessage } from "../messageRouter/messageRouter";
 import type { PermissionPolicyEngine } from "../security/permissionPolicy";
+import { assignAgentToOfficeWorkstation } from "../office/officeService";
 
 const isRuntimeKind = (value: string): value is RuntimeKind => value === "mock" || value === "codex_cli";
 
@@ -55,11 +56,32 @@ const applySkillAssignments = (client: DatabaseClient, input: CreateAgentRequest
   }
 };
 
+const bindAgentToWorkstation = (client: DatabaseClient, input: CreateAgentRequest): void => {
+  if (!input.workstationId) {
+    return;
+  }
+
+  assignAgentToOfficeWorkstation(client, {
+    workstationId: input.workstationId,
+    agentId: input.id
+  });
+};
+
+const registerPreparedAgent = (
+  client: DatabaseClient,
+  input: CreateAgentRequest,
+  nextId?: (prefix: string) => string
+): AgentRecord =>
+  client.transaction(() => {
+    const agent = nextId ? ensureRegisteredAgent(client, input, nextId) : registerAgent(client, input);
+    applySkillAssignments(client, input);
+    bindAgentToWorkstation(client, input);
+    return agent;
+  });
+
 export const createAgentThroughOrchestration = (client: DatabaseClient, input: CreateAgentRequest): AgentRecord => {
   const prepared = prepareCreateAgentInput(client, input);
-  const agent = registerAgent(client, prepared);
-  applySkillAssignments(client, prepared);
-  return agent;
+  return registerPreparedAgent(client, prepared);
 };
 
 export const spawnAgentThroughOrchestration = async (
@@ -75,8 +97,7 @@ export const spawnAgentThroughOrchestration = async (
   const runtimeKind = input.runtimeKind;
 
   const prepared = prepareCreateAgentInput(client, input);
-  const agent = ensureRegisteredAgent(client, prepared, nextId);
-  applySkillAssignments(client, prepared);
+  const agent = registerPreparedAgent(client, prepared, nextId);
   const session = createSession(client, {
     id: nextId(`session-${agent.id}`),
     agentId: agent.id,

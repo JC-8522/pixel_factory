@@ -418,6 +418,241 @@ If a piece of information answers "who is this agent?" or "how should this agent
 
 If it answers "how is this machine/runtime wired so the agent can execute?", it does not belong in `AGENT.md`.
 
+## Reusable QA Skill Pattern
+
+One concrete lesson from the current app work is that repeated validation knowledge should be promoted out of ad hoc notes and into a reusable skill.
+
+Recommended split:
+
+- `AGENT.md` declares that an agent is responsible for acceptance, regression review, and evidence capture
+- `SKILL.md` holds the actual repeatable validation procedure
+
+### Example Reusable Skill
+
+Recommended skill name:
+
+- `pixel-office-ui-acceptance`
+
+Recommended responsibility:
+
+- validate the current local app UI end to end
+- collect screenshots and machine-readable evidence
+- distinguish environment noise from real product failures
+- leave the app in a known clean state when possible
+
+### Suggested SKILL.md Shape
+
+```md
+---
+name: pixel-office-ui-acceptance
+description: Validate the current Pixel Office UI flow for create, multi-agent create, chat, delete, and evidence capture.
+category: qa
+inputs:
+  - task_definition
+  - current_app_state
+outputs:
+  - acceptance_report
+  - screenshots
+---
+
+# Pixel Office UI Acceptance
+
+## Use When
+
+- validating the current Electron app locally
+- checking whether a UI task is actually complete
+- preparing human-verifiable acceptance evidence
+
+## Do
+
+- start from a clean or intentionally reset app state
+- verify empty-state UI before creating agents
+- verify single-agent create, chat, and delete
+- verify multi-agent create, per-agent chat, and delete
+- save screenshots and JSON reports
+
+## Avoid
+
+- treating console noise as failure unless it breaks the UI flow
+- mixing unrelated product tasks into the acceptance pass
+- assuming a previous run proves the current state
+
+## Validation
+
+1. Confirm the target task scope.
+2. Reset agent data or use an isolated app-data directory if needed.
+3. Capture empty-state evidence.
+4. Run single-agent flow.
+5. Run multi-agent flow.
+6. Save machine-readable evidence and screenshots.
+7. Confirm no in-app error state remains.
+```
+
+## Reusable Validation Playbook
+
+The following validation flow is now proven reusable for the current app.
+
+### Step 1: Confirm Scope
+
+Before changing code or declaring success:
+
+- read the task file
+- read the acceptance file
+- confirm whether the task is visual-only, behavior-only, or both
+- avoid drifting into later MVP tasks
+
+### Step 2: Normalize Runtime State
+
+The current app is sensitive to leftover local state.
+
+Preferred approach:
+
+- delete existing agent data before validation, or
+- launch the app with isolated temporary app-data directories for repeatable runs
+
+Why:
+
+- stale agents can hide empty-state regressions
+- stale sessions can make chat validation ambiguous
+- global runtime state can cause false failures or false passes
+
+### Step 3: Validate Empty Office First
+
+For `Empty Office Visual Reset`, verify:
+
+- the office no longer looks like a dark debug canvas
+- the room has recognizable wall/floor/decor structure
+- the CTA uses workstation-first language such as `Build First Workstation`
+
+### Step 4: Validate Single-Agent Flow
+
+Required checks:
+
+- UI opens successfully
+- agent creation succeeds
+- agent appears in the office
+- chat succeeds
+- at least four total messages exist in the verified conversation
+- delete succeeds
+- the UI returns to an empty usable state
+
+Recommended evidence:
+
+- empty office screenshot
+- created agent screenshot
+- completed chat screenshot
+- deleted/empty office screenshot
+- JSON verification report
+
+### Step 5: Validate Multi-Agent Flow
+
+Required checks:
+
+- multiple agents can be created
+- each agent can be selected explicitly
+- each agent can complete its own conversation
+- each verified agent has at least four total messages
+- multiple agents can be deleted
+- the UI returns to an empty usable state
+
+Recommended evidence:
+
+- multi-agent created screenshot
+- per-agent chat screenshots
+- deleted/empty office screenshot
+- JSON verification report with per-agent transcript counts
+
+### Step 6: Record Only Product-Relevant Failures
+
+During this work, the most common misleading signals were:
+
+- stale app state
+- renderer reload timing
+- sandbox/path differences
+- broken third-party global skills under `CODEX_HOME`
+- long-running one-shot chat scripts timing out after the UI had already succeeded
+
+Interpretation rule:
+
+- if the UI flow completes and evidence proves success, treat automation fragility separately from product regressions
+- if the UI is blocked, mis-rendered, or leaves the app in an inconsistent state, treat it as a real failure
+
+## Known Failure Patterns To Preserve
+
+These are worth keeping in reusable skill instructions because they recurred in practice.
+
+### Empty-State False Negative
+
+Symptom:
+
+- validation claims the workstation CTA is missing
+
+Common cause:
+
+- old agents were still present, so the app never entered the empty state
+
+Preferred fix:
+
+- clear agent data first
+- then re-check the empty office before running the rest of the flow
+
+### Multi-Agent Selection False Negative
+
+Symptom:
+
+- automation cannot reliably switch between agents on the canvas
+
+Common cause:
+
+- canvas hit-testing is less deterministic than explicit UI controls
+
+Preferred fix:
+
+- add or use an explicit selectable roster/list for deterministic agent switching during acceptance
+- verify selection using stable identifiers like `agent.id`
+
+### Long-Running Script False Negative
+
+Symptom:
+
+- verification script times out even though screenshots show the UI flow succeeded
+
+Common cause:
+
+- too many responsibilities were packed into one long script
+
+Preferred fix:
+
+- split the flow into shorter evidence-producing phases
+- treat screenshots and JSON output as first-class artifacts
+
+### Global Runtime Noise
+
+Symptom:
+
+- Codex logs show unrelated skill loading warnings or third-party frontmatter issues
+
+Common cause:
+
+- shared global `CODEX_HOME` content leaks into local validation
+
+Preferred fix:
+
+- isolate runtime state when necessary
+- document clearly whether the failure is product-local or environment-global
+
+## Recommended AGENT.md Implication
+
+If a future QA-focused `AGENT.md` references this skill, it should describe the agent at a high level like this:
+
+- mission: validate current UI behavior against task acceptance
+- collaboration style: evidence-first, concise, reproducible
+- escalation rule: stop and report when the UI flow itself breaks or when evidence cannot prove completion
+- preferred skills:
+  - `pixel-office-ui-acceptance`
+  - `bug-repro`
+  - `review-loop`
+
 ## Suggested Next Product Tasks
 
 1. Add `AGENT.md` parsing support alongside existing profile import flows.

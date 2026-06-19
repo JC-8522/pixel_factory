@@ -1,6 +1,7 @@
 export * from "./agents";
 export * from "./agentPacks";
 export * from "./events";
+export * from "./floors";
 export * from "./meetings";
 export * from "./messages";
 export * from "./permissionRules";
@@ -10,3 +11,4 @@ export * from "./settings";
 export * from "./skills";
 export * from "./tasks";
 export * from "./tokenUsage";
+export * from "./workstations";

@@ -6,8 +6,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createMigratedDatabaseClient, type DatabaseClient } from "./client";
-import { createAgent, assignSkillToAgent, updateAgentStatus } from "./repositories/agents";
+import { assignSkillToAgent, createAgent, deleteAgent, updateAgentStatus } from "./repositories/agents";
 import { createEvent, listEvents } from "./repositories/events";
+import { createFloor } from "./repositories/floors";
 import {
   addMeetingMessage,
   addMeetingParticipant,
@@ -21,6 +22,7 @@ import { getSetting, setSetting } from "./repositories/settings";
 import { upsertSkill } from "./repositories/skills";
 import { assignTask, createTask, linkTaskEvent, updateTaskStatus } from "./repositories/tasks";
 import { createTokenUsage, listTokenUsageByAgent, summarizeTokenUsageByAgent } from "./repositories/tokenUsage";
+import { assignWorkstationAgent, createWorkstation, getWorkstation } from "./repositories/workstations";
 
 const tempDirs: string[] = [];
 
@@ -50,13 +52,20 @@ describe("database client and migrations", () => {
     );
     const sessionColumns = reopened.all<{ name: string }>("PRAGMA table_info(sessions)").map((column) => column.name);
     const messageColumns = reopened.all<{ name: string }>("PRAGMA table_info(messages)").map((column) => column.name);
+    const floorColumns = reopened.all<{ name: string }>("PRAGMA table_info(floors)").map((column) => column.name);
+    const workstationColumns = reopened
+      .all<{ name: string }>("PRAGMA table_info(workstations)")
+      .map((column) => column.name);
 
     expect(migrations).toEqual([
       { version: 1, name: "initial_schema" },
-      { version: 2, name: "schema_backfill" }
+      { version: 2, name: "schema_backfill" },
+      { version: 3, name: "office_foundation" }
     ]);
     expect(sessionColumns).toEqual(expect.arrayContaining(["input_tokens", "output_tokens", "total_tokens"]));
     expect(messageColumns).toEqual(expect.arrayContaining(["input_tokens", "output_tokens", "total_tokens"]));
+    expect(floorColumns).toEqual(expect.arrayContaining(["id", "floor_index", "layout_preset"]));
+    expect(workstationColumns).toEqual(expect.arrayContaining(["id", "floor_id", "slot_key", "assigned_agent_id"]));
     reopened.close();
   });
 
@@ -108,6 +117,20 @@ describe("repositories", () => {
       profileSnapshot: { communicationStyle: "concise" },
       currentTask: "Build shell"
     });
+    const floor = createFloor(client, {
+      id: "floor-main",
+      name: "Main Floor",
+      floorIndex: 0,
+      layoutPreset: "mvp1_4x3",
+      isVisible: true
+    });
+    const workstation = createWorkstation(client, {
+      id: "ws-frontend",
+      floorId: floor.id,
+      slotKey: "ws-02",
+      name: "Frontend"
+    });
+    assignWorkstationAgent(client, workstation.id, agent.id);
 
     const assignment = assignSkillToAgent(client, {
       agentId: agent.id,
@@ -239,7 +262,11 @@ describe("repositories", () => {
     expect(completedSession.total_tokens).toBe(200);
     expect(completedSession.usage_source).toBe("reported");
     expect(completedAgent.status).toBe("completed");
+    expect(getWorkstation(client, workstation.id)?.assigned_agent_id).toBe(agent.id);
     expect(JSON.parse(setting.value_json)).toEqual({ localUserRole: "manager" });
     expect(getSetting(client, "localUserRole")?.key).toBe("localUserRole");
+
+    deleteAgent(client, agent.id);
+    expect(getWorkstation(client, workstation.id)?.assigned_agent_id).toBeNull();
   });
 });

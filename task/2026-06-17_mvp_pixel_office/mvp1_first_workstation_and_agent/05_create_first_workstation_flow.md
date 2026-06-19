@@ -18,9 +18,32 @@ Let the user place the first desk in the office.
 - create workstation record on confirm,
 - render the new empty desk immediately.
 
+## UI Assets Used
+
+- `floor_room_shell_day`
+- `workstation_empty_base`
+- `workstation_empty_shadow`
+- `workstation_label_plaque`
+- `workstation_hover_overlay`
+- `workstation_selected_overlay`
+
+## Frontend Usage
+
+- FE keeps the room in `floor_empty` state until the first workstation record exists.
+- Once create succeeds, FE moves the room to `floor_active` and renders one `workstation_empty` stack in the chosen slot.
+- Hovering the new desk uses `workstation_hover_overlay`.
+- Clicking the desk uses `workstation_selected_overlay`.
+- This task does not require agent assets yet; it only proves that workstation creation turns empty-room state into workstation-present state.
+
 ## Deliverable
 
 User can create the first workstation from the empty office.
+
+## MVP 1 Delivery Rule
+
+This task proves the user can create the first desk.
+
+MVP 1 is not done until that created desk also becomes the entry point for agent creation and later renders as an occupied workstation in `09_mvp1_acceptance.md`.
 
 ## Acceptance
 

@@ -99,6 +99,29 @@ CREATE TABLE IF NOT EXISTS agents (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS floors (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  floor_index INTEGER NOT NULL,
+  layout_preset TEXT NOT NULL DEFAULT 'mvp1_4x3',
+  is_visible INTEGER NOT NULL DEFAULT 1 CHECK (is_visible IN (0, 1)),
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workstations (
+  id TEXT PRIMARY KEY,
+  floor_id TEXT NOT NULL REFERENCES floors(id) ON DELETE CASCADE,
+  slot_key TEXT NOT NULL,
+  name TEXT,
+  assigned_agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (floor_id, slot_key)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
@@ -254,6 +277,9 @@ CREATE TABLE IF NOT EXISTS permission_rules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
+CREATE INDEX IF NOT EXISTS idx_floors_index ON floors(floor_index);
+CREATE INDEX IF NOT EXISTS idx_workstations_floor_id ON workstations(floor_id);
+CREATE INDEX IF NOT EXISTS idx_workstations_assigned_agent_id ON workstations(assigned_agent_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_agent_id ON sessions(agent_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_meeting_id ON messages(meeting_id);
