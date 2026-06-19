@@ -1,0 +1,352 @@
+{
+  "appInfo": {
+    "name": "Local Codex Office",
+    "version": "0.1.0",
+    "mode": "development",
+    "localCodex": {
+      "status": "ready",
+      "sourcePath": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.616.4196.0_x64__2p2nqsd0c76g0\\app\\resources\\codex.exe",
+      "launchPath": "C:\\Users\\Administrator\\AppData\\Local\\local-codex-office\\bin\\codex.exe",
+      "version": "codex-cli 0.142.0-alpha.1",
+      "message": "Local Codex is ready for agent creation.",
+      "guidance": []
+    }
+  },
+  "shellCheck": {
+    "officeMenu": true,
+    "sidebarRemoved": true,
+    "rosterRemoved": true,
+    "defaultAgentPanelHidden": true,
+    "oldWorkspaceTitleMissing": true,
+    "oldOfficeTitleMissing": true
+  },
+  "initialSnapshot": {
+    "floors": [
+      {
+        "id": "floor-mvp1-main",
+        "name": "Pixel Office",
+        "floor_index": 0,
+        "layout_preset": "mvp1_4x3",
+        "is_visible": 1,
+        "metadata_json": "{\"workspace\":\"mvp1\",\"slotCount\":12}",
+        "created_at": "2026-06-19T16:25:52.922Z",
+        "updated_at": "2026-06-19T16:25:52.922Z"
+      }
+    ],
+    "workstations": [
+      {
+        "id": "workstation-1781886358831",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-01",
+        "name": "Design",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:25:58.834Z",
+        "updated_at": "2026-06-19T22:22:05.144Z"
+      },
+      {
+        "id": "workstation-1781886367363",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-02",
+        "name": "Frontend",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:07.364Z",
+        "updated_at": "2026-06-19T21:59:39.713Z"
+      },
+      {
+        "id": "workstation-1781886368750",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-03",
+        "name": "Backend",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:08.752Z",
+        "updated_at": "2026-06-19T16:26:08.752Z"
+      },
+      {
+        "id": "workstation-1781886369910",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-04",
+        "name": "QA",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:09.911Z",
+        "updated_at": "2026-06-19T16:26:09.911Z"
+      },
+      {
+        "id": "workstation-1781886371110",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-05",
+        "name": "Ops",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:11.114Z",
+        "updated_at": "2026-06-19T16:26:11.114Z"
+      },
+      {
+        "id": "workstation-1781886372258",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-06",
+        "name": "Research",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:12.259Z",
+        "updated_at": "2026-06-19T16:26:12.259Z"
+      },
+      {
+        "id": "workstation-1781886373346",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-07",
+        "name": "Growth",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:13.347Z",
+        "updated_at": "2026-06-19T16:26:13.347Z"
+      },
+      {
+        "id": "workstation-1781886374339",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-08",
+        "name": "PM",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:14.340Z",
+        "updated_at": "2026-06-19T16:26:14.340Z"
+      },
+      {
+        "id": "workstation-1781886375493",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-09",
+        "name": "Support",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:15.493Z",
+        "updated_at": "2026-06-19T16:26:15.493Z"
+      },
+      {
+        "id": "workstation-1781886376650",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-10",
+        "name": "Data",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:16.652Z",
+        "updated_at": "2026-06-19T16:26:16.652Z"
+      },
+      {
+        "id": "workstation-1781886377751",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-11",
+        "name": "AI Lab",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:17.752Z",
+        "updated_at": "2026-06-19T16:26:17.752Z"
+      },
+      {
+        "id": "workstation-1781886378686",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-12",
+        "name": "Review",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:18.687Z",
+        "updated_at": "2026-06-19T16:26:18.687Z"
+      }
+    ]
+  },
+  "targetSlotKey": "ws-01",
+  "agentName": "Office UI 1781907889943",
+  "createdAgentId": "agent-1781907896507",
+  "createDialogMetrics": {
+    "width": 1161,
+    "height": 697,
+    "left": 44,
+    "top": 30
+  },
+  "conversationPanelMetrics": {
+    "width": 1036,
+    "height": 878,
+    "left": 171,
+    "top": 91
+  },
+  "conversationChromeCheck": {
+    "roleRemoved": true,
+    "seatRemoved": true,
+    "runtimeRemoved": true,
+    "latestConversationRemoved": true,
+    "recentActivityRemoved": true
+  },
+  "workstationLabel": "Office UI 1781907889943",
+  "latestSeatPreview": "office loop two complete.",
+  "conversation": {
+    "sessionCount": 2,
+    "totalMessages": 4,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Reply with the exact phrase: office loop one complete."
+      },
+      {
+        "role": "agent",
+        "content": "office loop one complete.\n"
+      },
+      {
+        "role": "user",
+        "content": "Reply with the exact phrase: office loop two complete."
+      },
+      {
+        "role": "agent",
+        "content": "office loop two complete.\n"
+      }
+    ]
+  },
+  "finalSnapshot": {
+    "floors": [
+      {
+        "id": "floor-mvp1-main",
+        "name": "Pixel Office",
+        "floor_index": 0,
+        "layout_preset": "mvp1_4x3",
+        "is_visible": 1,
+        "metadata_json": "{\"workspace\":\"mvp1\",\"slotCount\":12}",
+        "created_at": "2026-06-19T16:25:52.922Z",
+        "updated_at": "2026-06-19T16:25:52.922Z"
+      }
+    ],
+    "workstations": [
+      {
+        "id": "workstation-1781886358831",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-01",
+        "name": "Design",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:25:58.834Z",
+        "updated_at": "2026-06-19T22:31:14.273Z"
+      },
+      {
+        "id": "workstation-1781886367363",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-02",
+        "name": "Frontend",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:07.364Z",
+        "updated_at": "2026-06-19T21:59:39.713Z"
+      },
+      {
+        "id": "workstation-1781886368750",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-03",
+        "name": "Backend",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:08.752Z",
+        "updated_at": "2026-06-19T16:26:08.752Z"
+      },
+      {
+        "id": "workstation-1781886369910",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-04",
+        "name": "QA",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:09.911Z",
+        "updated_at": "2026-06-19T16:26:09.911Z"
+      },
+      {
+        "id": "workstation-1781886371110",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-05",
+        "name": "Ops",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:11.114Z",
+        "updated_at": "2026-06-19T16:26:11.114Z"
+      },
+      {
+        "id": "workstation-1781886372258",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-06",
+        "name": "Research",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:12.259Z",
+        "updated_at": "2026-06-19T16:26:12.259Z"
+      },
+      {
+        "id": "workstation-1781886373346",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-07",
+        "name": "Growth",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:13.347Z",
+        "updated_at": "2026-06-19T16:26:13.347Z"
+      },
+      {
+        "id": "workstation-1781886374339",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-08",
+        "name": "PM",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:14.340Z",
+        "updated_at": "2026-06-19T16:26:14.340Z"
+      },
+      {
+        "id": "workstation-1781886375493",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-09",
+        "name": "Support",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:15.493Z",
+        "updated_at": "2026-06-19T16:26:15.493Z"
+      },
+      {
+        "id": "workstation-1781886376650",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-10",
+        "name": "Data",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:16.652Z",
+        "updated_at": "2026-06-19T16:26:16.652Z"
+      },
+      {
+        "id": "workstation-1781886377751",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-11",
+        "name": "AI Lab",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:17.752Z",
+        "updated_at": "2026-06-19T16:26:17.752Z"
+      },
+      {
+        "id": "workstation-1781886378686",
+        "floor_id": "floor-mvp1-main",
+        "slot_key": "ws-12",
+        "name": "Review",
+        "assigned_agent_id": null,
+        "metadata_json": "{}",
+        "created_at": "2026-06-19T16:26:18.687Z",
+        "updated_at": "2026-06-19T16:26:18.687Z"
+      }
+    ]
+  },
+  "uiErrors": [],
+  "screenshots": {
+    "officeView": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-single-office-view.png",
+    "hover": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-empty-workstation-hover.png",
+    "confirm": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-create-agent-confirm.png",
+    "form": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-create-agent-form.png",
+    "seated": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-agent-seated.png",
+    "chat": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-chat-open.png",
+    "chatHistory": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-chat-history.png",
+    "deleted": "C:\\Users\\Administrator\\Desktop\\repo\\pixel_factory\\verification\\current-app-agent-deleted.png"
+  }
+}
