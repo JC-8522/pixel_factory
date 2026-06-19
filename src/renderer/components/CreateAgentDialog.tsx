@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactElement } from "react";
 import type { CreateAgentRequest } from "../../shared/ipc";
-import type { AgentProfileRecord, AgentProfileSkillRecord, SkillRecord } from "../../shared/types/records";
-import { AgentProfilePicker } from "./AgentProfilePicker";
+import type { SkillRecord, WorkstationRecord } from "../../shared/types/records";
 import {
   hasCreateAgentFormErrors,
   validateCreateAgentForm,
@@ -14,25 +13,26 @@ const createId = (prefix: string): string => `${prefix}-${Date.now()}`;
 type CreateAgentDialogProps = {
   agentCount: number;
   onClose(): void;
-  onCreated(agentId: string): Promise<void>;
+  onCreated(agentId: string, workstationId: string | null): Promise<void>;
+  workstation: WorkstationRecord;
 };
 
 const initialForm = (agentCount: number): CreateAgentFormState => ({
   name: `Agent ${agentCount + 1}`,
   role: "Developer",
   workingDirectory: ".",
-  runtimeKind: "codex_cli",
   permissionMode: "ask",
-  autoRunMode: "manual",
   initialTask: "Introduce yourself and explain how you can help the manager."
 });
 
-export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgentDialogProps): ReactElement {
+export function CreateAgentDialog({
+  agentCount,
+  onClose,
+  onCreated,
+  workstation
+}: CreateAgentDialogProps): ReactElement {
   const [form, setForm] = useState<CreateAgentFormState>(() => initialForm(agentCount));
-  const [profiles, setProfiles] = useState<AgentProfileRecord[]>([]);
   const [skills, setSkills] = useState<SkillRecord[]>([]);
-  const [profileSkills, setProfileSkills] = useState<AgentProfileSkillRecord[]>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState("");
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [modelProfile, setModelProfile] = useState("");
   const [skillQuery, setSkillQuery] = useState("");
@@ -41,20 +41,8 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void Promise.all([window.codexOffice.profiles.list(), window.codexOffice.skills.list()]).then(
-      ([loadedProfiles, loadedSkills]) => {
-        setProfiles(loadedProfiles);
-        setSkills(loadedSkills);
-      }
-    );
+    void window.codexOffice.skills.list().then(setSkills);
   }, []);
-
-  const selectedProfile = useMemo(
-    () => profiles.find((profile) => profile.id === selectedProfileId) ?? null,
-    [profiles, selectedProfileId]
-  );
-
-  const selectedProfileSkillIds = useMemo(() => profileSkills.map((skill) => skill.skill_id), [profileSkills]);
   const visibleSkills = useMemo(
     () =>
       skills.filter((skill) => {
@@ -78,31 +66,6 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const chooseProfile = async (profileId: string): Promise<void> => {
-    setSelectedProfileId(profileId);
-    setProfileSkills([]);
-
-    if (!profileId) {
-      setSelectedSkillIds([]);
-      return;
-    }
-
-    const profile = profiles.find((item) => item.id === profileId);
-    const assignments = await window.codexOffice.profiles.listSkills(profileId);
-    setProfileSkills(assignments);
-    setSelectedSkillIds(assignments.map((assignment) => assignment.skill_id));
-
-    if (profile) {
-      setForm((current) => ({
-        ...current,
-        role: profile.role || current.role,
-        permissionMode: profile.default_permission_mode || current.permissionMode,
-        initialTask: profile.instructions || current.initialTask
-      }));
-      setModelProfile(profile.default_model_profile ?? "");
-    }
-  };
-
   const toggleSkill = (skillId: string): void => {
     setSelectedSkillIds((current) =>
       current.includes(skillId) ? current.filter((id) => id !== skillId) : [...current, skillId]
@@ -119,8 +82,8 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     const nextErrors = validateCreateAgentForm(form);
-        setErrors(nextErrors);
-        setSubmitError(null);
+    setErrors(nextErrors);
+    setSubmitError(null);
 
     if (hasCreateAgentFormErrors(nextErrors)) {
       return;
@@ -138,17 +101,18 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
         permissionMode: form.permissionMode,
         autoRunMode: "manual",
         modelProfile: modelProfile.trim() || null,
-        profileId: selectedProfileId || null,
         skillIds: selectedSkillIds,
         currentTask: form.initialTask.trim(),
+        workstationId: workstation.id,
         metadata: {
           createdFromUi: true,
-          managerControlled: true
+          managerControlled: true,
+          workstationSlotKey: workstation.slot_key
         }
       };
 
-      await window.codexOffice.runtime.spawnAgent(payload);
-      await onCreated(agentId);
+      await window.codexOffice.agents.create(payload);
+      await onCreated(agentId, workstation.id);
       onClose();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Unable to create agent.");
@@ -162,8 +126,9 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
       <section aria-label="Create agent" className="dialog-panel">
         <header className="dialog-header">
           <div>
-            <p className="eyebrow">Agent Registry</p>
+            <p className="eyebrow">Workstation Assignment</p>
             <h3>Create Agent</h3>
+            <p className="dialog-subtitle">Seat: {workstation.name ?? workstation.slot_key}</p>
           </div>
           <button aria-label="Close create agent dialog" className="icon-button" onClick={onClose} type="button">
             x
@@ -184,14 +149,6 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
               {errors.role ? <span className="form-error">{errors.role}</span> : null}
             </label>
           </div>
-
-          <AgentProfilePicker profiles={profiles} selectedProfileId={selectedProfileId} onChange={(id) => void chooseProfile(id)} />
-
-          {selectedProfile ? (
-            <p className="profile-hint">
-              {selectedProfile.name} defaults are loaded. The main process will generate the immutable snapshot.
-            </p>
-          ) : null}
 
           <label>
             Working directory
@@ -250,7 +207,6 @@ export function CreateAgentDialog({ agentCount, onClose, onCreated }: CreateAgen
                     type="checkbox"
                   />
                   <span>{skill.name}</span>
-                  {selectedProfileSkillIds.includes(skill.id) ? <em>profile default</em> : null}
                 </label>
               ))
             )}

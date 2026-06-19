@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   AgentRuntimeEvent,
   RuntimeSessionDescriptor,
@@ -25,6 +26,9 @@ export type MockAgentRuntimeOptions = {
   chunkDelayMs?: number;
   responseFactory?: (message: string, input: SendRuntimeMessageInput) => string;
 };
+
+const createMockRuntimeEventId = (scope: string, sequence: number): string =>
+  `mock-event-${scope}-${sequence}-${randomUUID()}`;
 
 const countTokens = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
 
@@ -151,9 +155,10 @@ export class MockAgentRuntime implements AgentRuntime {
   private async emit(event: RuntimeEventDraft): Promise<void> {
     const eventScope = event as { agentId: string; sessionId?: string };
     const scope = eventScope.sessionId ?? eventScope.agentId;
+    const sequence = ++this.sequence;
     const runtimeEvent = {
       ...event,
-      id: `mock-event-${scope}-${++this.sequence}`,
+      id: createMockRuntimeEventId(scope, sequence),
       at: new Date().toISOString()
     } as AgentRuntimeEvent;
 

@@ -2,9 +2,7 @@ export type CreateAgentFormState = {
   name: string;
   role: string;
   workingDirectory: string;
-  runtimeKind: string;
   permissionMode: string;
-  autoRunMode: string;
   initialTask: string;
 };
 
@@ -25,16 +23,8 @@ export const validateCreateAgentForm = (form: CreateAgentFormState): CreateAgent
     errors.workingDirectory = "Working directory is required.";
   }
 
-  if (!["mock", "codex_cli"].includes(form.runtimeKind)) {
-    errors.runtimeKind = "Choose a supported runtime.";
-  }
-
   if (!["ask", "readonly", "full"].includes(form.permissionMode)) {
     errors.permissionMode = "Choose a permission mode.";
-  }
-
-  if (!["manual", "auto", "external"].includes(form.autoRunMode)) {
-    errors.autoRunMode = "Choose an auto-run mode.";
   }
 
   if (!form.initialTask.trim()) {

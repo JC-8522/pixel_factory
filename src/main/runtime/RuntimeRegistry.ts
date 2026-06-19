@@ -4,6 +4,10 @@ import { CodexCliRuntime } from "./CodexCliRuntime";
 import { MockAgentRuntime } from "./MockAgentRuntime";
 import { AttachedCodexRuntime } from "./AttachedCodexRuntime";
 
+export type RuntimeRegistryOptions = {
+  codexExecutablePath?: string;
+};
+
 export class RuntimeRegistry {
   private readonly runtimes = new Map<RuntimeKind, AgentRuntime>();
   private readonly sessions = new Map<string, AgentRuntime>();
@@ -74,5 +78,9 @@ export class RuntimeRegistry {
   }
 }
 
-export const createDefaultRuntimeRegistry = (): RuntimeRegistry =>
-  new RuntimeRegistry([new MockAgentRuntime(), new CodexCliRuntime(), new AttachedCodexRuntime()]);
+export const createDefaultRuntimeRegistry = (options: RuntimeRegistryOptions = {}): RuntimeRegistry =>
+  new RuntimeRegistry([
+    new MockAgentRuntime(),
+    new CodexCliRuntime({ executablePath: options.codexExecutablePath }),
+    new AttachedCodexRuntime()
+  ]);

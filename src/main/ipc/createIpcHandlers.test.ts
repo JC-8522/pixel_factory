@@ -5,8 +5,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { MVP1_FLOOR_ID } from "../../shared/office";
 import { createMigratedDatabaseClient, type DatabaseClient } from "../db/client";
-import { createSession, createTokenUsage, listAgentSkills, upsertSkill } from "../db/repositories";
+import { createSession, createTokenUsage, getWorkstation, listAgentSkills, upsertSkill } from "../db/repositories";
 import { createIpcHandlers } from "./createIpcHandlers";
 
 const tempDirs: string[] = [];
@@ -27,7 +28,19 @@ const createHandlers = async (): Promise<{ client: DatabaseClient; handlers: Ret
   const client = await createMigratedDatabaseClient({ filePath: createTempDatabasePath() });
   const handlers = createIpcHandlers({
     client,
-    getAppInfo: () => ({ name: "Local Codex Office", version: "0.1.0", mode: "development" })
+    getAppInfo: () => ({
+      name: "Local Codex Office",
+      version: "0.1.0",
+      mode: "development",
+      localCodex: {
+        status: "ready",
+        sourcePath: "C:/Codex/codex.exe",
+        launchPath: "C:/Codex/codex.exe",
+        version: "codex-cli 0.1.0",
+        message: "Local Codex is ready for agent creation.",
+        guidance: []
+      }
+    })
   });
 
   return { client, handlers };
@@ -99,6 +112,70 @@ describe("createIpcHandlers", () => {
     expect(handlers.eventsList({ agentId: agent.id }).map((event) => event.type)).toContain("agent_created");
     expect(handlers.tokenUsageListByAgent(agent.id)).toHaveLength(1);
     expect(handlers.tokenUsageSummaryByAgent(agent.id).total_tokens).toBe(50);
+
+    client.close();
+  });
+
+  it("creates office workstations, binds agents to them, and releases them on delete", async () => {
+    const { client, handlers } = await createHandlers();
+
+    const initialSnapshot = handlers.officeGetSnapshot();
+    const workstation = handlers.officeCreateWorkstation({
+      id: "ws-backend",
+      floorId: MVP1_FLOOR_ID,
+      slotKey: "ws-03"
+    });
+    const agent = handlers.agentsCreate({
+      id: "agent-backend",
+      name: "Backend",
+      role: "Backend Engineer",
+      workingDirectory: "C:/repo",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual",
+      workstationId: workstation.id
+    });
+
+    expect(initialSnapshot.floors.map((floor) => floor.id)).toContain(MVP1_FLOOR_ID);
+    expect(workstation.assigned_agent_id).toBeNull();
+    expect(getWorkstation(client, workstation.id)?.assigned_agent_id).toBe(agent.id);
+
+    await handlers.agentsDelete(agent.id);
+
+    expect(getWorkstation(client, workstation.id)?.assigned_agent_id).toBeNull();
+    expect(handlers.officeGetSnapshot().workstations.map((item) => item.id)).toContain(workstation.id);
+
+    client.close();
+  });
+
+  it("deletes agents and cascades their session data through IPC handlers", async () => {
+    const { client, handlers } = await createHandlers();
+
+    const agent = handlers.agentsCreate({
+      id: "agent-delete",
+      name: "Cleanup",
+      role: "QA Tester",
+      workingDirectory: "C:/repo",
+      runtimeKind: "mock",
+      permissionMode: "ask",
+      autoRunMode: "manual"
+    });
+    const session = createSession(client, {
+      id: "session-delete",
+      agentId: agent.id,
+      runtimeKind: "mock",
+      status: "completed",
+      workingDirectory: "C:/repo"
+    });
+
+    expect(handlers.sessionsListByAgent(agent.id)).toHaveLength(1);
+
+    const removed = await handlers.agentsDelete(agent.id);
+
+    expect(removed?.id).toBe(agent.id);
+    expect(handlers.agentsGet(agent.id)).toBeNull();
+    expect(handlers.sessionsListByAgent(agent.id)).toEqual([]);
+    expect(handlers.messagesListBySession(session.id)).toEqual([]);
 
     client.close();
   });

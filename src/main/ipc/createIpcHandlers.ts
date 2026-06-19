@@ -23,12 +23,17 @@ import {
   summarizeTokenUsageByAgent,
 } from "../db/repositories";
 import {
+  createOfficeWorkstation,
+  getOfficeSnapshot
+} from "../office/officeService";
+import {
   attachSkillToRegisteredAgent,
   detachSkillFromRegisteredAgent,
   getRegisteredAgent,
   listRegisteredAgentSkills,
   listRegisteredAgents,
-  moveRegisteredAgent
+  moveRegisteredAgent,
+  unregisterAgent
 } from "../agentRegistry/agentRegistryService";
 import { createAgentThroughOrchestration, spawnAgentThroughOrchestration } from "../orchestration/agentOrchestrationService";
 import { createDefaultRuntimeRegistry, type RuntimeRegistry } from "../runtime/RuntimeRegistry";
@@ -84,6 +89,7 @@ import {
   validateCreateAgentProfile,
   validateCreateMeeting,
   validateCreateMessage,
+  validateCreateWorkstation,
   validateCreateTask,
   validateDuplicateAgentProfile,
   validateEventFilter,
@@ -144,12 +150,34 @@ export const createIpcHandlers = ({
   return {
   appInfo: (): AppInfo => getAppInfo(),
 
+  officeGetSnapshot: () =>
+    saveAfter(client, () => getOfficeSnapshot(client)),
+  officeCreateWorkstation: (input: unknown) =>
+    saveAfter(client, () => createOfficeWorkstation(client, validateCreateWorkstation(input))),
+
   agentsList: () => listRegisteredAgents(client),
   agentsGet: (agentId: unknown) => getRegisteredAgent(client, validateId(agentId, "agent id")),
   agentsCreate: (input: unknown) =>
     saveAfter(client, () => {
       const payload = validateCreateAgent(input);
       return createAgentThroughOrchestration(client, payload);
+    }),
+  agentsDelete: (agentId: unknown) =>
+    saveAfterAsync(client, async () => {
+      const validAgentId = validateId(agentId, "agent id");
+      const sessions = listSessionsForAgent(client, validAgentId);
+
+      for (const session of sessions) {
+        if (!["completed", "stopped", "failed"].includes(session.status)) {
+          try {
+            await runtimeRegistry.stop(session.id);
+          } catch {
+            // Ignore missing runtime state and continue removing persisted agent data.
+          }
+        }
+      }
+
+      return unregisterAgent(client, validAgentId);
     }),
   agentsUpdatePosition: (input: unknown) =>
     saveAfter(client, () => {

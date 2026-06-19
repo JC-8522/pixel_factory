@@ -3,6 +3,7 @@ import type { DatabaseClient } from "../db/client";
 import {
   assignSkillToAgent,
   createAgent,
+  deleteAgent,
   getAgent,
   listAgentSkills,
   listAgents,
@@ -13,7 +14,22 @@ import {
 } from "../db/repositories";
 import { recordAuditEvent } from "../audit/auditEngine";
 
+const defaultDeskPosition = (agentCount: number): { x: number; y: number } => {
+  const columns = 4;
+  const startX = 110;
+  const startY = 120;
+  const gapX = 150;
+  const gapY = 110;
+  const index = Math.max(agentCount, 0);
+
+  return {
+    x: startX + (index % columns) * gapX,
+    y: startY + Math.floor(index / columns) * gapY
+  };
+};
+
 export const registerAgent = (client: DatabaseClient, input: CreateAgentRequest): AgentRecord => {
+  const position = defaultDeskPosition(listAgents(client).length);
   const agent = createAgent(client, {
     id: input.id,
     name: input.name,
@@ -25,7 +41,9 @@ export const registerAgent = (client: DatabaseClient, input: CreateAgentRequest)
     profileId: input.profileId,
     profileSnapshot: input.profileSnapshot,
     currentTask: input.currentTask,
-    metadata: input.metadata
+    metadata: input.metadata,
+    positionX: position.x,
+    positionY: position.y
   });
 
   recordAuditEvent(client, {
@@ -51,6 +69,7 @@ export const ensureRegisteredAgent = (
     return existingAgent;
   }
 
+  const position = defaultDeskPosition(listAgents(client).length);
   const agent = createAgent(client, {
     id: input.id,
     name: input.name,
@@ -62,7 +81,9 @@ export const ensureRegisteredAgent = (
     profileId: input.profileId,
     profileSnapshot: input.profileSnapshot,
     currentTask: input.currentTask,
-    metadata: input.metadata
+    metadata: input.metadata,
+    positionX: position.x,
+    positionY: position.y
   });
 
   recordAuditEvent(client, {
@@ -81,6 +102,22 @@ export const listRegisteredAgents = (client: DatabaseClient): AgentRecord[] => l
 
 export const getRegisteredAgent = (client: DatabaseClient, agentId: string): AgentRecord | null =>
   getAgent(client, agentId);
+
+export const unregisterAgent = (client: DatabaseClient, agentId: string): AgentRecord | null => {
+  const removed = deleteAgent(client, agentId);
+
+  if (removed) {
+    recordAuditEvent(client, {
+      id: `event-agent-deleted-${agentId}`,
+      type: "agent_deleted",
+      actorType: "user",
+      actorId: "local-user",
+      payload: { agentId, name: removed.name }
+    });
+  }
+
+  return removed;
+};
 
 export const moveRegisteredAgent = (
   client: DatabaseClient,

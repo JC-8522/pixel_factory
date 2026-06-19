@@ -2,6 +2,14 @@ export type AppInfo = {
   name: string;
   version: string;
   mode: "development" | "production";
+  localCodex: {
+    status: "ready" | "missing" | "blocked";
+    sourcePath: string | null;
+    launchPath: string | null;
+    version: string | null;
+    message: string;
+    guidance: string[];
+  };
 };
 
 export type OfficeZone = "desks" | "meeting_room" | "whiteboard" | "idle_area" | "blocked_area" | "skill_shelf";

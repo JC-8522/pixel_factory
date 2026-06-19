@@ -1,0 +1,75 @@
+{
+  "pack": "pixel_office_mvp1_generated_assets",
+  "version": 1,
+  "status": "first_pass_generated",
+  "canonicalRoot": "assets/pixel_office/mvp1",
+  "notes": [
+    "These are stable in-repo copies of generated assets.",
+    "They are intended for FE reference, early slicing, and future refinement.",
+    "Do not rely on temporary Codex generated-image folders as the only source."
+  ],
+  "assets": [
+    {
+      "id": "floor_room_shell_day",
+      "category": "floor",
+      "file": "assets/pixel_office/mvp1/floor/floor_room_shell_day.png",
+      "promptFile": "assets/pixel_office/mvp1/prompts/floor_room_shell_day.prompt.md",
+      "sourceGeneratedImage": "C:/Users/Administrator/.codex/generated_images/019ed918-3230-79d0-8d75-0eec95b40f41/ig_07fb7e11d75cda34016a34cb84f2208199873986e0c055aa52.png",
+      "usedByTasks": [
+        "Task 1.1",
+        "Task 1.5"
+      ]
+    },
+    {
+      "id": "workstation_state_sheet",
+      "category": "workstation",
+      "file": "assets/pixel_office/mvp1/workstation/workstation_state_sheet.png",
+      "promptFile": "assets/pixel_office/mvp1/prompts/workstation_state_sheet.prompt.md",
+      "sourceGeneratedImage": "C:/Users/Administrator/.codex/generated_images/019ed918-3230-79d0-8d75-0eec95b40f41/ig_07fb7e11d75cda34016a34cbed8d4481999fcd70ff4af8a054.png",
+      "usedByTasks": [
+        "Task 1.4",
+        "Task 1.5",
+        "Task 1.8"
+      ]
+    },
+    {
+      "id": "agent_state_sheet",
+      "category": "agent",
+      "file": "assets/pixel_office/mvp1/agent/agent_state_sheet.png",
+      "promptFile": "assets/pixel_office/mvp1/prompts/agent_state_sheet.prompt.md",
+      "sourceGeneratedImage": "C:/Users/Administrator/.codex/generated_images/019ed918-3230-79d0-8d75-0eec95b40f41/ig_07fb7e11d75cda34016a34cc33682881998abc4774980954a4.png",
+      "usedByTasks": [
+        "Task 1.7"
+      ]
+    },
+    {
+      "id": "create_agent_modal_sheet",
+      "category": "ui_modal",
+      "file": "assets/pixel_office/mvp1/ui/modal/create_agent_modal_sheet.png",
+      "promptFile": "assets/pixel_office/mvp1/prompts/create_agent_modal_sheet.prompt.md",
+      "sourceGeneratedImage": "C:/Users/Administrator/.codex/generated_images/019ed918-3230-79d0-8d75-0eec95b40f41/ig_07fb7e11d75cda34016a34cc86f664819981b83098ef55e6e9.png",
+      "usedByTasks": [
+        "Task 1.6"
+      ]
+    },
+    {
+      "id": "chat_panel_frame",
+      "category": "ui_chat",
+      "file": "assets/pixel_office/mvp1/ui/chat/chat_panel_frame.png",
+      "promptFile": "assets/pixel_office/mvp1/prompts/chat_panel_frame.prompt.md",
+      "sourceGeneratedImage": "C:/Users/Administrator/.codex/generated_images/019ed918-3230-79d0-8d75-0eec95b40f41/ig_07fb7e11d75cda34016a34cce7eaec8199a878fe3e07aadb25.png",
+      "usedByTasks": [
+        "future agent chat panel work"
+      ]
+    },
+    {
+      "id": "mvp1_concept_board",
+      "category": "preview",
+      "file": "assets/pixel_office/mvp1/preview/mvp1_concept_board.png",
+      "sourceGeneratedImage": "C:/Users/Administrator/.codex/generated_images/019ed918-3230-79d0-8d75-0eec95b40f41/ig_07fb7e11d75cda34016a34b6ab2ff881998eb20b8382453e57.png",
+      "usedByTasks": [
+        "overall style reference"
+      ]
+    }
+  ]
+}

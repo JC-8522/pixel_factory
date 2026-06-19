@@ -5,6 +5,8 @@ import { createMigratedDatabaseClient } from "./db/client";
 import { createIpcHandlers } from "./ipc/createIpcHandlers";
 import { registerIpcHandlers } from "./ipc/registerIpcHandlers";
 import { IPC_CHANNELS } from "../shared/ipc";
+import { inspectLocalCodexAvailability } from "./runtime/codexInstallation";
+import { createDefaultRuntimeRegistry } from "./runtime/RuntimeRegistry";
 
 const isDevelopment = !app.isPackaged;
 
@@ -52,6 +54,11 @@ const createMainWindow = (): BrowserWindow => {
 };
 
 void app.whenReady().then(async () => {
+  const localCodex = inspectLocalCodexAvailability();
+  const runtimeRegistry = createDefaultRuntimeRegistry({
+    codexExecutablePath: localCodex.launchPath ?? localCodex.sourcePath ?? undefined
+  });
+
   const client = await createMigratedDatabaseClient({
     filePath: join(app.getPath("userData"), "local-codex-office.sqlite")
   });
@@ -59,10 +66,12 @@ void app.whenReady().then(async () => {
   registerIpcHandlers(
     createIpcHandlers({
       client,
+      runtimeRegistry,
       getAppInfo: (): AppInfo => ({
         name: "Local Codex Office",
         version: app.getVersion(),
-        mode: isDevelopment ? "development" : "production"
+        mode: isDevelopment ? "development" : "production",
+        localCodex
       }),
       publishRuntimeEvent: (event) => {
         for (const window of BrowserWindow.getAllWindows()) {

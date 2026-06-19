@@ -13,9 +13,12 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
     return result.canceled ? null : result.filePaths[0] ?? null;
   });
 
+  ipcMain.handle(IPC_CHANNELS.officeGetSnapshot, () => handlers.officeGetSnapshot());
+  ipcMain.handle(IPC_CHANNELS.officeCreateWorkstation, (_event, input) => handlers.officeCreateWorkstation(input));
   ipcMain.handle(IPC_CHANNELS.agentsList, () => handlers.agentsList());
   ipcMain.handle(IPC_CHANNELS.agentsGet, (_event, agentId) => handlers.agentsGet(agentId));
   ipcMain.handle(IPC_CHANNELS.agentsCreate, (_event, input) => handlers.agentsCreate(input));
+  ipcMain.handle(IPC_CHANNELS.agentsDelete, (_event, agentId) => handlers.agentsDelete(agentId));
   ipcMain.handle(IPC_CHANNELS.agentsUpdatePosition, (_event, input) => handlers.agentsUpdatePosition(input));
   ipcMain.handle(IPC_CHANNELS.agentsAssignSkill, (_event, input) => handlers.agentsAssignSkill(input));
   ipcMain.handle(IPC_CHANNELS.agentsRemoveSkill, (_event, input) => handlers.agentsRemoveSkill(input));
