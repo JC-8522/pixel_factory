@@ -116,6 +116,9 @@ export type IpcHandlerContext = {
   publishRuntimeEvent?: (event: AgentRuntimeEvent) => void;
 };
 
+const shouldBatchRuntimeSave = (event: AgentRuntimeEvent): boolean =>
+  ["message_chunk", "log_line", "status_changed", "file_touched", "command_started", "command_completed"].includes(event.type);
+
 const saveAfter = <T>(client: DatabaseClient, operation: () => T): T => {
   const result = operation();
   client.save();
@@ -143,7 +146,11 @@ export const createIpcHandlers = ({
 
   runtimeRegistry.onEvent((event) => {
     persistRuntimeEvent(client, event);
-    client.save();
+    if (shouldBatchRuntimeSave(event)) {
+      client.scheduleSave();
+    } else {
+      client.save();
+    }
     publishRuntimeEvent?.(event);
   });
 

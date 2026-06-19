@@ -4,7 +4,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMigratedDatabaseClient, type DatabaseClient } from "./client";
 import { assignSkillToAgent, createAgent, deleteAgent, updateAgentStatus } from "./repositories/agents";
 import { createEvent, listEvents } from "./repositories/events";
@@ -33,6 +33,7 @@ const createTempDatabasePath = (): string => {
 };
 
 afterEach(() => {
+  vi.useRealTimers();
   for (const dir of tempDirs.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -81,6 +82,30 @@ describe("database client and migrations", () => {
         workingDirectory: "C:/repo"
       })
     ).toThrow();
+
+    client.close();
+  });
+
+  it("coalesces scheduled saves during bursty runtime updates", async () => {
+    const client = await createMigratedDatabaseClient({ filePath: createTempDatabasePath() });
+    const exportSpy = vi.spyOn(client, "exportBytes");
+    vi.useFakeTimers();
+
+    client.scheduleSave(50);
+    client.scheduleSave(50);
+
+    await vi.advanceTimersByTimeAsync(49);
+    expect(exportSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(exportSpy).toHaveBeenCalledTimes(1);
+
+    client.scheduleSave(50);
+    client.flushPendingSave();
+    expect(exportSpy).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(50);
+    expect(exportSpy).toHaveBeenCalledTimes(2);
 
     client.close();
   });
