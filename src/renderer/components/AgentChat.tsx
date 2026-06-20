@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactElement } from "react";
 import type { PermissionRequestRecord, RuntimeSendMessageResult } from "../../shared/ipc";
 import type { AgentRuntimeEvent } from "../../shared/types/agent";
-import type { AgentRecord, EventRecord, MessageRecord, SessionRecord } from "../../shared/types/records";
+import type { AgentRecord, MessageRecord, SessionRecord } from "../../shared/types/records";
 import { agentFrameIndex, agentSheetUrl, spriteSheetStyle } from "../office/officeLayout";
 import { useChatStore } from "../stores/chatStore";
-import { useEventStore } from "../stores/eventStore";
 import { PermissionDecisionDialog } from "./PermissionDecisionDialog";
 
 type AgentChatProps = {
   agent: AgentRecord;
-  onRuntimeEvent?: (event: AgentRuntimeEvent) => void;
 };
 
 const isDetectedExternalAgent = (agent: AgentRecord): boolean => {
@@ -24,9 +22,119 @@ const isDetectedExternalAgent = (agent: AgentRecord): boolean => {
 const shouldRefreshMessages = (event: AgentRuntimeEvent): boolean =>
   ["message_chunk", "session_completed", "session_stopped", "error"].includes(event.type);
 
+const isTerminalSession = (status: string): boolean => ["completed", "stopped", "failed"].includes(status);
+
+const sameSessions = (left: SessionRecord[], right: SessionRecord[]): boolean =>
+  left.length === right.length &&
+  left.every(
+    (session, index) =>
+      session.id === right[index]?.id &&
+      session.status === right[index]?.status &&
+      session.ended_at === right[index]?.ended_at
+  );
+
+const roleLabel = (role: string, agentName: string): string =>
+  role === "user" ? "You" : role === "agent" ? agentName : "System";
+
+const describeAgentStatus = (
+  status: string
+): { label: string; detail: string | null; tone: "working" | "waiting" | "error" } | null => {
+  switch (status) {
+    case "thinking":
+      return { label: "Thinking through the next reply", detail: null, tone: "working" };
+    case "reading_files":
+      return { label: "Reviewing the current project context", detail: null, tone: "working" };
+    case "running_command":
+      return { label: "Working through the next step", detail: null, tone: "working" };
+    case "editing_files":
+      return { label: "Updating the project", detail: null, tone: "working" };
+    case "waiting_user_input":
+      return { label: "Waiting for your next instruction", detail: null, tone: "waiting" };
+    case "error":
+      return { label: "Run hit an error", detail: null, tone: "error" };
+    default:
+      return null;
+  }
+};
+
+const trimDetail = (value: string | null | undefined, max = 120): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return null;
+  }
+
+  return compact.length > max ? `${compact.slice(0, max - 1)}...` : compact;
+};
+
+type LiveActivity = {
+  label: string;
+  detail: string | null;
+  tone: "working" | "waiting" | "error";
+  updatedAt: string;
+};
+
+const activityFromEvent = (event: AgentRuntimeEvent): LiveActivity | null => {
+  switch (event.type) {
+    case "status_changed": {
+      const activity = describeAgentStatus(event.status);
+      return activity ? { ...activity, updatedAt: event.at } : null;
+    }
+    case "command_started":
+      return {
+        label: "Running a command",
+        detail: trimDetail(event.command),
+        tone: "working",
+        updatedAt: event.at
+      };
+    case "command_completed":
+      return {
+        label: "Command finished",
+        detail: trimDetail(event.command),
+        tone: event.exitCode === 0 ? "working" : "error",
+        updatedAt: event.at
+      };
+    case "file_touched":
+      return {
+        label: "Updating files",
+        detail: trimDetail(`${event.action} ${event.path}`),
+        tone: "working",
+        updatedAt: event.at
+      };
+    case "waiting_user_input":
+      return {
+        label: "Waiting for your next instruction",
+        detail: trimDetail(event.prompt),
+        tone: "waiting",
+        updatedAt: event.at
+      };
+    case "error":
+      return {
+        label: "Run hit an error",
+        detail: trimDetail(event.message),
+        tone: "error",
+        updatedAt: event.at
+      };
+    case "session_completed":
+      return null;
+    case "session_stopped":
+      return {
+        label: "Session stopped",
+        detail: null,
+        tone: "error",
+        updatedAt: event.at
+      };
+    default:
+      return null;
+  }
+};
+
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
-export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactElement {
+export function AgentChat({ agent }: AgentChatProps): ReactElement {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,9 +142,14 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequestRecord | null>(null);
   const [pendingMessage, setPendingMessage] = useState<{ sessionId: string; message: string } | null>(null);
   const [decisionBusy, setDecisionBusy] = useState(false);
+  const [liveActivity, setLiveActivity] = useState<LiveActivity | null>(() => {
+    const initial = describeAgentStatus(agent.status);
+    return initial ? { ...initial, updatedAt: new Date().toISOString() } : null;
+  });
   const sessionRefreshTimeoutsRef = useRef(new Map<string, TimeoutHandle>());
+  const hydratedSessionIdsRef = useRef(new Set<string>());
+  const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
   const { messagesBySession, hydrateSession } = useChatStore();
-  const { events, hydrate: hydrateEvents } = useEventStore();
 
   const readOnlyExternalAgent = isDetectedExternalAgent(agent);
   const oneShotLocalRuntime = agent.runtime_kind === "codex_cli";
@@ -51,52 +164,34 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     return activeSession ? messagesBySession[activeSession.id] ?? [] : [];
   }, [activeSession, messagesBySession, oneShotLocalRuntime, sessions]);
   const avatarStyle = useMemo(() => spriteSheetStyle(agentSheetUrl, agentFrameIndex(agent.status)), [agent.status]);
-  const activityEvents = useMemo(
-    () =>
-      events
-        .filter((event) => {
-          if (!["status_changed", "file_touched", "waiting_user_input"].includes(event.type)) {
-            return false;
-          }
-
-          if (event.type !== "status_changed") {
-            return true;
-          }
-
-          const payload = JSON.parse(event.payload_json) as { status?: string };
-          return ["thinking", "reading_files", "running_command", "editing_files", "waiting_user_input"].includes(
-            payload.status ?? ""
-          );
-        })
-        .sort((left, right) => left.created_at.localeCompare(right.created_at))
-        .slice(-5),
-    [events]
-  );
-  const timelineItems = useMemo(
-    () =>
-      [
-        ...activityEvents.map((event) => ({ kind: "event" as const, at: event.created_at, event })),
-        ...messages.map((message) => ({ kind: "message" as const, at: message.created_at, message }))
-      ].sort((left, right) => left.at.localeCompare(right.at)),
-    [activityEvents, messages]
-  );
-
-  const refreshSessions = async (): Promise<SessionRecord[]> => {
+  const refreshSessions = useCallback(async (): Promise<SessionRecord[]> => {
     const nextSessions = await window.codexOffice.sessions.listByAgent(agent.id);
-    setSessions(nextSessions);
-    if (nextSessions.length > 0) {
-      await Promise.all(nextSessions.map((session) => hydrateSession(session.id)));
+    setSessions((current) => (sameSessions(current, nextSessions) ? current : nextSessions));
+
+    const sessionsToHydrate = oneShotLocalRuntime
+      ? nextSessions.filter((session) => !hydratedSessionIdsRef.current.has(session.id))
+      : nextSessions.at(-1)
+        ? [nextSessions.at(-1) as SessionRecord]
+        : [];
+
+    if (sessionsToHydrate.length > 0) {
+      await Promise.all(
+        sessionsToHydrate.map(async (session) => {
+          hydratedSessionIdsRef.current.add(session.id);
+          await hydrateSession(session.id);
+        })
+      );
     }
+
     return nextSessions;
-  };
+  }, [agent.id, hydrateSession, oneShotLocalRuntime]);
 
   useEffect(() => {
+    hydratedSessionIdsRef.current.clear();
+    const initial = describeAgentStatus(agent.status);
+    setLiveActivity(initial ? { ...initial, updatedAt: new Date().toISOString() } : null);
     void refreshSessions();
-  }, [agent.id]);
-
-  useEffect(() => {
-    void hydrateEvents({ agentId: agent.id });
-  }, [agent.id, hydrateEvents]);
+  }, [agent.id, refreshSessions]);
 
   const scheduleSessionRefresh = useCallback(
     (sessionId: string): void => {
@@ -107,6 +202,7 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
 
       const timeoutId = setTimeout(() => {
         sessionRefreshTimeoutsRef.current.delete(sessionId);
+        hydratedSessionIdsRef.current.add(sessionId);
         void hydrateSession(sessionId);
       }, 120);
 
@@ -121,14 +217,17 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
         return;
       }
 
-      onRuntimeEvent?.(event);
+      const nextActivity = activityFromEvent(event);
+      if (nextActivity || event.type === "session_completed") {
+        setLiveActivity(nextActivity);
+      }
       if (shouldRefreshMessages(event) && (oneShotLocalRuntime || activeSession?.id === event.sessionId)) {
         scheduleSessionRefresh(event.sessionId);
       }
     });
 
     return unsubscribe;
-  }, [agent.id, activeSession?.id, onRuntimeEvent, oneShotLocalRuntime, scheduleSessionRefresh]);
+  }, [agent.id, activeSession?.id, oneShotLocalRuntime, scheduleSessionRefresh]);
 
   useEffect(
     () => () => {
@@ -141,13 +240,17 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
     []
   );
 
+  useEffect(() => {
+    bottomAnchorRef.current?.scrollIntoView({ block: "end" });
+  }, [liveActivity, messages]);
+
   const ensureSession = async (): Promise<SessionRecord> => {
     if (readOnlyExternalAgent) {
       throw new Error("Detected external Codex processes are read-only in MVP.");
     }
 
     const latest = (await refreshSessions()).at(-1);
-    if (latest && !["completed", "stopped", "failed"].includes(latest.status)) {
+    if (latest && !isTerminalSession(latest.status)) {
       return latest;
     }
 
@@ -222,7 +325,7 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
       }
 
       const latest = (await refreshSessions()).at(-1);
-      if (!latest || ["completed", "stopped", "failed"].includes(latest.status)) {
+      if (!latest || isTerminalSession(latest.status)) {
         await startNewSessionWithMessage(message);
       } else {
         const session = await ensureSession();
@@ -272,57 +375,25 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
       minute: "2-digit"
     });
 
-  const formatActivity = (event: EventRecord): string => {
-    const payload = JSON.parse(event.payload_json) as {
-      action?: string;
-      command?: string;
-      path?: string;
-      prompt?: string;
-      status?: string;
-    };
-
-    switch (event.type) {
-      case "status_changed":
-        switch (payload.status) {
-          case "thinking":
-            return "Thinking through the next reply";
-          case "reading_files":
-            return "Reviewing the current project context";
-          case "running_command":
-            return "Working through the next step";
-          case "editing_files":
-            return "Updating the project";
-          case "waiting_user_input":
-            return "Waiting for your next instruction";
-          default:
-            return "Thinking through the next reply";
-        }
-      case "file_touched":
-        return `${payload.action ?? "Updated"} ${payload.path ?? "project files"}`;
-      case "waiting_user_input":
-        return payload.prompt?.trim() || "Waiting for manager input";
-      default:
-        return event.type;
-    }
-  };
+  const showLiveActivity =
+    liveActivity &&
+    (!activeSession || !isTerminalSession(activeSession.status) || liveActivity.tone === "waiting" || liveActivity.tone === "error");
 
   return (
     <section className="agent-chat">
       <div className="message-list">
-        {timelineItems.length === 0 ? (
+        {messages.length === 0 ? (
           <p className="empty-note">Start a conversation with this AI employee.</p>
         ) : (
-          timelineItems.map((item) =>
-            item.kind === "event" ? (
-              <article className="chat-thread-note" key={item.event.id}>
-                <span>{formatActivity(item.event)}</span>
-                <small>{formatMessageTime(item.event.created_at)}</small>
-              </article>
-            ) : (
-              <article className="chat-message" data-role={item.message.role} key={item.message.id}>
-                {item.message.role !== "user" ? (
+          messages.map((message) => {
+            const isStreaming = message.role === "agent" && message.stream_state === "streaming";
+            const isEmptyStreamingBubble = isStreaming && message.content.trim().length === 0;
+
+            return (
+              <article className="chat-message" data-role={message.role} data-streaming={isStreaming} key={message.id}>
+                {message.role !== "user" ? (
                   <span aria-hidden="true" className="chat-message-avatar">
-                    {item.message.role === "agent" ? (
+                    {message.role === "agent" ? (
                       <span className="chat-message-avatar-sprite" style={avatarStyle} />
                     ) : (
                       <span className="chat-message-avatar-system">SYS</span>
@@ -331,16 +402,35 @@ export function AgentChat({ agent, onRuntimeEvent }: AgentChatProps): ReactEleme
                 ) : null}
                 <div className="chat-message-bubble">
                   <div className="chat-message-meta">
-                    <strong>{item.message.role === "user" ? "You" : item.message.role === "agent" ? agent.name : "System"}</strong>
-                    <span>{formatMessageTime(item.message.created_at)}</span>
+                    <strong>{roleLabel(message.role, agent.name)}</strong>
+                    <span>{formatMessageTime(message.created_at)}</span>
                   </div>
-                  <p className="chat-message-text">{item.message.content}</p>
+                  {isEmptyStreamingBubble ? (
+                    <div aria-label="AI employee is replying" className="chat-stream-indicator" role="status">
+                      <span className="chat-stream-indicator-dot" />
+                      <span className="chat-stream-indicator-dot" />
+                      <span className="chat-stream-indicator-dot" />
+                    </div>
+                  ) : (
+                    <p className="chat-message-text">{message.content}</p>
+                  )}
                 </div>
               </article>
-            )
-          )
+            );
+          })
         )}
+        <div ref={bottomAnchorRef} />
       </div>
+      {showLiveActivity ? (
+        <div className={`chat-live-status is-${liveActivity.tone}`}>
+          <span aria-hidden="true" className="chat-live-status-dot" />
+          <div className="chat-live-status-copy">
+            <strong>{liveActivity.label}</strong>
+            {liveActivity.detail ? <span>{liveActivity.detail}</span> : null}
+          </div>
+          <small>{formatMessageTime(liveActivity.updatedAt)}</small>
+        </div>
+      ) : null}
       <form className="chat-form" onSubmit={(event) => void send(event)}>
         <textarea
           disabled={busy || readOnlyExternalAgent}

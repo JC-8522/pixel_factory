@@ -9,6 +9,7 @@ import { inspectLocalCodexAvailability } from "./runtime/codexInstallation";
 import { createDefaultRuntimeRegistry } from "./runtime/RuntimeRegistry";
 
 const isDevelopment = !app.isPackaged;
+const shouldOpenDevTools = isDevelopment && process.env.ELECTRON_OPEN_DEVTOOLS === "1";
 
 const createMainWindow = (): BrowserWindow => {
   const mainWindow = new BrowserWindow({
@@ -46,7 +47,7 @@ const createMainWindow = (): BrowserWindow => {
     void mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
-  if (isDevelopment) {
+  if (shouldOpenDevTools) {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
