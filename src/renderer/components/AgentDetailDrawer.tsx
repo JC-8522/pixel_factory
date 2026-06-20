@@ -1,5 +1,4 @@
 import type { ReactElement } from "react";
-import type { AgentRuntimeEvent } from "../../shared/types/agent";
 import type { AgentRecord } from "../../shared/types/records";
 import { agentFrameIndex, agentSheetUrl, spriteSheetStyle } from "../office/officeLayout";
 import { AgentChat } from "./AgentChat";
@@ -10,26 +9,20 @@ type AgentDetailDrawerProps = {
   agent: AgentRecord | null;
   onClose(): void;
   onDelete?(agentId: string): Promise<void>;
-  onRuntimeEvent?(event: AgentRuntimeEvent): void;
   className?: string;
   headingEyebrow?: string;
   showSkills?: boolean;
   showLogs?: boolean;
-  workstationName?: string | null;
-  conversationPreview?: string | null;
 };
 
 export function AgentDetailDrawer({
   agent,
   onClose,
   onDelete,
-  onRuntimeEvent,
   className,
   headingEyebrow = "Selected agent",
   showSkills = true,
-  showLogs = true,
-  workstationName,
-  conversationPreview
+  showLogs = true
 }: AgentDetailDrawerProps): ReactElement {
   const panelClassName = className ?? "detail-panel";
 
@@ -68,7 +61,7 @@ export function AgentDetailDrawer({
       </div>
 
       <section className="conversation-panel-chat">
-        <AgentChat agent={agent} onRuntimeEvent={onRuntimeEvent} />
+        <AgentChat agent={agent} />
       </section>
 
       {showSkills ? (

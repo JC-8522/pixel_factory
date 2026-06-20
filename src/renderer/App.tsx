@@ -9,7 +9,6 @@ import { PermissionSettings } from "./components/PermissionSettings";
 import { OfficeCanvas } from "./office/OfficeCanvas";
 import { officeSlots } from "./office/officeLayout";
 import { useAgentStore } from "./stores/agentStore";
-import { useEventStore } from "./stores/eventStore";
 import { useIntegrationStore } from "./stores/integrationStore";
 import { useOfficeStore } from "./stores/officeStore";
 
@@ -45,10 +44,7 @@ const roleFromMessage = (role: string | null | undefined): "agent" | "user" | "s
 };
 
 const shouldRefreshConversationPreview = (event: AgentRuntimeEvent): boolean =>
-  ["message_chunk", "waiting_user_input", "error", "session_completed", "session_stopped"].includes(event.type);
-
-const shouldRefreshActivityFeed = (event: AgentRuntimeEvent): boolean =>
-  ["status_changed", "file_touched", "waiting_user_input", "error"].includes(event.type);
+  ["waiting_user_input", "error", "session_completed", "session_stopped"].includes(event.type);
 
 export function App(): ReactElement {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
@@ -59,8 +55,6 @@ export function App(): ReactElement {
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [agentPreviews, setAgentPreviews] = useState<Record<string, AgentConversationPreview>>({});
   const previewRefreshTimeoutsRef = useRef(new Map<string, TimeoutHandle>());
-  const activityRefreshTimeoutRef = useRef<TimeoutHandle | null>(null);
-  const selectedAgentIdRef = useRef<string | null>(null);
   const { agents, hydrate: hydrateAgents, applyRuntimeEvent } = useAgentStore();
   const {
     floors,
@@ -70,7 +64,6 @@ export function App(): ReactElement {
     createWorkstation,
     selectSlot
   } = useOfficeStore();
-  const { hydrate: hydrateEvents } = useEventStore();
   const { theme, hydrate: hydrateIntegrations } = useIntegrationStore();
 
   useEffect(() => {
@@ -85,10 +78,6 @@ export function App(): ReactElement {
       setSelectedAgentId(null);
     }
   }, [agents, selectedAgentId]);
-
-  useEffect(() => {
-    selectedAgentIdRef.current = selectedAgentId;
-  }, [selectedAgentId]);
 
   useEffect(() => {
     if (!selectedSlotKey) {
@@ -159,24 +148,6 @@ export function App(): ReactElement {
     [hydratePreviewForAgent]
   );
 
-  const scheduleActivityRefresh = useCallback(
-    (agentId: string): void => {
-      if (selectedAgentIdRef.current !== agentId) {
-        return;
-      }
-
-      if (activityRefreshTimeoutRef.current) {
-        clearTimeout(activityRefreshTimeoutRef.current);
-      }
-
-      activityRefreshTimeoutRef.current = setTimeout(() => {
-        activityRefreshTimeoutRef.current = null;
-        void hydrateEvents({ agentId });
-      }, 140);
-    },
-    [hydrateEvents]
-  );
-
   useEffect(() => {
     const unsubscribe = window.codexOffice.runtime.onEvent((event) => {
       applyRuntimeEvent(event);
@@ -216,9 +187,6 @@ export function App(): ReactElement {
       }
 
       previewRefreshTimeoutsRef.current.clear();
-      if (activityRefreshTimeoutRef.current) {
-        clearTimeout(activityRefreshTimeoutRef.current);
-      }
     },
     []
   );
@@ -249,7 +217,6 @@ export function App(): ReactElement {
     [selectedSlotKey]
   );
   const selectedWorkstation = selectedSlotKey ? workstationsBySlot.get(selectedSlotKey) ?? null : null;
-  const selectedAgentWorkstation = selectedAgent ? workstationByAgentId.get(selectedAgent.id) ?? null : null;
   const activeFloorId = floors[0]?.id ?? MVP1_FLOOR_ID;
   const runtimeReady = appInfo?.localCodex.status === "ready";
 
@@ -351,17 +318,6 @@ export function App(): ReactElement {
     selectSlot(workstation?.slot_key ?? null);
   };
 
-  const onRuntimeEvent = useCallback(
-    (event: AgentRuntimeEvent): void => {
-      if (!shouldRefreshActivityFeed(event)) {
-        return;
-      }
-
-      scheduleActivityRefresh(event.agentId);
-    },
-    [scheduleActivityRefresh]
-  );
-
   return (
     <main className="app-shell single-office-shell" data-theme={theme}>
       <section className="workspace workspace-office">
@@ -455,14 +411,11 @@ export function App(): ReactElement {
             <AgentDetailDrawer
               agent={selectedAgent}
               className="detail-panel office-overlay-card office-agent-panel office-conversation-panel"
-              conversationPreview={agentPreviews[selectedAgent.id]?.text ?? null}
               headingEyebrow="AI employee conversation"
               onClose={clearSelection}
               onDelete={deleteSelectedAgent}
-              onRuntimeEvent={onRuntimeEvent}
               showSkills={false}
               showLogs={false}
-              workstationName={selectedAgentWorkstation?.name ?? selectedAgentWorkstation?.slot_key ?? null}
             />
           ) : null}
         </section>
