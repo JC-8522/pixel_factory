@@ -11,6 +11,7 @@ import type {
   SendRuntimeMessageInput,
   SpawnRuntimeInput
 } from "../../shared/types/agent";
+import type { AgentStatus } from "../../shared/types/app";
 import { deriveStatusFromLogLine } from "./agentStatusMachine";
 import type { AgentRuntime, RuntimeEventHandler, UnsubscribeRuntimeEvent } from "./AgentRuntime";
 import { prepareCodexLaunchPath } from "./codexInstallation";
@@ -49,6 +50,8 @@ type CodexSession = {
   outputBuffer: string;
   reportedUsage: boolean;
   stopping: boolean;
+  oneShotExec: boolean;
+  lastStatus: AgentStatus | null;
 };
 
 export type CodexCliRuntimeOptions = {
@@ -57,19 +60,37 @@ export type CodexCliRuntimeOptions = {
   spawner?: RuntimeProcessSpawner;
 };
 
+type CodexLaunchSelection =
+  | { type: "inherit" }
+  | { type: "profile"; profile: string }
+  | { type: "model"; model: string; reasoningEffort?: "low" | "medium" | "high" | "xhigh" };
+
+const MODEL_PRESET_SELECTIONS: Record<string, Extract<CodexLaunchSelection, { type: "model" }>> = {
+  "5.4 Low": { type: "model", model: "gpt-5.4", reasoningEffort: "low" },
+  "5.4 Medium": { type: "model", model: "gpt-5.4", reasoningEffort: "medium" },
+  "5.4 High": { type: "model", model: "gpt-5.4", reasoningEffort: "high" },
+  "5.4 XHigh": { type: "model", model: "gpt-5.4", reasoningEffort: "xhigh" },
+  "codex-balanced": { type: "model", model: "gpt-5.4", reasoningEffort: "medium" }
+};
+
 const createRuntimeEventId = (prefix: string, agentId: string, sessionId: string, sequence: number): string =>
   `${prefix}-${agentId}-${sessionId}-${sequence}-${randomUUID()}`;
 
 const mapApprovalPolicy = (permissionMode: string | null | undefined): string | null => {
   switch (permissionMode) {
     case "ask":
+    case "ask_before_edit":
+    case "workspace_write":
       return "on-request";
+    case "on_request":
     case "readonly":
       return "untrusted";
     case "full":
       return "never";
+    case "external":
+      return null;
     default:
-      return permissionMode ?? null;
+      return null;
   }
 };
 
@@ -104,14 +125,52 @@ export const buildCodexSpawnEnv = (baseEnv: NodeJS.ProcessEnv = process.env): No
   CODEX_HOME: resolveCodexHome(baseEnv)
 });
 
+export const resolveCodexLaunchSelection = (modelProfile: string | null | undefined): CodexLaunchSelection => {
+  const value = modelProfile?.trim();
+  if (!value || value === "default") {
+    return { type: "inherit" };
+  }
+
+  const preset = MODEL_PRESET_SELECTIONS[value];
+  if (preset) {
+    return preset;
+  }
+
+  const reasoningPreset = /^(\d+(?:\.\d+)?)\s+(low|medium|high|xhigh)$/i.exec(value);
+  if (reasoningPreset) {
+    return {
+      type: "model",
+      model: `gpt-${reasoningPreset[1]}`,
+      reasoningEffort: reasoningPreset[2].toLowerCase() as "low" | "medium" | "high" | "xhigh"
+    };
+  }
+
+  if (value.startsWith("gpt-") || /^o\d/i.test(value)) {
+    return { type: "model", model: value };
+  }
+
+  if (/^[a-z0-9][a-z0-9._-]*$/i.test(value)) {
+    return { type: "profile", profile: value };
+  }
+
+  return { type: "inherit" };
+};
+
 export const buildCodexSpawnArgs = (input: SpawnRuntimeInput, profile?: string | null): string[] => {
   const args: string[] = [];
-  const selectedProfile = input.modelProfile ?? profile;
+  const selection = resolveCodexLaunchSelection(input.modelProfile ?? profile);
   const approvalPolicy = mapApprovalPolicy(input.permissionMode);
   const initialPrompt = input.initialPrompt?.trim();
 
-  if (selectedProfile) {
-    args.push("--profile", selectedProfile);
+  if (selection.type === "profile") {
+    args.push("--profile", selection.profile);
+  }
+
+  if (selection.type === "model") {
+    args.push("--model", selection.model);
+    if (selection.reasoningEffort) {
+      args.push("-c", `model_reasoning_effort="${selection.reasoningEffort}"`);
+    }
   }
 
   if (approvalPolicy) {
@@ -175,7 +234,9 @@ export class CodexCliRuntime implements AgentRuntime {
       pendingInput: input.initialPrompt ?? "",
       outputBuffer: "",
       reportedUsage: false,
-      stopping: false
+      stopping: false,
+      oneShotExec: Boolean(input.initialPrompt?.trim()),
+      lastStatus: null
     };
     this.sessions.set(input.sessionId, session);
 
@@ -186,10 +247,22 @@ export class CodexCliRuntime implements AgentRuntime {
       sessionId: input.sessionId,
       command: [this.executablePath, ...args].join(" ")
     });
-    await this.emit({ type: "status_changed", agentId: input.agentId, sessionId: input.sessionId, status: "thinking" });
+    await this.emitStatus(session, "thinking");
 
     this.attachStream(session, "stdout", child.stdout);
     this.attachStream(session, "stderr", child.stderr);
+    child.stdin?.on("error", (error) => {
+      const errorCode =
+        error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : null;
+      if (session.oneShotExec || session.stopping) {
+        return;
+      }
+      if (errorCode === "EPIPE") {
+        this.sessions.delete(session.sessionId);
+        return;
+      }
+      void this.emit({ type: "error", agentId: session.agentId, sessionId: session.sessionId, message: error.message });
+    });
     child.on("error", (error) => {
       void this.emit({ type: "error", agentId: session.agentId, sessionId: session.sessionId, message: error.message });
     });
@@ -214,22 +287,34 @@ export class CodexCliRuntime implements AgentRuntime {
     session.pendingInput = input.message;
     session.outputBuffer = "";
     session.reportedUsage = false;
+    const stdin = session.process.stdin;
 
-    await this.emit({ type: "status_changed", agentId: input.agentId, sessionId: input.sessionId, status: "thinking" });
+    await this.emitStatus(session, "thinking");
 
-    if (!session.process.stdin?.writable) {
-      throw new Error(`Codex process is not writable for session: ${input.sessionId}`);
+    if (!stdin?.writable || stdin.writableEnded || stdin.destroyed) {
+      this.sessions.delete(input.sessionId);
+      throw new Error(`Codex run is no longer accepting input for session: ${input.sessionId}`);
     }
 
     const message = [input.skillPromptContext, input.message].filter(Boolean).join("\n\n");
-    session.process.stdin.write(`${message}\n`);
+    try {
+      stdin.write(`${message}\n`);
+    } catch (error) {
+      const errorCode =
+        error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : null;
+      if (errorCode === "EPIPE") {
+        this.sessions.delete(input.sessionId);
+        throw new Error(`Codex run already ended for session: ${input.sessionId}`);
+      }
+      throw error;
+    }
   }
 
   async stop(sessionId: string): Promise<void> {
     const session = this.requireSession(sessionId);
     session.stopping = true;
     session.process.kill();
-    await this.emit({ type: "status_changed", agentId: session.agentId, sessionId, status: "stopped" });
+    await this.emitStatus(session, "stopped");
     await this.emit({ type: "session_stopped", agentId: session.agentId, sessionId });
   }
 
@@ -249,7 +334,7 @@ export class CodexCliRuntime implements AgentRuntime {
 
     const status = deriveStatusFromLogLine(line, stream);
     if (status) {
-      await this.emit({ type: "status_changed", agentId: session.agentId, sessionId: session.sessionId, status });
+      await this.emitStatus(session, status);
     }
 
     const usage = parseTokenUsageFromLine(line);
@@ -280,39 +365,43 @@ export class CodexCliRuntime implements AgentRuntime {
   }
 
   private async handleExit(session: CodexSession, code: number | null): Promise<void> {
-    await this.emit({
-      type: "command_completed",
-      agentId: session.agentId,
-      sessionId: session.sessionId,
-      command: this.executablePath,
-      exitCode: code
-    });
-
-    if (session.activeResponseMessageId && !session.reportedUsage) {
+    try {
       await this.emit({
-        type: "token_usage",
+        type: "command_completed",
         agentId: session.agentId,
         sessionId: session.sessionId,
-        messageId: session.activeResponseMessageId,
-        modelProfile: session.modelProfile,
-        usage: estimateTokenUsage(session.pendingInput, session.outputBuffer)
+        command: this.executablePath,
+        exitCode: code
       });
-    }
 
-    if (session.stopping) {
-      return;
-    }
+      if (session.activeResponseMessageId && !session.reportedUsage) {
+        await this.emit({
+          type: "token_usage",
+          agentId: session.agentId,
+          sessionId: session.sessionId,
+          messageId: session.activeResponseMessageId,
+          modelProfile: session.modelProfile,
+          usage: estimateTokenUsage(session.pendingInput, session.outputBuffer)
+        });
+      }
 
-    if (code === 0) {
-      await this.emit({ type: "status_changed", agentId: session.agentId, sessionId: session.sessionId, status: "completed" });
-      await this.emit({ type: "session_completed", agentId: session.agentId, sessionId: session.sessionId });
-    } else {
-      await this.emit({
-        type: "error",
-        agentId: session.agentId,
-        sessionId: session.sessionId,
-        message: `Codex process exited with code ${code ?? "unknown"}`
-      });
+      if (session.stopping) {
+        return;
+      }
+
+      if (code === 0) {
+        await this.emitStatus(session, "completed");
+        await this.emit({ type: "session_completed", agentId: session.agentId, sessionId: session.sessionId });
+      } else {
+        await this.emit({
+          type: "error",
+          agentId: session.agentId,
+          sessionId: session.sessionId,
+          message: `Codex process exited with code ${code ?? "unknown"}`
+        });
+      }
+    } finally {
+      this.sessions.delete(session.sessionId);
     }
   }
 
@@ -324,6 +413,15 @@ export class CodexCliRuntime implements AgentRuntime {
     }
 
     return session;
+  }
+
+  private async emitStatus(session: CodexSession, status: AgentStatus): Promise<void> {
+    if (session.lastStatus === status) {
+      return;
+    }
+
+    session.lastStatus = status;
+    await this.emit({ type: "status_changed", agentId: session.agentId, sessionId: session.sessionId, status });
   }
 
   private async emit(event: RuntimeEventDraft): Promise<void> {

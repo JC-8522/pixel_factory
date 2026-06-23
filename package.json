@@ -10,7 +10,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "lint": "eslint .",
-    "package": "electron-vite build && electron-builder --dir",
+    "package": "electron-vite build && node scripts/package-win-unpacked.mjs",
+    "package:builder": "electron-vite build && node scripts/package-win-unpacked.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -47,13 +48,6 @@
     "files": [
       "out/**/*",
       "package.json"
-    ]
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "electron-winstaller",
-      "esbuild"
     ]
   }
 }

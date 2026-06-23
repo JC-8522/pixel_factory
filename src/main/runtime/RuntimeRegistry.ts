@@ -6,6 +6,7 @@ import { AttachedCodexRuntime } from "./AttachedCodexRuntime";
 
 export type RuntimeRegistryOptions = {
   codexExecutablePath?: string;
+  includeCodexCli?: boolean;
 };
 
 export class RuntimeRegistry {
@@ -19,6 +20,9 @@ export class RuntimeRegistry {
       this.runtimes.set(runtime.kind, runtime);
       this.runtimeUnsubscribers.push(
         runtime.onEvent(async (event) => {
+          if (event.type === "session_completed" || event.type === "session_stopped" || event.type === "error") {
+            this.sessions.delete(event.sessionId);
+          }
           for (const handler of this.eventHandlers) {
             await handler(event);
           }
@@ -79,8 +83,19 @@ export class RuntimeRegistry {
 }
 
 export const createDefaultRuntimeRegistry = (options: RuntimeRegistryOptions = {}): RuntimeRegistry =>
-  new RuntimeRegistry([
-    new MockAgentRuntime(),
-    new CodexCliRuntime({ executablePath: options.codexExecutablePath }),
-    new AttachedCodexRuntime()
-  ]);
+  new RuntimeRegistry(
+    (() => {
+      const runtimes: AgentRuntime[] = [new MockAgentRuntime(), new AttachedCodexRuntime()];
+      if (options.includeCodexCli !== false) {
+        try {
+          runtimes.splice(1, 0, new CodexCliRuntime({ executablePath: options.codexExecutablePath }));
+        } catch (error) {
+          console.warn(
+            "[runtime-registry] Skipping codex_cli runtime because initialization failed:",
+            error instanceof Error ? error.message : String(error)
+          );
+        }
+      }
+      return runtimes;
+    })()
+  );

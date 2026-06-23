@@ -8,7 +8,8 @@ import type { DatabaseClient } from "../db/client";
 import {
   createPermissionRule,
   deletePermissionRule,
-  listPermissionRules
+  listPermissionRules,
+  updateAgentStatus
 } from "../db/repositories";
 import { recordAuditEvent } from "../audit/auditEngine";
 import { assessCommandRisk, type CommandRiskAssessment } from "./riskRules";
@@ -131,6 +132,7 @@ export class PermissionPolicyEngine {
     };
 
     this.pendingRequests.set(request.id, request);
+    updateAgentStatus(this.client, input.agentId, "waiting_user_input");
     recordAuditEvent(this.client, {
       id: `${request.id}-requested`,
       type: "permission_requested",
@@ -146,12 +148,39 @@ export class PermissionPolicyEngine {
         reasons: request.reasons
       }
     });
+    recordAuditEvent(this.client, {
+      id: `${request.id}-waiting`,
+      type: "waiting_user_input",
+      actorType: "agent",
+      actorId: input.agentId,
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      severity: "warning",
+      payload: {
+        prompt: "Approval is required before this command can continue.",
+        command: request.redactedCommand,
+        reasons: request.reasons
+      }
+    });
 
     return { status: "pending", request };
   }
 
   getRequest(requestId: string): PermissionRequestRecord | null {
     const pending = this.pendingRequests.get(requestId);
+    if (!pending) {
+      return null;
+    }
+
+    const { commandPattern: _unused, ...record } = pending;
+    return record;
+  }
+
+  getPendingRequestForAgent(agentId: string): PermissionRequestRecord | null {
+    const pending = Array.from(this.pendingRequests.values())
+      .filter((request) => request.agentId === agentId)
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())[0];
+
     if (!pending) {
       return null;
     }
@@ -176,6 +205,7 @@ export class PermissionPolicyEngine {
 
     if (input.decision === "allow_once") {
       this.oneTimeApprovals.add(oneTimeKey(pending.projectPath, pending.commandPattern));
+      updateAgentStatus(this.client, pending.agentId, "idle");
       recordAuditEvent(this.client, {
         id: `${input.requestId}-decided`,
         type: "permission_decided",
@@ -201,6 +231,7 @@ export class PermissionPolicyEngine {
           reasons: pending.reasons
         }
       });
+      updateAgentStatus(this.client, pending.agentId, "idle");
       recordAuditEvent(this.client, {
         id: `${input.requestId}-decided`,
         type: "permission_decided",
@@ -214,6 +245,7 @@ export class PermissionPolicyEngine {
       return { requestId: input.requestId, status: "approved", storedRuleId: rule.id };
     }
 
+    updateAgentStatus(this.client, pending.agentId, "idle");
     recordAuditEvent(this.client, {
       id: `${input.requestId}-denied`,
       type: "permission_denied",

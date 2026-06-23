@@ -3,7 +3,7 @@ import type { AgentRuntimeEvent } from "../shared/types/agent";
 import type { AppInfo } from "../shared/types/app";
 import type { WorkstationRecord } from "../shared/types/records";
 import { MVP1_FLOOR_ID } from "../shared/office";
-import { AgentDetailDrawer } from "./components/AgentDetailDrawer";
+import { ConversationWorkspaceScene } from "./components/ConversationWorkspaceScene";
 import { CreateAgentDialog } from "./components/CreateAgentDialog";
 import { PermissionSettings } from "./components/PermissionSettings";
 import { OfficeCanvas } from "./office/OfficeCanvas";
@@ -22,14 +22,23 @@ type AgentConversationPreview = {
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
+type AppScene =
+  | {
+      kind: "office";
+    }
+  | {
+      kind: "conversation";
+      agentId: string;
+    };
+
 const summarizeConversationText = (value: string | null | undefined, max = 92): string => {
   if (!value) {
-    return "New AI employee conversation.";
+    return "Thread workspace ready.";
   }
 
   const compact = value.replace(/\s+/g, " ").trim();
   if (!compact) {
-    return "New AI employee conversation.";
+    return "Thread workspace ready.";
   }
 
   return compact.length > max ? `${compact.slice(0, max - 1)}...` : compact;
@@ -48,23 +57,26 @@ const shouldRefreshConversationPreview = (event: AgentRuntimeEvent): boolean =>
 
 export function App(): ReactElement {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [scene, setScene] = useState<AppScene>({ kind: "office" });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createConfirmOpen, setCreateConfirmOpen] = useState(false);
+  const [createDialogWorkstation, setCreateDialogWorkstation] = useState<WorkstationRecord | null>(null);
+  const [createFlowError, setCreateFlowError] = useState<string | null>(null);
   const [officeMenuOpen, setOfficeMenuOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [agentPreviews, setAgentPreviews] = useState<Record<string, AgentConversationPreview>>({});
   const previewRefreshTimeoutsRef = useRef(new Map<string, TimeoutHandle>());
-  const { agents, hydrate: hydrateAgents, applyRuntimeEvent } = useAgentStore();
-  const {
-    floors,
-    selectedSlotKey,
-    workstations,
-    hydrate: hydrateOffice,
-    createWorkstation,
-    selectSlot
-  } = useOfficeStore();
-  const { theme, hydrate: hydrateIntegrations } = useIntegrationStore();
+  const agents = useAgentStore((state) => state.agents);
+  const hydrateAgents = useAgentStore((state) => state.hydrate);
+  const applyRuntimeEvent = useAgentStore((state) => state.applyRuntimeEvent);
+  const floors = useOfficeStore((state) => state.floors);
+  const selectedSlotKey = useOfficeStore((state) => state.selectedSlotKey);
+  const workstations = useOfficeStore((state) => state.workstations);
+  const hydrateOffice = useOfficeStore((state) => state.hydrate);
+  const createWorkstation = useOfficeStore((state) => state.createWorkstation);
+  const selectSlot = useOfficeStore((state) => state.selectSlot);
+  const theme = useIntegrationStore((state) => state.theme);
+  const hydrateIntegrations = useIntegrationStore((state) => state.hydrate);
 
   useEffect(() => {
     void window.codexOffice.app.getInfo().then(setAppInfo);
@@ -74,15 +86,17 @@ export function App(): ReactElement {
   }, [hydrateAgents, hydrateIntegrations, hydrateOffice]);
 
   useEffect(() => {
-    if (selectedAgentId && !agents.some((agent) => agent.id === selectedAgentId)) {
-      setSelectedAgentId(null);
+    if (scene.kind === "conversation" && !agents.some((agent) => agent.id === scene.agentId)) {
+      setScene({ kind: "office" });
     }
-  }, [agents, selectedAgentId]);
+  }, [agents, scene]);
 
   useEffect(() => {
     if (!selectedSlotKey) {
       setCreateConfirmOpen(false);
       setCreateDialogOpen(false);
+      setCreateDialogWorkstation(null);
+      setCreateFlowError(null);
     }
   }, [selectedSlotKey]);
 
@@ -205,8 +219,8 @@ export function App(): ReactElement {
     return mapping;
   }, [workstations]);
   const selectedAgent = useMemo(
-    () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
-    [agents, selectedAgentId]
+    () => (scene.kind === "conversation" ? agents.find((agent) => agent.id === scene.agentId) ?? null : null),
+    [agents, scene]
   );
   const conversationPreviews = useMemo(
     () => Object.fromEntries(Object.entries(agentPreviews).map(([agentId, preview]) => [agentId, preview.text])),
@@ -216,7 +230,6 @@ export function App(): ReactElement {
     () => officeSlots.find((slot) => slot.slotKey === selectedSlotKey) ?? null,
     [selectedSlotKey]
   );
-  const selectedWorkstation = selectedSlotKey ? workstationsBySlot.get(selectedSlotKey) ?? null : null;
   const activeFloorId = floors[0]?.id ?? MVP1_FLOOR_ID;
   const runtimeReady = appInfo?.localCodex.status === "ready";
 
@@ -224,34 +237,51 @@ export function App(): ReactElement {
     setCreateConfirmOpen(false);
     setCreateDialogOpen(false);
     setPermissionsOpen(false);
+    setCreateDialogWorkstation(null);
+    setCreateFlowError(null);
+  };
+
+  const openConversationScene = (agentId: string): void => {
+    setOfficeMenuOpen(false);
+    clearTransientPanels();
+    setScene({ kind: "conversation", agentId });
+  };
+
+  const returnToOffice = (): void => {
+    setOfficeMenuOpen(false);
+    clearTransientPanels();
+    setScene({ kind: "office" });
   };
 
   const clearSelection = (): void => {
-    setSelectedAgentId(null);
+    setOfficeMenuOpen(false);
+    clearTransientPanels();
+    setScene({ kind: "office" });
     selectSlot(null);
-    setCreateConfirmOpen(false);
-    setCreateDialogOpen(false);
   };
 
   const closeCreateFlow = (): void => {
     setCreateConfirmOpen(false);
     setCreateDialogOpen(false);
+    setCreateDialogWorkstation(null);
+    setCreateFlowError(null);
   };
 
   const handleSelectSlot = (slotKey: string): void => {
+    setOfficeMenuOpen(false);
     selectSlot(slotKey);
+    setCreateFlowError(null);
     const workstation = workstationsBySlot.get(slotKey) ?? null;
 
     if (workstation?.assigned_agent_id) {
-      setSelectedAgentId(workstation.assigned_agent_id);
-      setCreateConfirmOpen(false);
-      setCreateDialogOpen(false);
+      openConversationScene(workstation.assigned_agent_id);
       return;
     }
 
-    setSelectedAgentId(null);
+    setScene({ kind: "office" });
     setPermissionsOpen(false);
     setCreateDialogOpen(false);
+    setCreateDialogWorkstation(workstation);
     setCreateConfirmOpen(true);
   };
 
@@ -260,20 +290,34 @@ export function App(): ReactElement {
       return null;
     }
 
-    const existing = workstationsBySlot.get(slotKey) ?? null;
+    const findWorkstation = (): WorkstationRecord | null =>
+      useOfficeStore.getState().workstations.find((item) => item.slot_key === slotKey) ?? null;
+
+    const existing = findWorkstation();
     if (existing) {
       selectSlot(existing.slot_key);
       return existing;
     }
 
-    const workstation = await createWorkstation({
-      id: createId("workstation"),
-      floorId: activeFloorId,
-      slotKey
-    });
-    await hydrateOffice();
-    selectSlot(workstation.slot_key);
-    return workstation;
+    try {
+      const workstation = await createWorkstation({
+        id: createId("workstation"),
+        floorId: activeFloorId,
+        slotKey
+      });
+      selectSlot(workstation.slot_key);
+      void hydrateOffice();
+      return workstation;
+    } catch (error) {
+      await hydrateOffice();
+      const recovered = findWorkstation();
+      if (recovered) {
+        selectSlot(recovered.slot_key);
+        return recovered;
+      }
+
+      throw error;
+    }
   };
 
   const openCreateDialogForSelectedSlot = async (): Promise<void> => {
@@ -281,26 +325,32 @@ export function App(): ReactElement {
       return;
     }
 
-    const workstation = await ensureWorkstationAtSlot(selectedSlot.slotKey);
-    if (!workstation || workstation.assigned_agent_id) {
-      return;
-    }
+    setCreateFlowError(null);
 
-    setCreateConfirmOpen(false);
-    setSelectedAgentId(null);
-    setCreateDialogOpen(true);
+    try {
+      const workstation = await ensureWorkstationAtSlot(selectedSlot.slotKey);
+      if (!workstation || workstation.assigned_agent_id) {
+        return;
+      }
+
+      setCreateConfirmOpen(false);
+      setScene({ kind: "office" });
+      setCreateDialogWorkstation(workstation);
+      setCreateDialogOpen(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to prepare this workstation.";
+      console.error("Unable to prepare workstation for agent creation", error);
+      setCreateFlowError(message);
+    }
   };
 
   const afterAgentCreated = async (agentId: string, workstationId: string | null): Promise<void> => {
     await Promise.all([hydrateAgents(), hydrateOffice()]);
-    setSelectedAgentId(agentId);
-    setCreateDialogOpen(false);
-    setCreateConfirmOpen(false);
-
     const nextWorkstation = workstationId
       ? useOfficeStore.getState().workstations.find((item) => item.id === workstationId) ?? null
       : null;
     selectSlot(nextWorkstation?.slot_key ?? selectedSlotKey ?? null);
+    openConversationScene(agentId);
   };
 
   const deleteSelectedAgent = async (agentId: string): Promise<void> => {
@@ -312,122 +362,122 @@ export function App(): ReactElement {
     const workstation = workstationByAgentId.get(agentId) ?? null;
     await window.codexOffice.agents.delete(agentId);
     await Promise.all([hydrateAgents(), hydrateOffice()]);
-    setSelectedAgentId(null);
-    setCreateDialogOpen(false);
-    setCreateConfirmOpen(false);
+    setScene({ kind: "office" });
+    clearTransientPanels();
     selectSlot(workstation?.slot_key ?? null);
   };
 
+  const appShellClassName = selectedAgent
+    ? "app-shell app-shell-conversation-workspace app-shell-conversation-focus"
+    : "app-shell app-shell-office single-office-shell";
+  const officeTheme = selectedAgent ? undefined : theme;
+
   return (
-    <main className="app-shell single-office-shell" data-theme={theme}>
-      <section className="workspace workspace-office">
-        <section className="office-surface single-office-view" aria-label="Office view">
-          <div className="office-topbar">
-            <div className="office-menu-wrap">
-              <button
-                aria-expanded={officeMenuOpen}
-                className="office-menu-button"
-                onClick={() => setOfficeMenuOpen((current) => !current)}
-                type="button"
-              >
-                Office
-              </button>
-              {officeMenuOpen ? (
-                <div className="office-menu-panel">
-                  <button
-                    onClick={() => {
-                      setOfficeMenuOpen(false);
-                      setPermissionsOpen(true);
-                      setSelectedAgentId(null);
-                      setCreateConfirmOpen(false);
-                      setCreateDialogOpen(false);
-                    }}
-                    type="button"
-                  >
-                    Permissions
-                  </button>
-                  <button
-                    onClick={() => {
-                      setOfficeMenuOpen(false);
-                      clearSelection();
-                    }}
-                    type="button"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
+    <main
+      className={appShellClassName}
+      data-office-theme={officeTheme}
+      data-scene={selectedAgent ? "conversation" : "office"}
+    >
+      {selectedAgent ? (
+        <ConversationWorkspaceScene agent={selectedAgent} onClose={returnToOffice} onDelete={deleteSelectedAgent} />
+      ) : (
+        <section className="workspace workspace-office">
+          <section className="office-surface single-office-view" aria-label="Office view">
+            <div className="office-topbar">
+              <div className="office-menu-wrap">
+                <button
+                  aria-expanded={officeMenuOpen}
+                  className="office-menu-button"
+                  onClick={() => setOfficeMenuOpen((current) => !current)}
+                  type="button"
+                >
+                  Office
+                </button>
+                {officeMenuOpen ? (
+                  <div className="office-menu-panel">
+                    <button
+                      onClick={() => {
+                        setOfficeMenuOpen(false);
+                        setPermissionsOpen(true);
+                        setScene({ kind: "office" });
+                        setCreateConfirmOpen(false);
+                        setCreateDialogOpen(false);
+                      }}
+                      type="button"
+                    >
+                      Permissions
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOfficeMenuOpen(false);
+                        clearSelection();
+                      }}
+                      type="button"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {appInfo ? (
+                <p className={`runtime-pill runtime-pill-${appInfo.localCodex.status}`}>
+                  {appInfo.localCodex.status === "ready" ? "Local Codex ready" : appInfo.localCodex.message}
+                </p>
               ) : null}
             </div>
 
-            {appInfo ? (
-              <p className={`runtime-pill runtime-pill-${appInfo.localCodex.status}`}>
-                {appInfo.localCodex.status === "ready" ? "Local Codex ready" : appInfo.localCodex.message}
-              </p>
+            {!runtimeReady && appInfo ? (
+              <section className="readiness-panel office-inline-panel" aria-label="Local Codex setup">
+                <div>
+                  <p className="eyebrow">Machine Setup</p>
+                  <h3>{appInfo.localCodex.message}</h3>
+                  <p className="empty-note">
+                    Agent creation is disabled until this machine can launch a local Codex executable.
+                  </p>
+                </div>
+                <div className="readiness-facts">
+                  <div>
+                    <span>Detected source</span>
+                    <strong>{appInfo.localCodex.sourcePath ?? "Not found"}</strong>
+                  </div>
+                  <div>
+                    <span>Launch path</span>
+                    <strong>{appInfo.localCodex.launchPath ?? "Not prepared"}</strong>
+                  </div>
+                  <div>
+                    <span>Version</span>
+                    <strong>{appInfo.localCodex.version ?? "Unknown"}</strong>
+                  </div>
+                </div>
+                {appInfo.localCodex.guidance.length > 0 ? (
+                  <ul className="readiness-list">
+                    {appInfo.localCodex.guidance.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
             ) : null}
-          </div>
 
-          {!runtimeReady && appInfo ? (
-            <section className="readiness-panel office-inline-panel" aria-label="Local Codex setup">
-              <div>
-                <p className="eyebrow">Machine Setup</p>
-                <h3>{appInfo.localCodex.message}</h3>
-                <p className="empty-note">
-                  Agent creation is disabled until this machine can launch a local Codex executable.
-                </p>
-              </div>
-              <div className="readiness-facts">
-                <div>
-                  <span>Detected source</span>
-                  <strong>{appInfo.localCodex.sourcePath ?? "Not found"}</strong>
-                </div>
-                <div>
-                  <span>Launch path</span>
-                  <strong>{appInfo.localCodex.launchPath ?? "Not prepared"}</strong>
-                </div>
-                <div>
-                  <span>Version</span>
-                  <strong>{appInfo.localCodex.version ?? "Unknown"}</strong>
-                </div>
-              </div>
-              {appInfo.localCodex.guidance.length > 0 ? (
-                <ul className="readiness-list">
-                  {appInfo.localCodex.guidance.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          ) : null}
-
-          <OfficeCanvas
-            agents={agents}
-            conversationPreviews={conversationPreviews}
-            onSelectSlot={handleSelectSlot}
-            selectedSlotKey={selectedSlotKey}
-            workstations={workstations}
-          />
-
-          {selectedAgent ? (
-            <AgentDetailDrawer
-              agent={selectedAgent}
-              className="detail-panel office-overlay-card office-agent-panel office-conversation-panel"
-              headingEyebrow="AI employee conversation"
-              onClose={clearSelection}
-              onDelete={deleteSelectedAgent}
-              showSkills={false}
-              showLogs={false}
+            <OfficeCanvas
+              agents={agents}
+              conversationPreviews={conversationPreviews}
+              onSelectSlot={handleSelectSlot}
+              selectedSlotKey={selectedSlotKey}
+              workstations={workstations}
             />
-          ) : null}
+          </section>
         </section>
-      </section>
+      )}
 
       {createConfirmOpen && selectedSlot ? (
         <div className="dialog-backdrop" role="presentation">
           <section aria-label="Create agent confirmation" className="dialog-panel pixel-dialog office-confirm-dialog">
             <header className="dialog-header pixel-dialog-header">
               <div>
-                <h3>Create New AI Employee?</h3>
-                <p className="dialog-subtitle">{selectedSlot.label} is free and ready for a new persistent conversation.</p>
+                <h3>Create New Agent?</h3>
+                <p className="dialog-subtitle">{selectedSlot.label} is free and ready for a new persistent work thread.</p>
               </div>
               <button
                 aria-label="Close create agent confirmation"
@@ -439,7 +489,8 @@ export function App(): ReactElement {
               </button>
             </header>
             <div className="office-confirm-body">
-              <p>This workstation is ready for a new AI employee.</p>
+              <p>This workstation is ready for a new AI teammate workspace.</p>
+              {createFlowError ? <p className="form-error">{createFlowError}</p> : null}
             </div>
             <footer className="dialog-actions office-confirm-actions">
               <button className="pixel-button pixel-button-secondary" onClick={clearSelection} type="button">
@@ -451,7 +502,7 @@ export function App(): ReactElement {
                 onClick={() => void openCreateDialogForSelectedSlot()}
                 type="button"
               >
-                Open AI Employee
+                Set Up Workspace
               </button>
             </footer>
           </section>
@@ -482,12 +533,12 @@ export function App(): ReactElement {
         </div>
       ) : null}
 
-      {createDialogOpen && selectedWorkstation && !selectedWorkstation.assigned_agent_id ? (
+      {createDialogOpen && createDialogWorkstation && !createDialogWorkstation.assigned_agent_id ? (
         <CreateAgentDialog
           agentCount={agents.length}
           onClose={closeCreateFlow}
           onCreated={afterAgentCreated}
-          workstation={selectedWorkstation}
+          workstation={createDialogWorkstation}
         />
       ) : null}
     </main>

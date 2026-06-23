@@ -1,0 +1,13 @@
+{
+  "appId": "com.localcodex.office",
+  "productName": "Local Codex Office",
+  "directories": {
+    "app": "release/.builder-app",
+    "output": "release"
+  },
+  "files": [
+    "**/*"
+  ],
+  "asar": true,
+  "npmRebuild": false
+}

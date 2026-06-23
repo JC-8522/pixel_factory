@@ -12,6 +12,7 @@ import {
   buildCodexSpawnEnv,
   buildCodexSpawnArgs,
   CodexCliRuntime,
+  resolveCodexLaunchSelection,
   resolveCodexHome,
   resolveCodexExecutablePath,
   type RuntimeChildProcess,
@@ -57,21 +58,85 @@ describe("CodexCliRuntime", () => {
     }
   });
 
-  it("builds spawn args from profile, approval mode, skill context, and prompt", () => {
+  it("builds spawn args from model presets, approval mode, skill context, and prompt", () => {
     expect(
       buildCodexSpawnArgs(
         {
           agentId: "agent",
           sessionId: "session",
           workingDirectory: "C:/repo",
-          modelProfile: "default",
+          modelProfile: "5.4 High",
           permissionMode: "ask",
           skillPromptContext: "Assigned skills",
           initialPrompt: "Do work"
         },
         null
       )
-    ).toEqual(["--profile", "default", "--ask-for-approval", "on-request", "exec", "Assigned skills\n\nDo work"]);
+    ).toEqual([
+      "--model",
+      "gpt-5.4",
+      "-c",
+      'model_reasoning_effort="high"',
+      "--ask-for-approval",
+      "on-request",
+      "exec",
+      "Assigned skills\n\nDo work"
+    ]);
+  });
+
+  it("keeps plain profile names as Codex CLI profiles", () => {
+    expect(
+      buildCodexSpawnArgs(
+        {
+          agentId: "agent",
+          sessionId: "session",
+          workingDirectory: "C:/repo",
+          modelProfile: "work",
+          permissionMode: "ask"
+        },
+        null
+      )
+    ).toEqual(["--profile", "work", "--ask-for-approval", "on-request"]);
+  });
+
+  it("resolves legacy chat model labels into model + reasoning settings", () => {
+    expect(resolveCodexLaunchSelection("5.4 Medium")).toEqual({
+      type: "model",
+      model: "gpt-5.4",
+      reasoningEffort: "medium"
+    });
+    expect(resolveCodexLaunchSelection("codex-balanced")).toEqual({
+      type: "model",
+      model: "gpt-5.4",
+      reasoningEffort: "medium"
+    });
+    expect(resolveCodexLaunchSelection("default")).toEqual({ type: "inherit" });
+  });
+
+  it("maps workspace conversation approval presets onto supported Codex CLI approval flags", () => {
+    expect(
+      buildCodexSpawnArgs(
+        {
+          agentId: "agent",
+          sessionId: "session",
+          workingDirectory: "C:/repo",
+          permissionMode: "workspace_write"
+        },
+        null
+      )
+    ).toEqual(["--ask-for-approval", "on-request"]);
+
+    expect(
+      buildCodexSpawnArgs(
+        {
+          agentId: "agent",
+          sessionId: "session",
+          workingDirectory: "C:/repo",
+          permissionMode: "on_request"
+        },
+        null
+      )
+    ).toEqual(["--ask-for-approval", "untrusted"]);
   });
 
   it("does not force exec mode when only skill context is present", () => {
@@ -140,6 +205,24 @@ describe("CodexCliRuntime", () => {
     });
   });
 
+  it("deduplicates repeated status updates before emitting them", async () => {
+    const child = new FakeChildProcess();
+    const runtime = new CodexCliRuntime({ spawner: () => child });
+    const events: AgentRuntimeEvent[] = [];
+    runtime.onEvent((event) => {
+      events.push(event);
+    });
+
+    await runtime.spawn({ agentId: "agent", sessionId: "session", workingDirectory: "C:/repo" });
+    child.stderr.write("thinking\n");
+    child.stderr.write("thinking\n");
+    child.stderr.write("thinking\n");
+    child.emit("exit", 0, null);
+    await settle();
+
+    expect(events.filter((event) => event.type === "status_changed" && event.status === "thinking")).toHaveLength(1);
+  });
+
   it("closes stdin for one-shot exec invocations", async () => {
     const child = new FakeChildProcess();
     const runtime = new CodexCliRuntime({ spawner: () => child });
@@ -152,6 +235,29 @@ describe("CodexCliRuntime", () => {
     });
 
     expect(child.stdin.writableEnded).toBe(true);
+  });
+
+  it("ignores post-close stdin errors for one-shot exec runs", async () => {
+    const child = new FakeChildProcess();
+    const runtime = new CodexCliRuntime({ spawner: () => child });
+    const events: AgentRuntimeEvent[] = [];
+    runtime.onEvent((event) => {
+      events.push(event);
+    });
+
+    await runtime.spawn({
+      agentId: "agent",
+      sessionId: "session-exec",
+      workingDirectory: "C:/repo",
+      initialPrompt: "Do work"
+    });
+    child.stdin.emit("error", Object.assign(new Error("stdin closed"), { code: "ERR_STREAM_DESTROYED" }));
+    child.stdout.write("done\n");
+    child.emit("exit", 0, null);
+    await settle();
+
+    expect(events.some((event) => event.type === "error")).toBe(false);
+    expect(events.map((event) => event.type)).toEqual(expect.arrayContaining(["command_completed", "session_completed"]));
   });
 
   it("marks missing usage as estimated and can stop the process", async () => {

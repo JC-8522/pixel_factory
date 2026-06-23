@@ -97,3 +97,14 @@ export const endSession = (
 
   return session;
 };
+
+export const updateSessionMetadata = (client: DatabaseClient, sessionId: string, metadata: unknown): SessionRecord => {
+  client.run("UPDATE sessions SET metadata_json = ? WHERE id = ?", [jsonStringify(metadata, "{}"), sessionId]);
+  const session = getSession(client, sessionId);
+
+  if (!session) {
+    throw new Error(`Session not found: ${sessionId}`);
+  }
+
+  return session;
+};

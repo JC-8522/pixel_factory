@@ -77,6 +77,17 @@ import {
   selectProjectWorkspace,
   setOfficeTheme
 } from "../integrations/v2IntegrationService";
+import {
+  archiveConversationThread,
+  createConversationThread,
+  getConversationThread,
+  renameConversationThread,
+  restoreConversationThread,
+  saveConversationComposer,
+  saveConversationDraft,
+  sendConversationMessage,
+  switchConversationThread
+} from "../conversations/conversationThreadService";
 import { PermissionPolicyEngine } from "../security/permissionPolicy";
 import { PermissionRequiredError } from "../security/permissionPolicy";
 import {
@@ -88,6 +99,12 @@ import {
   validateCreateAgent,
   validateCreateAgentProfile,
   validateCreateMeeting,
+  validateConversationSaveComposer,
+  validateConversationSaveDraft,
+  validateConversationSendMessage,
+  validateConversationArchiveThread,
+  validateConversationRenameThread,
+  validateConversationSwitchThread,
   validateCreateMessage,
   validateCreateWorkstation,
   validateCreateTask,
@@ -121,6 +138,8 @@ const shouldBatchRuntimeSave = (event: AgentRuntimeEvent): boolean =>
     event.type
   );
 
+const shouldPersistRuntimeEvent = (event: AgentRuntimeEvent): boolean => event.type !== "log_line";
+
 const saveAfter = <T>(client: DatabaseClient, operation: () => T): T => {
   const result = operation();
   client.save();
@@ -147,6 +166,9 @@ export const createIpcHandlers = ({
   const permissionPolicy = new PermissionPolicyEngine(client);
 
   runtimeRegistry.onEvent((event) => {
+    if (!shouldPersistRuntimeEvent(event)) {
+      return;
+    }
     persistRuntimeEvent(client, event);
     if (shouldBatchRuntimeSave(event)) {
       client.scheduleSave();
@@ -347,6 +369,45 @@ export const createIpcHandlers = ({
   workspacesSelect: (workspaceId: unknown) =>
     saveAfter(client, () => selectProjectWorkspace(client, validateId(workspaceId, "workspace id"))),
   workspacesGetActive: () => getActiveProjectWorkspaceId(client),
+  conversationsGetThread: (agentId: unknown) =>
+    getConversationThread(client, validateId(agentId, "agent id")),
+  conversationsCreateThread: (agentId: unknown) =>
+    saveAfter(client, () => createConversationThread(client, validateId(agentId, "agent id"), nextId)),
+  conversationsSwitchThread: (input: unknown) =>
+    saveAfter(client, () => switchConversationThread(client, validateConversationSwitchThread(input))),
+  conversationsRenameThread: (input: unknown) =>
+    saveAfter(client, () => renameConversationThread(client, validateConversationRenameThread(input))),
+  conversationsArchiveThread: (input: unknown) =>
+    saveAfter(client, () => archiveConversationThread(client, validateConversationArchiveThread(input), nextId)),
+  conversationsRestoreThread: (input: unknown) =>
+    saveAfter(client, () => restoreConversationThread(client, validateConversationArchiveThread(input))),
+  conversationsSendMessage: (input: unknown) =>
+    saveAfterAsync(client, async () => {
+      const payload = validateConversationSendMessage(input);
+      try {
+        await sendConversationMessage(client, runtimeRegistry, permissionPolicy, payload, nextId);
+        return { status: "sent" as const, thread: getConversationThread(client, payload.agentId, payload.threadId) };
+      } catch (error) {
+        if (error instanceof PermissionRequiredError) {
+          return {
+            status: "permission_required" as const,
+            requestId: error.requestId,
+            thread: getConversationThread(client, payload.agentId, payload.threadId)
+          };
+        }
+        throw error;
+      }
+    }),
+  conversationsSaveComposer: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateConversationSaveComposer(input);
+      return saveConversationComposer(client, payload);
+    }),
+  conversationsSaveDraft: (input: unknown) =>
+    saveAfter(client, () => {
+      const payload = validateConversationSaveDraft(input);
+      return saveConversationDraft(client, payload);
+    }),
   officeThemeGet: () => getOfficeTheme(client),
   officeThemeSet: (theme: unknown) => saveAfter(client, () => setOfficeTheme(client, validateOfficeTheme(theme))),
   timelineReplay: (input?: unknown) => replayTimelineEvents(client, validateTimelineReplay(input)),
@@ -362,6 +423,8 @@ export const createIpcHandlers = ({
     }),
   permissionsGetRequest: (requestId: unknown) =>
     permissionPolicy.getRequest(validateId(requestId, "permission request id")),
+  permissionsGetPendingForAgent: (agentId: unknown) =>
+    permissionPolicy.getPendingRequestForAgent(validateId(agentId, "agent id")),
   permissionsDecide: (input: unknown) =>
     saveAfter(client, () => permissionPolicy.decide(validatePermissionDecision(input))),
   permissionsListRules: (projectPath?: unknown) =>
@@ -402,11 +465,21 @@ export const createIpcHandlers = ({
   runtimeStopAgent: (sessionId: unknown) =>
     saveAfterAsync(client, async () => {
       const validSessionId = validateId(sessionId, "session id");
-      await runtimeRegistry.stop(validSessionId);
       const session = getSession(client, validSessionId);
 
       if (!session) {
         throw new Error(`Session not found: ${validSessionId}`);
+      }
+
+      if (!["completed", "stopped", "failed", "error"].includes(session.status)) {
+        try {
+          await runtimeRegistry.stop(validSessionId);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (!message.includes("Runtime session not registered")) {
+            throw error;
+          }
+        }
       }
 
       return session;
