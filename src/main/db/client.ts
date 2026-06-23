@@ -1,4 +1,4 @@
-import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
+import type { Database, SqlJsStatic } from "sql.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createRequire } from "node:module";
@@ -9,12 +9,12 @@ export type SqlParams = SqlValue[];
 
 let sqlModulePromise: Promise<SqlJsStatic> | null = null;
 const require = createRequire(import.meta.url);
+const initSqlAsm = require("sql.js/dist/sql-asm.js") as () => Promise<SqlJsStatic>;
 
 const loadSqlModule = (): Promise<SqlJsStatic> => {
-  const sqlJsEntry = require.resolve("sql.js");
-  sqlModulePromise ??= initSqlJs({
-    locateFile: (file) => `${dirname(sqlJsEntry)}/${file}`
-  });
+  // The wasm build cannot read files from app.asar via a normal filesystem path
+  // in packaged Electron main-process runs, so we use the asm build here.
+  sqlModulePromise ??= initSqlAsm();
   return sqlModulePromise;
 };
 

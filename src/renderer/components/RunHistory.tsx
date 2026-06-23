@@ -56,10 +56,10 @@ export function RunHistory({
                   <dd>{selectedSession.estimated_cost ? `$${selectedSession.estimated_cost.toFixed(4)}` : "$0.0000"}</dd>
                 </div>
               </dl>
-              <div className="message-list compact">
+              <div className="run-history-message-list">
                 {messages.map((message) => (
-                  <article className="chat-message" data-role={message.role} key={message.id}>
-                    <span>{message.role}</span>
+                  <article className="run-history-message-card" data-role={message.role} key={message.id}>
+                    <strong>{message.role}</strong>
                     <p>{message.content}</p>
                   </article>
                 ))}

@@ -90,6 +90,15 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
   ipcMain.handle(IPC_CHANNELS.workspacesCreate, (_event, input) => handlers.workspacesCreate(input));
   ipcMain.handle(IPC_CHANNELS.workspacesSelect, (_event, workspaceId) => handlers.workspacesSelect(workspaceId));
   ipcMain.handle(IPC_CHANNELS.workspacesGetActive, () => handlers.workspacesGetActive());
+  ipcMain.handle(IPC_CHANNELS.conversationsGetThread, (_event, agentId) => handlers.conversationsGetThread(agentId));
+  ipcMain.handle(IPC_CHANNELS.conversationsCreateThread, (_event, agentId) => handlers.conversationsCreateThread(agentId));
+  ipcMain.handle(IPC_CHANNELS.conversationsSwitchThread, (_event, input) => handlers.conversationsSwitchThread(input));
+  ipcMain.handle(IPC_CHANNELS.conversationsRenameThread, (_event, input) => handlers.conversationsRenameThread(input));
+  ipcMain.handle(IPC_CHANNELS.conversationsArchiveThread, (_event, input) => handlers.conversationsArchiveThread(input));
+  ipcMain.handle(IPC_CHANNELS.conversationsRestoreThread, (_event, input) => handlers.conversationsRestoreThread(input));
+  ipcMain.handle(IPC_CHANNELS.conversationsSendMessage, (_event, input) => handlers.conversationsSendMessage(input));
+  ipcMain.handle(IPC_CHANNELS.conversationsSaveComposer, (_event, input) => handlers.conversationsSaveComposer(input));
+  ipcMain.handle(IPC_CHANNELS.conversationsSaveDraft, (_event, input) => handlers.conversationsSaveDraft(input));
   ipcMain.handle(IPC_CHANNELS.officeThemeGet, () => handlers.officeThemeGet());
   ipcMain.handle(IPC_CHANNELS.officeThemeSet, (_event, theme) => handlers.officeThemeSet(theme));
   ipcMain.handle(IPC_CHANNELS.timelineReplay, (_event, input) => handlers.timelineReplay(input));
@@ -97,6 +106,7 @@ export const registerIpcHandlers = (handlers: IpcHandlers): void => {
   ipcMain.handle(IPC_CHANNELS.settingsGet, () => handlers.settingsGet());
   ipcMain.handle(IPC_CHANNELS.settingsUpdate, (_event, patch) => handlers.settingsUpdate(patch));
   ipcMain.handle(IPC_CHANNELS.permissionsGetRequest, (_event, requestId) => handlers.permissionsGetRequest(requestId));
+  ipcMain.handle(IPC_CHANNELS.permissionsGetPendingForAgent, (_event, agentId) => handlers.permissionsGetPendingForAgent(agentId));
   ipcMain.handle(IPC_CHANNELS.permissionsDecide, (_event, input) => handlers.permissionsDecide(input));
   ipcMain.handle(IPC_CHANNELS.permissionsListRules, (_event, projectPath) => handlers.permissionsListRules(projectPath));
   ipcMain.handle(IPC_CHANNELS.permissionsRevokeRule, (_event, ruleId) => handlers.permissionsRevokeRule(ruleId));

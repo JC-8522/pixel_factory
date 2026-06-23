@@ -32,6 +32,30 @@ const createMockRuntimeEventId = (scope: string, sequence: number): string =>
 
 const countTokens = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
 
+const summarizeTargetFile = (session: MockSession, input: SendRuntimeMessageInput): string => {
+  if (/workspace/i.test(input.message)) {
+    return `${session.workingDirectory}/workspace-notes.md`;
+  }
+
+  if (/progress|summary|risk/i.test(input.message)) {
+    return `${session.workingDirectory}/run-summary.md`;
+  }
+
+  return `${session.workingDirectory}/agent-output.md`;
+};
+
+const summarizeInspectionCommand = (session: MockSession, input: SendRuntimeMessageInput): string => {
+  if (/workspace/i.test(input.message)) {
+    return `rg --files ${session.workingDirectory}`;
+  }
+
+  if (/risk|summary|progress/i.test(input.message)) {
+    return `rg -n "TODO|FIXME|risk" ${session.workingDirectory}`;
+  }
+
+  return `rg -n "function|export|class" ${session.workingDirectory}`;
+};
+
 const splitResponse = (response: string): string[] => {
   const words = response.split(/(\s+)/).filter((chunk) => chunk.length > 0);
   const chunks: string[] = [];
@@ -92,8 +116,33 @@ export class MockAgentRuntime implements AgentRuntime {
   async sendMessage(input: SendRuntimeMessageInput): Promise<void> {
     const session = this.requireSession(input.sessionId);
     session.stopped = false;
+    const inspectionCommand = summarizeInspectionCommand(session, input);
+    const targetFile = summarizeTargetFile(session, input);
 
     await this.emit({ type: "status_changed", agentId: input.agentId, sessionId: input.sessionId, status: "thinking" });
+    await this.emit({ type: "status_changed", agentId: input.agentId, sessionId: input.sessionId, status: "reading_files" });
+    await this.emit({ type: "status_changed", agentId: input.agentId, sessionId: input.sessionId, status: "running_command" });
+    await this.emit({
+      type: "command_started",
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      command: inspectionCommand
+    });
+    await this.emit({
+      type: "command_completed",
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      command: inspectionCommand,
+      exitCode: 0
+    });
+    await this.emit({ type: "status_changed", agentId: input.agentId, sessionId: input.sessionId, status: "editing_files" });
+    await this.emit({
+      type: "file_touched",
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      path: targetFile,
+      action: "updated"
+    });
 
     const response = this.responseFactory(input.message, input);
     for (const chunk of splitResponse(response)) {

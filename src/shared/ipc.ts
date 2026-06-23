@@ -1,6 +1,11 @@
 import type { AppInfo } from "./types/app";
 import type { AgentRuntimeEvent } from "./types/agent";
-import type { ConversationFlowRule } from "./types/conversation";
+import type {
+  ConversationAttachmentRef,
+  ConversationComposerContext,
+  ConversationFlowRule,
+  ConversationThreadView
+} from "./types/conversation";
 import type {
   AgentRecord,
   AgentProfileRecord,
@@ -78,12 +83,22 @@ export const IPC_CHANNELS = {
   workspacesCreate: "workspaces:create",
   workspacesSelect: "workspaces:select",
   workspacesGetActive: "workspaces:get-active",
+  conversationsGetThread: "conversations:get-thread",
+  conversationsCreateThread: "conversations:create-thread",
+  conversationsSwitchThread: "conversations:switch-thread",
+  conversationsRenameThread: "conversations:rename-thread",
+  conversationsArchiveThread: "conversations:archive-thread",
+  conversationsRestoreThread: "conversations:restore-thread",
+  conversationsSendMessage: "conversations:send-message",
+  conversationsSaveComposer: "conversations:save-composer",
+  conversationsSaveDraft: "conversations:save-draft",
   officeThemeGet: "office-theme:get",
   officeThemeSet: "office-theme:set",
   timelineReplay: "timeline:replay",
   settingsGet: "settings:get",
   settingsUpdate: "settings:update",
   permissionsGetRequest: "permissions:get-request",
+  permissionsGetPendingForAgent: "permissions:get-pending-for-agent",
   permissionsDecide: "permissions:decide",
   permissionsListRules: "permissions:list-rules",
   permissionsRevokeRule: "permissions:revoke-rule",
@@ -329,6 +344,46 @@ export type CreateProjectWorkspaceRequest = {
   rootPath: string;
 };
 
+export type ConversationSendMessageRequest = {
+  agentId: string;
+  threadId?: string;
+  content: string;
+  attachments?: ConversationAttachmentRef[];
+  composer: ConversationComposerContext;
+};
+
+export type ConversationSaveComposerRequest = {
+  agentId: string;
+  threadId?: string;
+  composer: ConversationComposerContext;
+};
+
+export type ConversationSaveDraftRequest = {
+  agentId: string;
+  threadId?: string;
+  draft: string;
+};
+
+export type ConversationSwitchThreadRequest = {
+  agentId: string;
+  threadId: string;
+};
+
+export type ConversationRenameThreadRequest = {
+  agentId: string;
+  threadId: string;
+  title: string;
+};
+
+export type ConversationArchiveThreadRequest = {
+  agentId: string;
+  threadId: string;
+};
+
+export type ConversationSendMessageResult =
+  | { status: "sent"; thread: ConversationThreadView }
+  | { status: "permission_required"; requestId: string; thread: ConversationThreadView };
+
 export type OfficeTheme = "default" | "forest" | "focus";
 
 export type V2IntegrationStatus = {
@@ -469,6 +524,17 @@ export type CodexOfficeApi = {
     select(workspaceId: string): Promise<ProjectWorkspace>;
     getActive(): Promise<string>;
   };
+  conversations: {
+    getThread(agentId: string): Promise<ConversationThreadView>;
+    createThread(agentId: string): Promise<ConversationThreadView>;
+    switchThread(input: ConversationSwitchThreadRequest): Promise<ConversationThreadView>;
+    renameThread(input: ConversationRenameThreadRequest): Promise<ConversationThreadView>;
+    archiveThread(input: ConversationArchiveThreadRequest): Promise<ConversationThreadView>;
+    restoreThread(input: ConversationArchiveThreadRequest): Promise<ConversationThreadView>;
+    sendMessage(input: ConversationSendMessageRequest): Promise<ConversationSendMessageResult>;
+    saveComposer(input: ConversationSaveComposerRequest): Promise<ConversationComposerContext>;
+    saveDraft(input: ConversationSaveDraftRequest): Promise<string>;
+  };
   officeTheme: {
     get(): Promise<OfficeTheme>;
     set(theme: OfficeTheme): Promise<OfficeTheme>;
@@ -482,6 +548,7 @@ export type CodexOfficeApi = {
   };
   permissions: {
     getRequest(requestId: string): Promise<PermissionRequestRecord | null>;
+    getPendingForAgent(agentId: string): Promise<PermissionRequestRecord | null>;
     decide(input: PermissionDecisionInput): Promise<PermissionDecisionResult>;
     listRules(projectPath?: string): Promise<PermissionRuleRecord[]>;
     revokeRule(ruleId: string): Promise<PermissionRuleRecord | null>;

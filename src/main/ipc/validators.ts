@@ -5,6 +5,12 @@ import type {
   CreateAgentRequest,
   CreateAgentProfileRequest,
   CreateMeetingRequest,
+  ConversationArchiveThreadRequest,
+  ConversationRenameThreadRequest,
+  ConversationSaveComposerRequest,
+  ConversationSaveDraftRequest,
+  ConversationSendMessageRequest,
+  ConversationSwitchThreadRequest,
   CreateMessageRequest,
   CreateWorkstationRequest,
   CreateTaskRequest,
@@ -46,6 +52,7 @@ const agentStatuses = [
 
 const taskStatuses = ["backlog", "assigned", "in_progress", "waiting_review", "done", "failed"] as const;
 const messageRoles = ["user", "agent", "system", "tool", "moderator"] as const;
+const composerModes = ["local", "attached"] as const;
 
 const optionalJsonObject = (value: unknown, label: string): Record<string, unknown> | undefined => {
   if (value === undefined) {
@@ -233,6 +240,86 @@ export const validateCreateMessage = (value: unknown): CreateMessageRequest => {
     streamState: optionalString(input.streamState, "stream state") ?? "complete",
     parentMessageId: optionalString(input.parentMessageId, "parent message id"),
     metadata: optionalJsonObject(input.metadata, "metadata")
+  };
+};
+
+export const validateConversationSendMessage = (value: unknown): ConversationSendMessageRequest => {
+  const input = assertRecord(value, "conversation send message input");
+  const composer = assertRecord(input.composer, "conversation composer");
+
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    threadId: optionalString(input.threadId, "thread id") ?? undefined,
+    content: assertNonEmptyString(input.content, "message content"),
+    attachments: optionalJsonArray(input.attachments, "attachments") as ConversationSendMessageRequest["attachments"],
+    composer: {
+      workspaceId: assertNonEmptyString(composer.workspaceId, "workspace id"),
+      workspaceRoot: assertNonEmptyString(composer.workspaceRoot, "workspace root"),
+      mode: assertStringEnum(composer.mode, "composer mode", composerModes),
+      branch: assertNonEmptyString(composer.branch, "branch"),
+      profileId: optionalString(composer.profileId, "profile id"),
+      profileLabel: optionalString(composer.profileLabel, "profile label"),
+      modelProfile: assertNonEmptyString(composer.modelProfile, "model profile"),
+      approvalMode: assertNonEmptyString(composer.approvalMode, "approval mode")
+    }
+  };
+};
+
+export const validateConversationSaveComposer = (value: unknown): ConversationSaveComposerRequest => {
+  const input = assertRecord(value, "conversation save composer input");
+  const composer = assertRecord(input.composer, "conversation composer");
+
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    threadId: optionalString(input.threadId, "thread id") ?? undefined,
+    composer: {
+      workspaceId: assertNonEmptyString(composer.workspaceId, "workspace id"),
+      workspaceRoot: assertNonEmptyString(composer.workspaceRoot, "workspace root"),
+      mode: assertStringEnum(composer.mode, "composer mode", composerModes),
+      branch: assertNonEmptyString(composer.branch, "branch"),
+      profileId: optionalString(composer.profileId, "profile id"),
+      profileLabel: optionalString(composer.profileLabel, "profile label"),
+      modelProfile: assertNonEmptyString(composer.modelProfile, "model profile"),
+      approvalMode: assertNonEmptyString(composer.approvalMode, "approval mode")
+    }
+  };
+};
+
+export const validateConversationSaveDraft = (value: unknown): ConversationSaveDraftRequest => {
+  const input = assertRecord(value, "conversation save draft input");
+
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    threadId: optionalString(input.threadId, "thread id") ?? undefined,
+    draft: optionalString(input.draft, "draft") ?? ""
+  };
+};
+
+export const validateConversationSwitchThread = (value: unknown): ConversationSwitchThreadRequest => {
+  const input = assertRecord(value, "conversation switch thread input");
+
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    threadId: assertNonEmptyString(input.threadId, "thread id")
+  };
+};
+
+export const validateConversationRenameThread = (value: unknown): ConversationRenameThreadRequest => {
+  const input = assertRecord(value, "conversation rename thread input");
+
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    threadId: assertNonEmptyString(input.threadId, "thread id"),
+    title: assertNonEmptyString(input.title, "thread title")
+  };
+};
+
+export const validateConversationArchiveThread = (value: unknown): ConversationArchiveThreadRequest => {
+  const input = assertRecord(value, "conversation archive thread input");
+
+  return {
+    agentId: assertNonEmptyString(input.agentId, "agent id"),
+    threadId: assertNonEmptyString(input.threadId, "thread id")
   };
 };
 

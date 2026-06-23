@@ -12,7 +12,7 @@ export const validateCreateAgentForm = (form: CreateAgentFormState): CreateAgent
   const errors: CreateAgentFormErrors = {};
 
   if (!form.name.trim()) {
-    errors.name = "AI employee name is required.";
+    errors.name = "Agent name is required.";
   }
 
   if (!form.role.trim()) {
@@ -28,7 +28,7 @@ export const validateCreateAgentForm = (form: CreateAgentFormState): CreateAgent
   }
 
   if (!form.initialTask.trim()) {
-    errors.initialTask = "Initial brief is required so the AI employee has a first session.";
+    errors.initialTask = "Initial brief is required so the agent has a first run.";
   }
 
   return errors;

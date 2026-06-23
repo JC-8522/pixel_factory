@@ -12,7 +12,7 @@ import {
 
 const summarizeAgentPreview = (value: string | null | undefined, max = 72): string => {
   if (!value) {
-    return "Conversation ready.";
+    return "Thread workspace ready.";
   }
 
   const compact = value.replace(/\s+/g, " ").trim();
@@ -58,7 +58,7 @@ export function OfficeCanvas({
               ? spriteSheetStyle(agentSheetUrl, agentFrameIndex(assignedAgent.status))
               : spriteSheetStyle(workstationSheetUrl, workstationFrameIndex(isHovered, isSelected));
             const helperText = assignedAgent
-              ? `${assignedAgent.name}\n${conversationPreviews[assignedAgent.id] ?? assignedAgent.current_task ?? "Open conversation"}`
+              ? `${assignedAgent.name}\n${conversationPreviews[assignedAgent.id] ?? assignedAgent.current_task ?? "Open workspace"}`
               : "Empty Workstation\nClick to create";
 
             return (

@@ -88,6 +88,17 @@ const api: CodexOfficeApi = {
     select: (workspaceId) => invoke(IPC_CHANNELS.workspacesSelect, workspaceId),
     getActive: () => invoke(IPC_CHANNELS.workspacesGetActive)
   },
+  conversations: {
+    getThread: (agentId) => invoke(IPC_CHANNELS.conversationsGetThread, agentId),
+    createThread: (agentId) => invoke(IPC_CHANNELS.conversationsCreateThread, agentId),
+    switchThread: (input) => invoke(IPC_CHANNELS.conversationsSwitchThread, input),
+    renameThread: (input) => invoke(IPC_CHANNELS.conversationsRenameThread, input),
+    archiveThread: (input) => invoke(IPC_CHANNELS.conversationsArchiveThread, input),
+    restoreThread: (input) => invoke(IPC_CHANNELS.conversationsRestoreThread, input),
+    sendMessage: (input) => invoke(IPC_CHANNELS.conversationsSendMessage, input),
+    saveComposer: (input) => invoke(IPC_CHANNELS.conversationsSaveComposer, input),
+    saveDraft: (input) => invoke(IPC_CHANNELS.conversationsSaveDraft, input)
+  },
   officeTheme: {
     get: () => invoke(IPC_CHANNELS.officeThemeGet),
     set: (theme) => invoke(IPC_CHANNELS.officeThemeSet, theme)
@@ -101,6 +112,7 @@ const api: CodexOfficeApi = {
   },
   permissions: {
     getRequest: (requestId) => invoke(IPC_CHANNELS.permissionsGetRequest, requestId),
+    getPendingForAgent: (agentId) => invoke(IPC_CHANNELS.permissionsGetPendingForAgent, agentId),
     decide: (input) => invoke(IPC_CHANNELS.permissionsDecide, input),
     listRules: (projectPath) => invoke(IPC_CHANNELS.permissionsListRules, projectPath),
     revokeRule: (ruleId) => invoke(IPC_CHANNELS.permissionsRevokeRule, ruleId)

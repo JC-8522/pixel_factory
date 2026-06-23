@@ -10,10 +10,10 @@ const prompts = [
   "Say exactly: dual loop one complete.",
   "Say exactly: dual loop two complete."
 ];
-const confirmationButtonLabels = ["Open AI Employee", "Create Agent"];
-const submitButtonLabels = ["Create AI Employee", "Create agent"];
-const deleteButtonLabels = ["Remove AI Employee", "Delete Agent"];
-const agentNameLabels = ["AI employee name", "Agent name"];
+const confirmationButtonLabels = ["Set Up Workspace", "Create Agent"];
+const submitButtonLabels = ["Create Agent", "Create agent"];
+const deleteButtonLabels = ["Remove agent", "Delete Agent"];
+const agentNameLabels = ["Agent name", "AI employee name"];
 const initialBriefLabels = ["Initial brief", "Initial task"];
 
 const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
@@ -116,7 +116,8 @@ const clickButtonByText = async (text) => {
     if (!target) {
       throw new Error('Button not found: ' + ${JSON.stringify(text)});
     }
-    target.click();
+    target.focus();
+    setTimeout(() => target.click(), 0);
     return true;
   })()`);
 };
